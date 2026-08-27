@@ -6,16 +6,19 @@
     "#/*": "./src/*"
   },
   "scripts": {
+    "build": "vite build",
+    "check": "npm run typecheck && npm run test",
+    "deploy:convex": "convex deploy",
     "dev": "vite dev",
     "generate-routes": "tsr generate",
-    "build": "vite build",
-    "start": "node server.mjs",
+    "paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+    "pretest": "npm run paraglide",
+    "pretypecheck": "npm run paraglide",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "start": "node server.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run typecheck && npm run test",
-    "deploy:convex": "convex deploy"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clerk/localizations": "^4.15.7",
