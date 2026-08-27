@@ -3,6 +3,7 @@ import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { CICLO_ACTUAL, CIERRE_MS, ventanaAbierta } from './lib/ciclo'
 import { exigirAdmin, exigirUsuario, usuarioActual } from './users'
+import type { Doc } from './_generated/dataModel'
 import { vRama } from './schema'
 
 /**
@@ -42,6 +43,67 @@ const vDatosRegistro = v.object({
 })
 
 const LIMITE_CARTA = 3000
+
+/** Topes del borrador. Generosos: están para acotar, no para validar. */
+const LIMITE_CAMPO = 500
+const LIMITE_FILAS = 60
+
+/**
+ * Los campos del registro que de verdad son datos, sin la metadata (`estado`,
+ * `actualizadoEn`, etc.). Es lo que se compara para decidir si hay algo que
+ * escribir.
+ */
+const CAMPOS_DE_DATOS = [
+  'persona',
+  'academico',
+  'deportivo',
+  'resultados',
+  'rankings',
+  'calendario',
+  'cartaMotivos',
+  'confirmaciones',
+] as const
+
+function sinCambios(
+  existente: Doc<'registros'>,
+  datos: typeof vDatosRegistro.type,
+): boolean {
+  return CAMPOS_DE_DATOS.every(
+    (campo) => JSON.stringify(existente[campo]) === JSON.stringify(datos[campo]),
+  )
+}
+
+/**
+ * Un borrador no pasa por `validar`, así que sin esto se podría guardar un
+ * documento arbitrariamente grande hasta toparse con el límite de 1 MB de
+ * Convex — y el error saldría como una falla opaca a media captura.
+ */
+function exigirTamanosRazonables(datos: typeof vDatosRegistro.type) {
+  if (datos.cartaMotivos.length > LIMITE_CARTA) {
+    throw new Error(`La carta excede el máximo de ${LIMITE_CARTA} caracteres.`)
+  }
+  if (
+    datos.resultados.length > LIMITE_FILAS ||
+    datos.rankings.length > LIMITE_FILAS ||
+    datos.calendario.length > LIMITE_FILAS
+  ) {
+    throw new Error(`No se pueden registrar más de ${LIMITE_FILAS} renglones por sección.`)
+  }
+
+  const textos = [
+    ...Object.values(datos.persona),
+    ...Object.values(datos.academico),
+    ...Object.values(datos.deportivo),
+    ...datos.resultados.flatMap((r) => [r.torneo, r.resultado]),
+    ...datos.rankings.flatMap((r) => [r.nombre, r.posicion]),
+    ...datos.calendario.flatMap((c) => [c.evento, c.fecha]),
+  ]
+  for (const t of textos) {
+    if (typeof t === 'string' && t.length > LIMITE_CAMPO) {
+      throw new Error(`Hay un campo con más de ${LIMITE_CAMPO} caracteres.`)
+    }
+  }
+}
 
 /** Congelado tras el cierre de la ventana. Vale para borrador y para enviado. */
 function exigirVentanaAbierta() {
@@ -104,12 +166,17 @@ export const mio = query({
   },
 })
 
-/** Autoguardado del borrador. No valida: es un borrador. */
+/**
+ * Autoguardado del borrador. No valida los campos: es un borrador. Sí acota los
+ * tamaños, porque un documento de Convex tiene un tope de 1 MB y esto se
+ * escribe sin pasar por `validar`.
+ */
 export const guardarBorrador = mutation({
   args: { datos: vDatosRegistro },
   handler: async (ctx, args) => {
     const user = await exigirUsuario(ctx)
     exigirVentanaAbierta()
+    exigirTamanosRazonables(args.datos)
 
     const existente = await ctx.db
       .query('registros')
@@ -122,6 +189,16 @@ export const guardarBorrador = mutation({
       if (existente.estado === 'validado' || existente.estado === 'rechazado') {
         throw new Error('Tu registro ya fue revisado y no se puede editar.')
       }
+
+      // Sin cambios, sin escritura.
+      //
+      // No es solo ahorro: `actualizadoEn` cambia el documento, eso invalida la
+      // query reactiva que alimenta la pantalla, la pantalla se vuelve a
+      // renderizar y el autoguardado se vuelve a disparar. El cliente ya corta
+      // ese ciclo; esto lo corta también aquí, para que una pestaña vieja o un
+      // cliente con un bug no puedan reabrirlo.
+      if (sinCambios(existente, args.datos)) return existente._id
+
       await ctx.db.patch(existente._id, { ...args.datos, actualizadoEn: ahora })
       return existente._id
     }
@@ -148,6 +225,7 @@ export const enviar = mutation({
   handler: async (ctx, args) => {
     const user = await exigirUsuario(ctx)
     exigirVentanaAbierta()
+    exigirTamanosRazonables(args.datos)
 
     const errores = validar(args.datos)
     if (errores.length > 0) return { ok: false as const, errores }
@@ -183,8 +261,12 @@ export const enviar = mutation({
         .withIndex('by_user_ciclo', (q) => q.eq('userId', user._id).eq('ciclo', CICLO_ACTUAL))
         .unique()
 
+      // Va al correo de la CUENTA, que Clerk ya verificó — no al que se
+      // escribió en el formulario. Si fuera al del formulario, cualquier
+      // persona con sesión podría hacer que registro@xuntas.org le mande un
+      // correo a la dirección que quisiera.
       await ctx.scheduler.runAfter(0, internal.emails.enviarConfirmacionAtleta, {
-        para: args.datos.persona.email,
+        para: user.email,
         nombre: args.datos.persona.nombre,
         faltaTutor: tutor !== null && tutor.confirmadoEn === undefined,
       })

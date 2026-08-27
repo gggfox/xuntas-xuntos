@@ -1,7 +1,7 @@
 import { Show, useUser } from '@clerk/tanstack-react-start'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
 import FormularioRegistro from '../components/FormularioRegistro'
@@ -37,6 +37,26 @@ function Panel() {
   const mio = useQuery(api.registros.mio)
   const guardarBorrador = useMutation(api.registros.guardarBorrador)
   const enviarRegistro = useMutation(api.registros.enviar)
+
+  /**
+   * Estables a propósito. Estas dos van como dependencias del efecto de
+   * autoguardado; si se recrearan en cada render, cada escritura reiniciaría el
+   * temporizador y el formulario se guardaría solo, en ciclo.
+   */
+  const alGuardarBorrador = useCallback(
+    (d: DatosRegistro) => {
+      void guardarBorrador({ datos: paraEnviar(d) })
+    },
+    [guardarBorrador],
+  )
+
+  const alEnviar = useCallback(
+    async (d: DatosRegistro) => {
+      const r = await enviarRegistro({ datos: paraEnviar(d) })
+      return r.ok ? [] : r.errores
+    },
+    [enviarRegistro],
+  )
 
   // Convex devuelve undefined mientras la consulta viaja.
   if (estado === undefined || mio === undefined) {
@@ -83,13 +103,8 @@ function Panel() {
           inicial={inicial}
           editable={mio.editable}
           yaEnviado={yaEnviado}
-          onGuardarBorrador={(d) => {
-            void guardarBorrador({ datos: paraEnviar(d) })
-          }}
-          onEnviar={async (d) => {
-            const r = await enviarRegistro({ datos: paraEnviar(d) })
-            return r.ok ? [] : r.errores
-          }}
+          onGuardarBorrador={alGuardarBorrador}
+          onEnviar={alEnviar}
         />
       </div>
     </main>

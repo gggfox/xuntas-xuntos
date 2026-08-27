@@ -32,17 +32,32 @@ export default function FormularioRegistro({
   const [datos, setDatos] = useState<DatosRegistro>(inicial)
   const [errores, setErrores] = useState<string[]>([])
   const [enviando, setEnviando] = useState(false)
-  const primerRender = useRef(true)
 
-  // Autoguardado. Un formulario de ocho apartados con una carta de una cuartilla
-  // no puede perderse porque se cayó el wifi en el club.
+  /**
+   * Huella de lo último que se mandó a guardar. Arranca con lo que vino del
+   * servidor, así que abrir el formulario y no tocar nada no guarda nada.
+   */
+  const ultimoGuardado = useRef(JSON.stringify(inicial))
+
+  /**
+   * Autoguardado. Un formulario de ocho apartados con una carta de una
+   * cuartilla no puede perderse porque se cayó el wifi en el club.
+   *
+   * La comparación con `ultimoGuardado` no es una optimización, es lo que corta
+   * un ciclo: guardar cambia `actualizadoEn`, eso invalida la query reactiva
+   * que alimenta esta pantalla, el padre se vuelve a renderizar y el efecto se
+   * vuelve a disparar. Sin este corte, cada pestaña abierta escribía en Convex
+   * cada 1.2 s para siempre, aunque nadie estuviera escribiendo.
+   */
   useEffect(() => {
-    if (primerRender.current) {
-      primerRender.current = false
-      return
-    }
     if (!editable) return
-    const t = setTimeout(() => onGuardarBorrador(datos), 1200)
+    const huella = JSON.stringify(datos)
+    if (huella === ultimoGuardado.current) return
+
+    const t = setTimeout(() => {
+      ultimoGuardado.current = huella
+      onGuardarBorrador(datos)
+    }, 1200)
     return () => clearTimeout(t)
   }, [datos, editable, onGuardarBorrador])
 

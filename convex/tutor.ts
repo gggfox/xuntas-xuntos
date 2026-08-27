@@ -3,9 +3,18 @@ import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { CICLO_ACTUAL, CIERRE_MS } from './lib/ciclo'
 import { exigirUsuario, nuevoToken } from './users'
+import { correoValido } from './lib/html'
 
 /** Espera mínima entre reenvíos, para no quemar la reputación del dominio. */
 const ESPERA_REENVIO_MS = 5 * 60 * 1000
+
+/**
+ * Tope duro de correos al tutor por ciclo. Un tutor que no contesta después de
+ * diez intentos no es un problema de entrega: lo resuelve una persona.
+ */
+const MAX_ENVIOS = 10
+
+const LIMITE_NOMBRE = 120
 
 /**
  * Resuelve el token del enlace del correo. Pública a propósito: quien lo abre
@@ -78,6 +87,9 @@ export const reenviar = mutation({
     if (ahora - auth.enviadoEn < ESPERA_REENVIO_MS) {
       return { ok: false as const, motivo: 'espera' as const, disponibleEn: auth.enviadoEn + ESPERA_REENVIO_MS }
     }
+    if (auth.vecesEnviado >= MAX_ENVIOS) {
+      return { ok: false as const, motivo: 'demasiados' as const }
+    }
 
     // Token nuevo en cada reenvío: el anterior deja de servir.
     const token = nuevoToken()
@@ -100,11 +112,24 @@ export const reenviar = mutation({
   },
 })
 
-/** El atleta corrige el correo del tutor (se escribió mal, rebotó, etc.). */
+/**
+ * El atleta corrige el correo del tutor (se escribió mal, rebotó, etc.).
+ *
+ * Lleva el mismo freno que `reenviar`. Sin él, esta mutation era un modo de
+ * mandar correos ilimitados desde el dominio de XUNTAS a cualquier dirección:
+ * basta con cambiar el correo del tutor una y otra vez.
+ */
 export const corregirCorreoTutor = mutation({
   args: { tutorNombre: v.string(), tutorEmail: v.string() },
   handler: async (ctx, args) => {
     const user = await exigirUsuario(ctx)
+
+    const tutorNombre = args.tutorNombre.trim()
+    const tutorEmail = args.tutorEmail.trim().toLowerCase()
+
+    if (!tutorNombre) throw new Error('Escribe el nombre de tu tutor.')
+    if (tutorNombre.length > LIMITE_NOMBRE) throw new Error('El nombre es demasiado largo.')
+    if (!correoValido(tutorEmail)) throw new Error('Escribe un correo válido para tu tutor.')
 
     const auth = await ctx.db
       .query('tutorAuth')
@@ -114,24 +139,39 @@ export const corregirCorreoTutor = mutation({
     if (!auth) throw new Error('Esta cuenta no requiere autorización de tutor.')
     if (auth.confirmadoEn !== undefined) throw new Error('La autorización ya fue confirmada.')
 
+    const ahora = Date.now()
+    const sinCambio = auth.tutorEmail === tutorEmail && auth.tutorNombre === tutorNombre
+
+    // Corregir a los mismos datos es un reenvío disfrazado: mismo freno.
+    if (sinCambio && ahora - auth.enviadoEn < ESPERA_REENVIO_MS) {
+      return {
+        ok: false as const,
+        motivo: 'espera' as const,
+        disponibleEn: auth.enviadoEn + ESPERA_REENVIO_MS,
+      }
+    }
+    if (auth.vecesEnviado >= MAX_ENVIOS) {
+      return { ok: false as const, motivo: 'demasiados' as const }
+    }
+
     const token = nuevoToken()
     await ctx.db.patch(auth._id, {
-      tutorNombre: args.tutorNombre.trim(),
-      tutorEmail: args.tutorEmail.trim().toLowerCase(),
+      tutorNombre,
+      tutorEmail,
       token,
       expiraEn: CIERRE_MS,
-      enviadoEn: Date.now(),
+      enviadoEn: ahora,
       vecesEnviado: auth.vecesEnviado + 1,
     })
 
     await ctx.scheduler.runAfter(0, internal.emails.enviarAutorizacionTutor, {
-      para: args.tutorEmail.trim().toLowerCase(),
-      tutorNombre: args.tutorNombre.trim(),
+      para: tutorEmail,
+      tutorNombre,
       atletaNombre: user.nombre ?? user.email,
       token,
       esReenvio: false,
     })
 
-    return { ok: true as const }
+    return { ok: true as const, motivo: 'enviado' as const }
   },
 })
