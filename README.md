@@ -176,7 +176,7 @@ Secretos necesarios (Settings → Secrets and variables → Actions):
 | Secreto | Para |
 |---|---|
 | `CONVEX_PROD_DEPLOY_KEY` | `release.yml` y `convex-production.yml` |
-| `CONVEX_STAGING_DEPLOY_KEY` | `ci-main.yml` |
+| `CONVEX_STAGING_DEPLOY_KEY` | `ci-main.yml` — **todavía no existe**; mientras falte, el paso de Convex staging se salta con un aviso y la cadena sigue |
 
 Un merge a `production` dispara **dos** despliegues independientes:
 

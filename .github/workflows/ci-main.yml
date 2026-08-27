@@ -50,6 +50,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Se expone como env para poder preguntar por él en un `if`: el contexto
+    # `secrets` no está disponible en las condiciones de un step, el de `env`
+    # sí.
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_STAGING_DEPLOY_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,10 +71,26 @@ jobs:
 
       # Convex primero y la rama después: el esquema nuevo tiene que estar
       # arriba antes de que Dokploy levante el frontend que lo consulta.
+      #
+      # TEMPORAL — todavía no existe el deployment de Convex de staging ni su
+      # deploy key. Mientras falte el secreto este paso se salta en lugar de
+      # tumbar el workflow, para que la cadena main → staging funcione desde
+      # ya. No es `continue-on-error`: eso dejaría el job en amarillo y con el
+      # tiempo nadie lo miraría; saltarlo explícito deja un aviso en el resumen
+      # del run.
+      #
+      # Para cerrarlo: crear el deployment de staging en Convex, generar la
+      # key (`npx convex deployment token create ci-token`) y guardarla como
+      # CONVEX_STAGING_DEPLOY_KEY. El paso se activa solo, sin tocar el YAML.
       - name: Desplegar a Convex staging
+        if: env.CONVEX_DEPLOY_KEY != ''
         run: npx convex deploy
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_STAGING_DEPLOY_KEY }}
+
+      - name: Aviso — Convex staging sin configurar
+        if: env.CONVEX_DEPLOY_KEY == ''
+        run: |
+          echo "::warning title=Convex staging sin desplegar::Falta el secreto CONVEX_STAGING_DEPLOY_KEY, así que se saltó el despliegue del backend. El contenedor de staging sí se va a construir, pero apuntando a los placeholders REEMPLAZAR_* — va a responder errores hasta que se carguen los valores reales."
+
 
       # Fast-forward, sin --force. Si `staging` divergió de `main` esto falla,
       # y falla bien: significa que alguien commiteó directo a staging y hay
