@@ -128,5 +128,7 @@
   "cuenta_cerrada_texto": "La Convocatoria General 2026–2027 abre el 4 de septiembre de 2026.",
   "sync_titulo": "Estamos preparando tu cuenta",
   "sync_texto": "Tarda unos segundos. Esta pantalla se actualiza sola en cuanto quede lista; no hace falta recargar.",
-  "sync_ayuda": "Si después de un minuto sigues viendo esto, escríbenos y lo resolvemos."
+  "sync_ayuda": "Si después de un minuto sigues viendo esto, escríbenos y lo resolvemos.",
+  "edad_falta_texto": "Tu cuenta quedó sin fecha de nacimiento. La necesitamos antes de que puedas enviar tu registro: de ella depende si hace falta la autorización de tu padre, madre o tutor.",
+  "tutor_demasiados": "Ya se enviaron demasiados correos a tu tutor. Escríbenos a hola@xuntas.org y lo resolvemos contigo."
 }

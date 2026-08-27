@@ -94,10 +94,17 @@ http.route({
           nombre: nombreCompleto(evento.data),
           emailVerificado: verificado,
           role: rol(evento.data),
-          // Los deja el filtro de edad al momento del alta.
-          fechaNacimiento: texto(meta.fechaNacimiento),
-          tutorNombre: texto(meta.tutorNombre),
-          tutorEmail: texto(meta.tutorEmail)?.toLowerCase(),
+          /**
+           * Lo ÚNICO que se lee de `unsafeMetadata`, y a propósito: es una
+           * referencia opaca a la pre-alta que el servidor ya resolvió.
+           *
+           * `unsafeMetadata` la puede escribir el cliente en cualquier momento.
+           * Antes por aquí venían la fecha de nacimiento y el correo del tutor,
+           * así que bastaba con editarla para declararse mayor de edad y
+           * saltarse la autorización. Ahora lo peor que se puede hacer es
+           * apuntar a otra pre-alta propia, que también calculó el servidor.
+           */
+          preAltaToken: texto(meta.preAltaToken),
         })
         break
       }

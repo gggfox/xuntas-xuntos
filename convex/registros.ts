@@ -227,6 +227,20 @@ export const enviar = mutation({
     exigirVentanaAbierta()
     exigirTamanosRazonables(args.datos)
 
+    /**
+     * Sin fecha de nacimiento no se envía. Es el respaldo del filtro de edad:
+     * si la cuenta se creó sin pre-alta válida, no sabemos si hace falta la
+     * autorización de un tutor, y un registro de una persona menor sin ese
+     * consentimiento no debe entrar. La pantalla ya pide la fecha antes de
+     * llegar aquí; esto existe por si alguien llama a la mutation directo.
+     */
+    if (user.fechaNacimiento === undefined) {
+      return {
+        ok: false as const,
+        errores: ['Antes de enviar tu registro necesitamos tu fecha de nacimiento.'],
+      }
+    }
+
     const errores = validar(args.datos)
     if (errores.length > 0) return { ok: false as const, errores }
 

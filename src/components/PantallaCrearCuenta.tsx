@@ -1,23 +1,39 @@
 import { SignUp } from '@clerk/tanstack-react-start'
-import { Link } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import * as m from '../paraglide/messages.js'
 import { getLocale } from '../paraglide/runtime.js'
-import { leerPreAlta, type PreAlta } from '../lib/preAlta'
+import { leerTokenPreAlta } from '../lib/preAlta'
 import { aparienciaClerk } from '../lib/clerkApariencia'
 
 export default function PantallaCrearCuenta() {
-  const [preAlta, setPreAlta] = useState<PreAlta | null | undefined>(undefined)
+  const [token, setToken] = useState<string | null | undefined>(undefined)
+  const { pathname } = useLocation()
 
   // sessionStorage no existe en el servidor; se lee tras hidratar.
-  useEffect(() => setPreAlta(leerPreAlta()), [])
+  useEffect(() => setToken(leerTokenPreAlta()), [])
 
-  if (preAlta === undefined) {
+  /**
+   * ¿Estamos en un paso interno de Clerk (verificación por código, regreso de
+   * Google) y no en la pantalla inicial?
+   *
+   * Importa: si el alta ya va a medias, hay que montar `<SignUp>` aunque no
+   * haya token. Antes no se hacía, y quien entraba por Google y volvía sin el
+   * sessionStorage aterrizaba en "vuelve a /empezar" en vez de en el callback
+   * de Clerk: el alta quedaba colgada sin manera de terminarla.
+   *
+   * Que falte el token ya no es grave: la cuenta se crea sin fecha de
+   * nacimiento y `/mi-registro` la pide antes de dejar enviar nada.
+   */
+  const enPasoDeClerk = /\/crear-cuenta\/.+/.test(pathname)
+
+  if (token === undefined) {
     return <main className="mx-auto max-w-[560px] px-[22px] py-16 text-soft">{m.comun_cargando()}</main>
   }
 
-  // Sin filtro de edad no se crea cuenta: no sabríamos si hace falta tutor.
-  if (preAlta === null) {
+  // Sin filtro de edad no se empieza una cuenta: no sabríamos si hace falta
+  // tutor. Solo aplica al primer paso — a media alta no se interrumpe.
+  if (token === null && !enPasoDeClerk) {
     return (
       <main className="mx-auto max-w-[560px] px-[22px] pt-[46px] pb-[90px]">
         <p className="eyebrow">{m.cuenta_eyebrow()}</p>
@@ -40,12 +56,14 @@ export default function PantallaCrearCuenta() {
       <div className="mt-8">
         <SignUp
           appearance={aparienciaClerk}
-          // Viaja con el alta y lo levanta el webhook `user.created`.
-          unsafeMetadata={{
-            fechaNacimiento: preAlta.fechaNacimiento,
-            ...(preAlta.tutorNombre ? { tutorNombre: preAlta.tutorNombre } : {}),
-            ...(preAlta.tutorEmail ? { tutorEmail: preAlta.tutorEmail } : {}),
-          }}
+          /**
+           * Solo el token, que es una referencia opaca a la pre-alta que ya
+           * resolvió el servidor. `unsafeMetadata` la puede reescribir el
+           * cliente, así que aquí no viaja ningún dato personal ni ninguna
+           * decisión: la fecha de nacimiento y si hace falta tutor ya están
+           * guardadas en Convex.
+           */
+          unsafeMetadata={token ? { preAltaToken: token } : {}}
           // Clerk enruta sus pasos internos (OTP, SSO) sobre la URL real del
           // navegador, que lleva el prefijo de idioma. Sin `path` no monta nada.
           routing="path"
