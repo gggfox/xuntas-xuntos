@@ -1,187 +1,134 @@
-Welcome to your new TanStack Start app!
+# xuntas-xuntos
 
-# Getting Started
+Registro a la Convocatoria General 2026–2027 del Programa de Desarrollo de
+XUNTAS+XUNTOS.
 
-To run this application:
+**Ventana:** 4 al 18 de septiembre de 2026 · **Destino:** `app.xuntas.org`
+
+Stack: TanStack Start · Convex · Clerk · Resend · Paraglide · Tailwind v4
+
+- Decisiones y su porqué → [`docs/DECISIONES.md`](docs/DECISIONES.md)
+- Reglas de marca → [`docs/MARCA.md`](docs/MARCA.md)
+- DNS de `xuntas.org` → [`DNS-NOTES.md`](DNS-NOTES.md)
+
+---
+
+## Puesta en marcha
+
+Los pasos 1 y 2 son interactivos y hay que correrlos una vez. Sin ellos no
+existe `convex/_generated/` y el proyecto no compila.
+
+### 1. Convex
 
 ```bash
-npm install
-npm run dev
+npx convex dev
 ```
 
-# Building For Production
+Crea el proyecto **bajo una cuenta de XUNTAS**, no personal. Genera
+`convex/_generated/` y escribe `CONVEX_DEPLOYMENT` en `.env.local`. Copia la URL
+que imprime a `VITE_CONVEX_URL` en `.env.local`.
 
-To build this application for production:
+Déjalo corriendo en una terminal mientras desarrollas: sincroniza funciones y
+esquema en caliente.
+
+### 2. Clerk
+
+En el dashboard de Clerk:
+
+1. **Activa la integración de Convex** y copia el *Frontend API URL*.
+2. Habilita solo **Google** y **Email code (OTP)**. Desactiva contraseñas.
+3. **Webhooks → nuevo endpoint** apuntando a
+   `https://<tu-deployment>.convex.site/clerk-webhook`, con los eventos
+   `user.created`, `user.updated` y `user.deleted`. Copia el *Signing Secret*.
+
+### 3. Variables de entorno
+
+Locales, en `.env.local` (ver [`.env.example`](.env.example)):
+
+```
+VITE_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+VITE_CONVEX_URL=
+```
+
+En Convex, que es donde corre el backend:
 
 ```bash
-npm run build
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://clerk.xuntas.org
+npx convex env set CLERK_WEBHOOK_SECRET whsec_...
+npx convex env set RESEND_API_KEY re_...
+npx convex env set APP_URL https://app.xuntas.org
+npx convex env set RESEND_TEST_MODE false   # ojo: sin esto solo envía a @resend.dev
 ```
 
-## Styling
+### 4. Resend
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+El dominio ya está verificado (ver `DNS-NOTES.md`). Falta el webhook de estados
+de entrega: apunta uno a `https://<tu-deployment>.convex.site/resend-webhook`
+con todos los eventos `email.*`, y guarda el secreto:
 
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
+```bash
+npx convex env set RESEND_WEBHOOK_SECRET whsec_...
 ```
 
-Then anywhere in your JSX you can use it like so:
+### 5. Correr
 
-```tsx
-<Link to="/about">About</Link>
+```bash
+npm install && npm run dev
 ```
 
-This will create a link that will navigate to the `/about` route.
+---
 
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
+## Administradores
 
-### Using A Layout
+No hay pantalla de gestión de roles todavía. Un admin se crea invitando desde
+Clerk con `publicMetadata` puesto a:
 
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
+```json
+{ "role": "admin" }
 ```
 
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
+El webhook `user.updated` espeja el rol a Convex.
 
-## Server Functions
+---
 
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
+## Despliegue
 
-```tsx
-import { createServerFn } from '@tanstack/react-start'
+Docker sobre Hostinger + Dokploy. `VITE_CONVEX_URL` y
+`VITE_CLERK_PUBLISHABLE_KEY` van como **build args**, no como variables de
+runtime: Vite las incrusta en el bundle del cliente durante el build.
 
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
+```bash
+docker build \
+  --build-arg VITE_CONVEX_URL=https://xxx.convex.cloud \
+  --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_live_xxx \
+  -t xuntas-registro .
 ```
 
-## API Routes
+Después del primer build exitoso, **verifica la ruta del entrypoint** en el
+`Dockerfile` contra lo que realmente generó `.output/`.
 
-You can create API routes by using the `server` property in your route definitions:
+---
 
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
+## Estructura
 
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
 ```
+convex/                 backend
+  schema.ts             tablas e índices — los tres ejes de estado
+  users.ts              espejo de Clerk, filtro de edad, roles
+  tutor.ts              autorización del tutor por token
+  registros.ts          borrador, envío, validación
+  emails.ts             plantillas y envío durable
+  http.ts               webhooks de Clerk y Resend
+  lib/ciclo.ts          fechas de la convocatoria — fuente única
 
-## Data Fetching
+src/
+  routes/               / · /empezar · /crear-cuenta · /entrar
+                        /mi-registro · /autorizar/$token
+  components/           AppBar, FormularioRegistro, pantallas de Clerk
+  lib/                  formulario, preAlta, apariencia de Clerk
+  styles.css            @theme — fuente única del sistema visual
 
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
+messages/es.json        todo el texto en español
+messages/en.json        vacío a propósito
 ```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).

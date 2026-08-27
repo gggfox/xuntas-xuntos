@@ -12,17 +12,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/localizations": "^4.15.7",
     "@clerk/tanstack-react-start": "^1.5.8",
+    "@convex-dev/resend": "^0.2.7",
+    "@inlang/paraglide-js": "^2.24.1",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "0.10.12",
     "@tanstack/react-router": "1.170.32",
     "@tanstack/react-router-devtools": "1.167.1",
     "@tanstack/react-start": "1.168.49",
+    "convex": "^1.45.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "svix": "^2.1.0",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
+    "@clerk/types": "^4.101.26",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/router-cli": "^1.132.0",

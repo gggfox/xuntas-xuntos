@@ -1,0 +1,14 @@
+node_modules
+.git
+.env
+.env.*
+!.env.example
+.output
+.tanstack
+.convex
+dist
+*.local
+Downloads
+docs
+README.md
+DNS-NOTES.md

@@ -10,91 +10,128 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as SignInIndexRouteImport } from './routes/sign-in.index'
-import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
-import { Route as SignUpIndexRouteImport } from './routes/sign-up.index'
-import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
+import { Route as EmpezarRouteImport } from './routes/empezar'
+import { Route as MiRegistroRouteImport } from './routes/mi-registro'
+import { Route as AutorizarTokenRouteImport } from './routes/autorizar.$token'
+import { Route as CrearCuentaIndexRouteImport } from './routes/crear-cuenta.index'
+import { Route as CrearCuentaSplatRouteImport } from './routes/crear-cuenta.$'
+import { Route as EntrarIndexRouteImport } from './routes/entrar.index'
+import { Route as EntrarSplatRouteImport } from './routes/entrar.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const EmpezarRoute = EmpezarRouteImport.update({
+  id: '/empezar',
+  path: '/empezar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignInIndexRoute = SignInIndexRouteImport.update({
-  id: '/sign-in/',
-  path: '/sign-in/',
+const MiRegistroRoute = MiRegistroRouteImport.update({
+  id: '/mi-registro',
+  path: '/mi-registro',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignInSplatRoute = SignInSplatRouteImport.update({
-  id: '/sign-in/$',
-  path: '/sign-in/$',
+const AutorizarTokenRoute = AutorizarTokenRouteImport.update({
+  id: '/autorizar/$token',
+  path: '/autorizar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignUpIndexRoute = SignUpIndexRouteImport.update({
-  id: '/sign-up/',
-  path: '/sign-up/',
+const CrearCuentaIndexRoute = CrearCuentaIndexRouteImport.update({
+  id: '/crear-cuenta/',
+  path: '/crear-cuenta/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignUpSplatRoute = SignUpSplatRouteImport.update({
-  id: '/sign-up/$',
-  path: '/sign-up/$',
+const CrearCuentaSplatRoute = CrearCuentaSplatRouteImport.update({
+  id: '/crear-cuenta/$',
+  path: '/crear-cuenta/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarIndexRoute = EntrarIndexRouteImport.update({
+  id: '/entrar/',
+  path: '/entrar/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarSplatRoute = EntrarSplatRouteImport.update({
+  id: '/entrar/$',
+  path: '/entrar/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
-  '/sign-in/': typeof SignInIndexRoute
-  '/sign-up/': typeof SignUpIndexRoute
+  '/empezar': typeof EmpezarRoute
+  '/mi-registro': typeof MiRegistroRoute
+  '/autorizar/$token': typeof AutorizarTokenRoute
+  '/crear-cuenta/$': typeof CrearCuentaSplatRoute
+  '/entrar/$': typeof EntrarSplatRoute
+  '/crear-cuenta/': typeof CrearCuentaIndexRoute
+  '/entrar/': typeof EntrarIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
-  '/sign-in': typeof SignInIndexRoute
-  '/sign-up': typeof SignUpIndexRoute
+  '/empezar': typeof EmpezarRoute
+  '/mi-registro': typeof MiRegistroRoute
+  '/autorizar/$token': typeof AutorizarTokenRoute
+  '/crear-cuenta/$': typeof CrearCuentaSplatRoute
+  '/entrar/$': typeof EntrarSplatRoute
+  '/crear-cuenta': typeof CrearCuentaIndexRoute
+  '/entrar': typeof EntrarIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
-  '/sign-in/': typeof SignInIndexRoute
-  '/sign-up/': typeof SignUpIndexRoute
+  '/empezar': typeof EmpezarRoute
+  '/mi-registro': typeof MiRegistroRoute
+  '/autorizar/$token': typeof AutorizarTokenRoute
+  '/crear-cuenta/$': typeof CrearCuentaSplatRoute
+  '/entrar/$': typeof EntrarSplatRoute
+  '/crear-cuenta/': typeof CrearCuentaIndexRoute
+  '/entrar/': typeof EntrarIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/about' | '/sign-in/$' | '/sign-up/$' | '/sign-in/' | '/sign-up/'
+    | '/'
+    | '/empezar'
+    | '/mi-registro'
+    | '/autorizar/$token'
+    | '/crear-cuenta/$'
+    | '/entrar/$'
+    | '/crear-cuenta/'
+    | '/entrar/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/sign-in/$' | '/sign-up/$' | '/sign-in' | '/sign-up'
+  to:
+    | '/'
+    | '/empezar'
+    | '/mi-registro'
+    | '/autorizar/$token'
+    | '/crear-cuenta/$'
+    | '/entrar/$'
+    | '/crear-cuenta'
+    | '/entrar'
   id:
     | '__root__'
     | '/'
-    | '/about'
-    | '/sign-in/$'
-    | '/sign-up/$'
-    | '/sign-in/'
-    | '/sign-up/'
+    | '/empezar'
+    | '/mi-registro'
+    | '/autorizar/$token'
+    | '/crear-cuenta/$'
+    | '/entrar/$'
+    | '/crear-cuenta/'
+    | '/entrar/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  SignInSplatRoute: typeof SignInSplatRoute
-  SignUpSplatRoute: typeof SignUpSplatRoute
-  SignInIndexRoute: typeof SignInIndexRoute
-  SignUpIndexRoute: typeof SignUpIndexRoute
+  EmpezarRoute: typeof EmpezarRoute
+  MiRegistroRoute: typeof MiRegistroRoute
+  AutorizarTokenRoute: typeof AutorizarTokenRoute
+  CrearCuentaSplatRoute: typeof CrearCuentaSplatRoute
+  EntrarSplatRoute: typeof EntrarSplatRoute
+  CrearCuentaIndexRoute: typeof CrearCuentaIndexRoute
+  EntrarIndexRoute: typeof EntrarIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -106,39 +143,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/empezar': {
+      id: '/empezar'
+      path: '/empezar'
+      fullPath: '/empezar'
+      preLoaderRoute: typeof EmpezarRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-in/': {
-      id: '/sign-in/'
-      path: '/sign-in'
-      fullPath: '/sign-in/'
-      preLoaderRoute: typeof SignInIndexRouteImport
+    '/mi-registro': {
+      id: '/mi-registro'
+      path: '/mi-registro'
+      fullPath: '/mi-registro'
+      preLoaderRoute: typeof MiRegistroRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-in/$': {
-      id: '/sign-in/$'
-      path: '/sign-in/$'
-      fullPath: '/sign-in/$'
-      preLoaderRoute: typeof SignInSplatRouteImport
+    '/autorizar/$token': {
+      id: '/autorizar/$token'
+      path: '/autorizar/$token'
+      fullPath: '/autorizar/$token'
+      preLoaderRoute: typeof AutorizarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-up/': {
-      id: '/sign-up/'
-      path: '/sign-up'
-      fullPath: '/sign-up/'
-      preLoaderRoute: typeof SignUpIndexRouteImport
+    '/crear-cuenta/': {
+      id: '/crear-cuenta/'
+      path: '/crear-cuenta'
+      fullPath: '/crear-cuenta/'
+      preLoaderRoute: typeof CrearCuentaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-up/$': {
-      id: '/sign-up/$'
-      path: '/sign-up/$'
-      fullPath: '/sign-up/$'
-      preLoaderRoute: typeof SignUpSplatRouteImport
+    '/crear-cuenta/$': {
+      id: '/crear-cuenta/$'
+      path: '/crear-cuenta/$'
+      fullPath: '/crear-cuenta/$'
+      preLoaderRoute: typeof CrearCuentaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar/': {
+      id: '/entrar/'
+      path: '/entrar'
+      fullPath: '/entrar/'
+      preLoaderRoute: typeof EntrarIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar/$': {
+      id: '/entrar/$'
+      path: '/entrar/$'
+      fullPath: '/entrar/$'
+      preLoaderRoute: typeof EntrarSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -146,11 +197,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  SignInSplatRoute: SignInSplatRoute,
-  SignUpSplatRoute: SignUpSplatRoute,
-  SignInIndexRoute: SignInIndexRoute,
-  SignUpIndexRoute: SignUpIndexRoute,
+  EmpezarRoute: EmpezarRoute,
+  MiRegistroRoute: MiRegistroRoute,
+  AutorizarTokenRoute: AutorizarTokenRoute,
+  CrearCuentaSplatRoute: CrearCuentaSplatRoute,
+  EntrarSplatRoute: EntrarSplatRoute,
+  CrearCuentaIndexRoute: CrearCuentaIndexRoute,
+  EntrarIndexRoute: EntrarIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

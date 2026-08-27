@@ -1,62 +1,54 @@
-import { ClerkProvider } from '@clerk/tanstack-react-start'
+import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
+import { esMX } from '@clerk/localizations'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import Footer from '../components/Footer'
-import Header from '../components/Header'
+import { ConvexProviderWithClerk } from 'convex/react-clerk'
+import { convex } from '../lib/convex'
+import { getLocale } from '../paraglide/runtime.js'
+import * as m from '../paraglide/messages.js'
+import AppBar from '../components/AppBar'
 
 import appCss from '../styles.css?url'
-
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      // La marca es papel claro. Se declara para que el navegador no invente
+      // un modo oscuro sobre formularios que no lo tienen.
+      { name: 'color-scheme', content: 'light only' },
+      { title: 'Registro · Convocatoria 2026–2027 · XUNTAS+XUNTOS' },
       {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'Xuntas-Xuntos',
-      },
-    ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
+        name: 'description',
+        content:
+          'Registro al Programa de Desarrollo de XUNTAS+XUNTOS. Ciclo 2026–2027.',
       },
     ],
+    links: [{ rel: 'stylesheet', href: appCss }],
   }),
   shellComponent: RootDocument,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={getLocale()}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
-        <ClerkProvider>
-          <Header />
-          {children}
-          <Footer />
-          <TanStackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
-          <Scripts />
+      <body className="bg-paper text-ink font-body antialiased">
+        <ClerkProvider localization={esMX}>
+          <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+            <AppBar />
+            {children}
+            <footer className="mt-20 border-t border-line">
+              <div className="mx-auto max-w-[900px] px-[22px] py-6">
+                <p className="eyebrow">
+                  {m.marca_ciclo()} · {m.reg_cierre()}
+                </p>
+              </div>
+            </footer>
+            <Scripts />
+          </ConvexProviderWithClerk>
         </ClerkProvider>
       </body>
     </html>
