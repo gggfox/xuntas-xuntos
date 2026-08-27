@@ -10,6 +10,7 @@ _Last reviewed: 2026-08-26._ Managed in **cPanel Zone Editor** at BanaHosting (`
 | Inbound email | **Google Workspace** — 5 `ASPMX.L.GOOGLE.COM` MX |
 | cPanel / hosting / `igpm.xuntas.org` | **BanaHosting** — `50.31.174.135` |
 | Outbound app email | **Resend** — live as of 2026-08-26 |
+| App (`app.xuntas.org`) | **Hostinger VPS + Dokploy** — A `2.24.208.169` |
 
 Web and mail live on different providers. Changes to one must not clobber another.
 
@@ -50,6 +51,39 @@ If inbound is ever wanted: add `inbound.xuntas.org` as a *separate* Resend domai
 
 Sign-up mail (welcome, verification, magic link, OTP, password reset, double opt-in) is all **outbound** — covered by the four records above. Note: if sign-ups happen on the **Shopify storefront**, Shopify sends those from its own infrastructure and Resend isn't in the path at all.
 
+## Adding `app.xuntas.org`
+
+The registro app. Points at the Hostinger VPS that runs Dokploy — the same box
+the Dokploy panel itself answers on.
+
+**Status: done.** Added 2026-08-26 in the cPanel Zone Editor, confirmed live on
+the authoritative NS.
+
+| Type | Name | Value |
+|---|---|---|
+| A | `app` | `2.24.208.169` |
+
+```
+dig +short app.xuntas.org A                          -> 2.24.208.169
+dig +short @ns7115.banahosting.com app.xuntas.org A  -> 2.24.208.169
+```
+
+- A record, not a CNAME. A CNAME would work here too, but the root of the zone
+  already goes to Shopify and `www` is a CNAME to Shopify — keeping `app` as a
+  plain A makes it obvious at a glance that it does *not* belong to the
+  storefront.
+- Nothing was overwritten: `app` was unused before this.
+- **Does not touch mail.** No MX, no SPF, no DKIM change. Mail for
+  `@xuntas.org` still goes to Google Workspace; app mail still leaves through
+  Resend on the `send.` subdomain.
+- Same IP as `dokploy.gggfox.com`. That is expected — one VPS, Traefik routes
+  by `Host` header. It also means **the Dokploy panel and the public app share
+  an IP**, so the panel should stay behind auth and, ideally, off a guessable
+  hostname.
+- TLS is issued by Dokploy/Traefik via Let's Encrypt on first deploy, not by
+  cPanel AutoSSL. Do not add `app` to AutoSSL — see issue 2 below for what
+  AutoSSL does when it cannot validate a name it thinks it owns.
+
 ## Outstanding issues
 
 **1. SPF is wrong for Google Workspace — fix first.** Root TXT is `v=spf1 +a +mx +ip4:50.31.174.130 include:spf.jetsmtp.net ~all` with no `include:_spf.google.com`. `+mx` authorizes Google's *inbound* servers, not the outbound ones Gmail sends from, so Workspace mail likely soft-fails SPF. It survives on DKIM alignment via `google._domainkey` — fragile. Fix before raising DMARC `p=` above `none`. Add `rua=mailto:...` to actually get reports. Check whether Shopify needs to be in SPF too.
@@ -68,3 +102,7 @@ Sign-up mail (welcome, verification, magic link, OTP, password reset, double opt
 | MX | 5 | All Google Workspace |
 
 ~33 real records after cleanup.
+
+> Counts are the pre-Resend snapshot. Since then: +4 Resend records
+> (2026-08-26) and +1 A for `app` (2026-08-26). Re-count on the next
+> review rather than trusting the table above.
