@@ -1,0 +1,99 @@
+# Puerta de calidad de `main` y promoción a `staging`.
+#
+# Flujo de ramas:  main  →  staging  →  production
+#
+# Aquí se cubre el primer salto: si `main` compila, se despliega el backend de
+# staging y se adelanta la rama `staging`, lo que hace que Dokploy construya
+# el contenedor de staging.
+#
+# El segundo salto (staging → production) es manual, en release.yml.
+
+name: main — checks y promoción a staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-main
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Sin variables VITE_* a propósito: aquí solo se comprueba que el
+      # proyecto compila. Los valores reales los inyecta Dokploy como build
+      # args al construir la imagen, y no tienen por qué existir en CI.
+      - name: Build
+        run: npm run build
+
+  promote:
+    name: Desplegar staging y adelantar la rama
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Se expone como env para poder preguntar por él en un `if`: el contexto
+    # `secrets` no está disponible en las condiciones de un step, el de `env`
+    # sí.
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_STAGING_DEPLOY_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historia completa: sin esto el push a `staging` sale rechazado
+          # por falta de ancestros.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Convex primero y la rama después: el esquema nuevo tiene que estar
+      # arriba antes de que Dokploy levante el frontend que lo consulta.
+      #
+      # TEMPORAL — todavía no existe el deployment de Convex de staging ni su
+      # deploy key. Mientras falte el secreto este paso se salta en lugar de
+      # tumbar el workflow, para que la cadena main → staging funcione desde
+      # ya. No es `continue-on-error`: eso dejaría el job en amarillo y con el
+      # tiempo nadie lo miraría; saltarlo explícito deja un aviso en el resumen
+      # del run.
+      #
+      # Para cerrarlo: crear el deployment de staging en Convex, generar la
+      # key (`npx convex deployment token create ci-token`) y guardarla como
+      # CONVEX_STAGING_DEPLOY_KEY. El paso se activa solo, sin tocar el YAML.
+      - name: Desplegar a Convex staging
+        if: env.CONVEX_DEPLOY_KEY != ''
+        run: npx convex deploy
+
+      - name: Aviso — Convex staging sin configurar
+        if: env.CONVEX_DEPLOY_KEY == ''
+        run: |
+          echo "::warning title=Convex staging sin desplegar::Falta el secreto CONVEX_STAGING_DEPLOY_KEY, así que se saltó el despliegue del backend. El contenedor de staging sí se va a construir, pero apuntando a los placeholders REEMPLAZAR_* — va a responder errores hasta que se carguen los valores reales."
+
+
+      # Fast-forward, sin --force. Si `staging` divergió de `main` esto falla,
+      # y falla bien: significa que alguien commiteó directo a staging y hay
+      # que mirarlo, no aplastarlo.
+      - name: Adelantar staging a main
+        run: git push origin HEAD:staging
