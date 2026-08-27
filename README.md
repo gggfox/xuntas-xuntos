@@ -166,13 +166,18 @@ main  --(checks + Convex staging)-->  staging  --(release manual)-->  production
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci-main.yml` | push a `main` | typecheck + build; si pasan, despliega Convex staging y adelanta la rama `staging` |
+| `ci.yml` | push y PR | typecheck, pruebas y build — la puerta de calidad |
+| `ci-main.yml` | al terminar `ci.yml` en verde sobre `main` | despliega Convex staging y adelanta la rama `staging` |
 | `release.yml` | **a mano** (Actions → Run workflow) | despliega Convex producción y adelanta `production` a `staging` |
 | `convex-production.yml` | push a `production` | red de seguridad: despliega Convex si alguien empuja a `production` desde su máquina |
 
 El contenedor no lo construye ningún workflow: cada push a `staging` o
 `production` llega a Dokploy por el webhook de su GitHub App, y Dokploy
 construye la imagen en el VPS.
+
+`ci-main.yml` no repite los checks: se engancha a `ci.yml` con `workflow_run`
+y solo promociona si terminó en verde. Duplicarlos sería más lento y podría
+discrepar de `ci.yml` sin que nadie lo notara.
 
 En los dos saltos Convex va **antes** que la rama, para que el esquema nuevo
 esté arriba antes de que el frontend nuevo lo consulte.

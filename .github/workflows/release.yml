@@ -41,7 +41,7 @@ jobs:
 
       # Mismo orden que en staging: backend antes que frontend.
       - name: Desplegar a Convex producción
-        run: npx convex deploy
+        run: npm run deploy:convex
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PROD_DEPLOY_KEY }}
 
