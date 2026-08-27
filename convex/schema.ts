@@ -41,6 +41,35 @@ const vEventoCalendario = v.object({
 
 export default defineSchema({
   /**
+   * Filtro de edad resuelto EN EL SERVIDOR, antes de que exista la cuenta.
+   *
+   * Antes la fecha de nacimiento y los datos del tutor viajaban en
+   * `unsafeMetadata` de Clerk, que el cliente puede escribir cuando quiera: se
+   * podía declarar mayoría de edad y saltarse la autorización del tutor sin
+   * dejar rastro. Ahora `/empezar` llama a `preAltas.crear`, el servidor calcula
+   * `esMenor` y guarda el resultado aquí; por Clerk solo viaja `token`, que es
+   * una referencia opaca y no lleva ningún dato personal.
+   *
+   * Vida corta a propósito: si el alta nunca se completa, esto guarda la fecha
+   * de nacimiento de una persona menor y el correo de su tutor sin que nadie
+   * haya consentido nada. `crons.ts` los borra al vencer.
+   */
+  preAltas: defineTable({
+    token: v.string(),
+    fechaNacimiento: v.string(), // ISO yyyy-mm-dd
+    /** Lo calcula el servidor con `esMenorDeEdad`. El cliente no lo manda. */
+    esMenor: v.boolean(),
+    tutorNombre: v.optional(v.string()),
+    tutorEmail: v.optional(v.string()),
+    creadoEn: v.number(),
+    expiraEn: v.number(),
+    /** clerkId de la cuenta que lo consumió. Un solo uso. */
+    usadoPor: v.optional(v.string()),
+  })
+    .index('by_token', ['token'])
+    .index('by_expira', ['expiraEn']),
+
+  /**
    * Espejo de la cuenta de Clerk. Lo escribe el webhook (user.created /
    * user.updated / user.deleted), nunca el cliente.
    *
@@ -52,7 +81,14 @@ export default defineSchema({
     nombre: v.optional(v.string()),
     role: vRole,
     emailVerificado: v.boolean(),
-    /** Se captura en el filtro de edad, antes del alta en Clerk. */
+    /**
+     * Se captura en el filtro de edad, antes del alta en Clerk.
+     *
+     * `undefined` significa DESCONOCIDA, no "mayor de edad". Pasa cuando la
+     * cuenta se creó sin pre-alta (por ejemplo, si se perdió el token en el
+     * camino de Google). Esas cuentas no pueden enviar registro hasta que
+     * declaren su fecha; ver `users.declararFechaNacimiento`.
+     */
     fechaNacimiento: v.optional(v.string()), // ISO yyyy-mm-dd
     /** Derivado de fechaNacimiento al momento del alta. No se recalcula. */
     esMenorAlRegistrarse: v.optional(v.boolean()),

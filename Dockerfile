@@ -45,6 +45,9 @@ ENV VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=$VITE_CLERK_SIGN_IN_FALLBACK_REDIRE
 ENV VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=$VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
 ENV VITE_VENTANA_SIEMPRE_ABIERTA=$VITE_VENTANA_SIEMPRE_ABIERTA
 
+# Si faltan VITE_CONVEX_URL o VITE_CLERK_PUBLISHABLE_KEY, `vite.config.ts`
+# aborta aquí con un mensaje claro. Antes producían una imagen que arrancaba
+# bien y contestaba 500 en todas las rutas, que es mucho peor de diagnosticar.
 RUN npm run build
 
 # El bundle de SSR deja fuera react, @tanstack, @clerk, convex y unas cuantas
@@ -81,6 +84,11 @@ COPY --chown=app:app server.mjs ./server.mjs
 
 USER app
 EXPOSE 3000
+
+# Dokploy reinicia el contenedor si esto falla. `/es/` es la portada real y no
+# un endpoint sintético: si el SSR se rompe, el healthcheck se entera.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3000)+'/es/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # `vite build` NO genera un servidor que escuche: dist/server/server.js
 # exporta un handler `fetch`, nada más. server.mjs es quien abre el socket.

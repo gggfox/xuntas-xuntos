@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMutation } from 'convex/react'
 import { useState } from 'react'
+import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
-import { esMenorDeEdad, guardarPreAlta } from '../lib/preAlta'
+import { esMenorDeEdad, guardarTokenPreAlta } from '../lib/preAlta'
 
 export const Route = createFileRoute('/empezar')({
   component: FiltroEdad,
@@ -14,13 +16,20 @@ export const Route = createFileRoute('/empezar')({
  * persona menor de edad ya existiría antes de saber que hacía falta la
  * autorización de su tutor. Aquí lo sabemos primero y el correo al tutor sale
  * junto con el alta.
+ *
+ * La decisión la toma el SERVIDOR: esta pantalla manda la fecha a
+ * `preAltas.crear` y guarda el token que le devuelve. El `esMenorDeEdad` de
+ * aquí abajo solo sirve para ir mostrando los campos del tutor mientras se
+ * escribe; no es lo que determina nada.
  */
 function FiltroEdad() {
   const navigate = useNavigate()
+  const crearPreAlta = useMutation(api.preAltas.crear)
   const [fecha, setFecha] = useState('')
   const [tutorNombre, setTutorNombre] = useState('')
   const [tutorEmail, setTutorEmail] = useState('')
   const [errores, setErrores] = useState<Record<string, string>>({})
+  const [enviando, setEnviando] = useState(false)
 
   const menor = fecha ? esMenorDeEdad(fecha) : false
 
@@ -41,15 +50,27 @@ function FiltroEdad() {
     return Object.keys(e).length === 0
   }
 
-  function continuar(ev: React.FormEvent) {
+  async function continuar(ev: React.FormEvent) {
     ev.preventDefault()
     if (!validar()) return
-    guardarPreAlta({
-      fechaNacimiento: fecha,
-      tutorNombre: menor ? tutorNombre.trim() : undefined,
-      tutorEmail: menor ? tutorEmail.trim().toLowerCase() : undefined,
-    })
-    navigate({ to: '/crear-cuenta' })
+
+    setEnviando(true)
+    try {
+      const { token } = await crearPreAlta({
+        fechaNacimiento: fecha,
+        tutorNombre: menor ? tutorNombre.trim() : undefined,
+        tutorEmail: menor ? tutorEmail.trim().toLowerCase() : undefined,
+      })
+      guardarTokenPreAlta(token)
+      await navigate({ to: '/crear-cuenta' })
+    } catch (err) {
+      // El servidor revalida todo. Si rechaza, se muestra su mensaje: puede
+      // saber cosas que el cliente no, como que la fecha no tiene forma válida.
+      setErrores({
+        fecha: err instanceof Error ? err.message : m.puerta_fecha_error(),
+      })
+      setEnviando(false)
+    }
   }
 
   return (
@@ -124,8 +145,8 @@ function FiltroEdad() {
           </section>
         )}
 
-        <button type="submit" className="btn">
-          {m.comun_continuar()}
+        <button type="submit" className="btn" disabled={enviando}>
+          {enviando ? m.comun_cargando() : m.comun_continuar()}
         </button>
       </form>
     </main>

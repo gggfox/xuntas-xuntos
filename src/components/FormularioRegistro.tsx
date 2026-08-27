@@ -8,6 +8,7 @@ import {
   registroVacio,
   validarRegistro,
 } from '../lib/formulario'
+import { DOCUMENTOS } from '../lib/documentos'
 
 type Props = {
   inicial: DatosRegistro
@@ -32,17 +33,32 @@ export default function FormularioRegistro({
   const [datos, setDatos] = useState<DatosRegistro>(inicial)
   const [errores, setErrores] = useState<string[]>([])
   const [enviando, setEnviando] = useState(false)
-  const primerRender = useRef(true)
 
-  // Autoguardado. Un formulario de ocho apartados con una carta de una cuartilla
-  // no puede perderse porque se cayó el wifi en el club.
+  /**
+   * Huella de lo último que se mandó a guardar. Arranca con lo que vino del
+   * servidor, así que abrir el formulario y no tocar nada no guarda nada.
+   */
+  const ultimoGuardado = useRef(JSON.stringify(inicial))
+
+  /**
+   * Autoguardado. Un formulario de ocho apartados con una carta de una
+   * cuartilla no puede perderse porque se cayó el wifi en el club.
+   *
+   * La comparación con `ultimoGuardado` no es una optimización, es lo que corta
+   * un ciclo: guardar cambia `actualizadoEn`, eso invalida la query reactiva
+   * que alimenta esta pantalla, el padre se vuelve a renderizar y el efecto se
+   * vuelve a disparar. Sin este corte, cada pestaña abierta escribía en Convex
+   * cada 1.2 s para siempre, aunque nadie estuviera escribiendo.
+   */
   useEffect(() => {
-    if (primerRender.current) {
-      primerRender.current = false
-      return
-    }
     if (!editable) return
-    const t = setTimeout(() => onGuardarBorrador(datos), 1200)
+    const huella = JSON.stringify(datos)
+    if (huella === ultimoGuardado.current) return
+
+    const t = setTimeout(() => {
+      ultimoGuardado.current = huella
+      onGuardarBorrador(datos)
+    }, 1200)
     return () => clearTimeout(t)
   }, [datos, editable, onGuardarBorrador])
 
@@ -332,6 +348,7 @@ export default function FormularioRegistro({
           sub={m.reg_ck_bases_sub()}
           checked={datos.confirmaciones.bases}
           onChange={(v) => set('confirmaciones', { ...datos.confirmaciones, bases: v })}
+          documento={{ ...DOCUMENTOS.bases, etiqueta: m.bases_titulo() }}
         />
         <Casilla
           id="ck2"
@@ -346,6 +363,7 @@ export default function FormularioRegistro({
           sub={m.reg_ck_privacidad_sub()}
           checked={datos.confirmaciones.privacidad}
           onChange={(v) => set('confirmaciones', { ...datos.confirmaciones, privacidad: v })}
+          documento={{ ...DOCUMENTOS.avisoPrivacidad, etiqueta: m.privacidad_titulo() }}
         />
       </Apartado>
 
@@ -469,12 +487,15 @@ function Casilla({
   sub,
   checked,
   onChange,
+  documento,
 }: {
   id: string
   titulo: string
   sub: string
   checked: boolean
   onChange: (v: boolean) => void
+  /** Documento que esta casilla dice aceptar. Se enlaza junto al texto. */
+  documento?: { ruta: string; listo: boolean; etiqueta: string }
 }) {
   return (
     <label
@@ -491,6 +512,27 @@ function Casilla({
       <span>
         <b className="block text-[13.5px] font-semibold">{titulo}</b>
         <span className="mt-1 block text-[12.5px] leading-relaxed font-light text-soft">{sub}</span>
+        {documento && (
+          <span className="mt-1.5 block text-[12.5px]">
+            {/*
+              No se puede aceptar un documento que no se puede leer. El enlace
+              abre en otra pestaña para no perder lo capturado, y `onClick` corta
+              la propagación para que abrirlo no marque la casilla.
+            */}
+            <a
+              href={documento.ruta}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="underline"
+            >
+              {documento.etiqueta}
+            </a>
+            {!documento.listo && (
+              <span className="ml-2 text-[11.5px] text-warn">{m.doc_pendiente_chip()}</span>
+            )}
+          </span>
+        )}
       </span>
     </label>
   )

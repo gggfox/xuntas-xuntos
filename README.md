@@ -61,12 +61,19 @@ VITE_CONVEX_URL=
 En Convex, que es donde corre el backend:
 
 ```bash
-npx convex env set CLERK_JWT_ISSUER_DOMAIN https://clerk.xuntas.org
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<slug>.clerk.accounts.dev
 npx convex env set CLERK_WEBHOOK_SECRET whsec_...
 npx convex env set RESEND_API_KEY re_...
-npx convex env set APP_URL https://app.xuntas.org
-npx convex env set RESEND_TEST_MODE false   # ojo: sin esto solo envía a @resend.dev
+npx convex env set APP_URL http://localhost:3000
 ```
+
+> **`npx convex env set` escribe en el deployment de DESARROLLO.** Producción es
+> un deployment aparte, con sus propias variables y su propia base de datos.
+> Para tocar producción hay que agregar `--prod` a cada comando. Ver
+> [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md).
+>
+> `RESEND_TEST_MODE` se queda sin definir en desarrollo: así Resend solo acepta
+> direcciones `@resend.dev` y no le llega correo a nadie por accidente.
 
 ### 4. Resend
 
@@ -128,9 +135,17 @@ En Dokploy los build args viven en la pestaña **Environment → Build Time
 Arguments** de cada servicio, y apuntan a las variables del environment con
 `${{environment.NOMBRE}}`, para no repetir secretos en cada servicio.
 
-Para reproducirlo a mano:
+El procedimiento completo — orden de despliegue, la trampa de `--prod` en las
+variables de Convex, prueba de humo y lista de verificación previa al 4 de
+septiembre — está en **[`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md)**.
+
+Para reproducir el build a mano:
 
 ```bash
+# 1. Backend
+npx convex deploy            # o: npm run deploy:convex
+
+# 2. Imagen — VITE_* son build args: Vite las incrusta en el bundle del cliente
 docker build \
   --build-arg VITE_CONVEX_URL=https://xxx.convex.cloud \
   --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_live_xxx \
@@ -189,6 +204,9 @@ El bundle de SSR **no** es autocontenido — importa `react`, `@tanstack`,
 `node_modules` podado con `npm prune --omit=dev`, y `package.json` (sin
 `"type": "module"` Node leería `dist/server/server.js` como CommonJS).
 
+El contenedor trae `HEALTHCHECK` sobre `/es/`, así que Dokploy lo reinicia solo
+si el SSR se cae.
+
 ---
 
 ## Estructura
@@ -196,19 +214,26 @@ El bundle de SSR **no** es autocontenido — importa `react`, `@tanstack`,
 ```
 convex/                 backend
   schema.ts             tablas e índices — los tres ejes de estado
-  users.ts              espejo de Clerk, filtro de edad, roles
+  preAltas.ts           filtro de edad resuelto en el servidor
+  users.ts              espejo de Clerk, alta, declaración de edad, roles
   tutor.ts              autorización del tutor por token
   registros.ts          borrador, envío, validación
   emails.ts             plantillas y envío durable
   http.ts               webhooks de Clerk y Resend
+  crons.ts              barrido de pre-altas vencidas
   lib/ciclo.ts          fechas de la convocatoria — fuente única
+  lib/html.ts           escape para las plantillas de correo
 
 src/
   routes/               / · /empezar · /crear-cuenta · /entrar
                         /mi-registro · /autorizar/$token
-  components/           AppBar, FormularioRegistro, pantallas de Clerk
-  lib/                  formulario, preAlta, apariencia de Clerk
+                        /aviso-de-privacidad · /bases
+  components/           AppBar, FormularioRegistro, pantallas de Clerk y error
+  lib/                  formulario, preAlta, documentos, apariencia de Clerk
   styles.css            @theme — fuente única del sistema visual
+
+server.mjs              entrada de producción: estáticos + SSR
+tests/                  pruebas de la lógica pura (vitest)
 
 messages/es.json        todo el texto en español
 messages/en.json        vacío a propósito

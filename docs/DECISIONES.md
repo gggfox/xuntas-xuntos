@@ -48,17 +48,34 @@ migración. Separados, cada eje avanza solo.
 
 ---
 
-## El filtro de edad va antes de Clerk
+## El filtro de edad va antes de Clerk, y lo resuelve el servidor
 
 La convocatoria dice que el tutor autoriza **la creación de la cuenta**. Si la
 fecha de nacimiento se preguntara en el formulario, la cuenta de una persona
 menor de edad ya existiría antes de saber que hacía falta autorización — y no se
 puede des-crear.
 
-Por eso `/empezar` pregunta la fecha primero, guarda el resultado en
-`sessionStorage` (nunca en la URL: no van datos de menores al historial ni a los
-logs), lo pasa a `unsafeMetadata` al dar de alta en Clerk, y el webhook
-`user.created` lo levanta a Convex y dispara el correo al tutor.
+Por eso `/empezar` pregunta la fecha primero. Y la respuesta la resuelve el
+**servidor**: la pantalla manda la fecha a `preAltas.crear`, Convex calcula
+`esMenor`, guarda la fila y devuelve un token. Ese token —una referencia opaca,
+sin ningún dato personal— es lo único que viaja por `unsafeMetadata` de Clerk y
+lo único que guarda `sessionStorage`. El webhook `user.created` lo canjea.
+
+El primer diseño mandaba la fecha de nacimiento y el correo del tutor por
+`unsafeMetadata`, que el cliente puede reescribir cuando quiera: bastaba con
+editarla para declararse mayor de edad y saltarse la autorización, sin dejar
+rastro. Hoy lo peor que se puede hacer es apuntar a otra pre-alta propia, que
+también calculó el servidor.
+
+**Sin fecha no se envía registro.** Si el alta se completa sin una pre-alta
+válida —pasa si se pierde el token en el rodeo por Google—, la cuenta queda con
+la edad *desconocida*, no *mayor de edad*. `/mi-registro` pide la fecha antes de
+mostrar el formulario y `registros.enviar` la exige como respaldo. Confundir
+"no sé" con "es mayor" era exactamente el hueco.
+
+**Las pre-altas sin usar se borran.** Guardan la fecha de nacimiento de una
+persona posiblemente menor y el correo de su tutor sin que nadie haya consentido
+nada todavía. Vencen a las dos horas y un cron las borra.
 
 **La cuenta sí se crea sin autorización.** Queda "en progreso": el registro se
 puede enviar, pero se marca ruidosamente y lo resuelve una persona.
@@ -151,9 +168,10 @@ torneos y los clubes son contenido de la persona y ninguna librería los traduce
 
 ## Pendientes que no son del proveedor
 
-1. **Aviso de privacidad.** XUNTAS lo está buscando. **Bloqueante**: la casilla
-   `ck3` no puede enlazar a una página que no existe, y no debería aceptarse un
-   registro sin él.
+1. **Aviso de privacidad y bases.** XUNTAS los está buscando. Sigue siendo
+   **bloqueante**: las rutas y los enlaces desde las casillas ya existen, pero
+   con el andamio y no con el texto. Mientras `listo` sea `false` en
+   `src/lib/documentos.ts`, las páginas salen marcadas como borrador.
 2. **Política si el tutor nunca confirma.** La recomendación es retener para
    seguimiento manual, nunca auto-rechazar. Falta la decisión formal.
 3. **Correos que reciben invitación de admin.** Se dan de alta desde Clerk.
@@ -172,5 +190,11 @@ torneos y los clubes son contenido de la persona y ninguna librería los traduce
   mexicanos.
 - **La localización `esMX` de Clerk es de la comunidad**, no oficial. Hay que
   leer las pantallas de alta antes del lanzamiento.
-- **La ruta del entrypoint en el `Dockerfile` está sin verificar** — depende de
-  qué genere `.output` el primer build exitoso.
+
+Resueltas desde entonces:
+
+- ~~La ruta del entrypoint en el `Dockerfile` está sin verificar.~~ Verificada y
+  arreglada: `vite build` no generaba `.output` en absoluto. `server.mjs` une
+  las dos mitades de `dist/` y abre el socket. Ver el README.
+- ~~El filtro de edad viaja en `unsafeMetadata`.~~ Ahora lo resuelve el servidor
+  en `convex/preAltas.ts` y por Clerk solo viaja un token opaco.

@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AvisoDePrivacidadRouteImport } from './routes/aviso-de-privacidad'
+import { Route as BasesRouteImport } from './routes/bases'
 import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
 import { Route as AutorizarTokenRouteImport } from './routes/autorizar.$token'
@@ -21,6 +23,16 @@ import { Route as EntrarSplatRouteImport } from './routes/entrar.$'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AvisoDePrivacidadRoute = AvisoDePrivacidadRouteImport.update({
+  id: '/aviso-de-privacidad',
+  path: '/aviso-de-privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BasesRoute = BasesRouteImport.update({
+  id: '/bases',
+  path: '/bases',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmpezarRoute = EmpezarRouteImport.update({
@@ -61,6 +73,8 @@ const EntrarSplatRoute = EntrarSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
+  '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
@@ -71,6 +85,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
+  '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
@@ -82,6 +98,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
+  '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
@@ -94,6 +112,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/aviso-de-privacidad'
+    | '/bases'
     | '/empezar'
     | '/mi-registro'
     | '/autorizar/$token'
@@ -104,6 +124,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/aviso-de-privacidad'
+    | '/bases'
     | '/empezar'
     | '/mi-registro'
     | '/autorizar/$token'
@@ -114,6 +136,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/aviso-de-privacidad'
+    | '/bases'
     | '/empezar'
     | '/mi-registro'
     | '/autorizar/$token'
@@ -125,6 +149,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AvisoDePrivacidadRoute: typeof AvisoDePrivacidadRoute
+  BasesRoute: typeof BasesRoute
   EmpezarRoute: typeof EmpezarRoute
   MiRegistroRoute: typeof MiRegistroRoute
   AutorizarTokenRoute: typeof AutorizarTokenRoute
@@ -141,6 +167,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aviso-de-privacidad': {
+      id: '/aviso-de-privacidad'
+      path: '/aviso-de-privacidad'
+      fullPath: '/aviso-de-privacidad'
+      preLoaderRoute: typeof AvisoDePrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bases': {
+      id: '/bases'
+      path: '/bases'
+      fullPath: '/bases'
+      preLoaderRoute: typeof BasesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/empezar': {
@@ -197,6 +237,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AvisoDePrivacidadRoute: AvisoDePrivacidadRoute,
+  BasesRoute: BasesRoute,
   EmpezarRoute: EmpezarRoute,
   MiRegistroRoute: MiRegistroRoute,
   AutorizarTokenRoute: AutorizarTokenRoute,

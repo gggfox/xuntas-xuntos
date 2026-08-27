@@ -3,6 +3,7 @@ import { components, internal } from './_generated/api'
 import { internalMutation } from './_generated/server'
 import { v } from 'convex/values'
 import { FECHA_REVISION } from './lib/ciclo'
+import { textoParaCorreo } from './lib/html'
 
 /**
  * Cliente de Resend con ejecución durable: cola, reintentos e idempotencia.
@@ -71,7 +72,8 @@ export const enviarConfirmacionAtleta = internalMutation({
     faltaTutor: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const primerNombre = args.nombre.trim().split(/\s+/)[0] || args.nombre
+    // Escapado: el nombre viene del formulario y termina dentro del HTML.
+    const primerNombre = textoParaCorreo(args.nombre.trim().split(/\s+/)[0] || args.nombre, 60)
 
     const avisoTutor = args.faltaTutor
       ? `<div style="background:#F8FBD4;border:1px solid #C9D42B;border-radius:9px;padding:16px 19px;margin:22px 0;">
@@ -116,10 +118,19 @@ export const enviarAutorizacionTutor = internalMutation({
     esReenvio: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const href = `${appUrl()}/es/autorizar/${args.token}`
+    // El token es hex generado por nosotros, pero se codifica igual: la URL no
+    // se construye a mano con datos que no vengan de aquí.
+    const href = `${appUrl()}/es/autorizar/${encodeURIComponent(args.token)}`
+
+    // El asunto es texto plano (no lleva escape de HTML), pero sí se recorta.
+    const atletaAsunto = args.atletaNombre.trim().replace(/\s+/g, ' ').slice(0, 60)
     const asunto = args.esReenvio
-      ? `Recordatorio: autoriza la cuenta de ${args.atletaNombre}`
-      : `Autoriza la cuenta de ${args.atletaNombre} · XUNTAS+XUNTOS`
+      ? `Recordatorio: autoriza la cuenta de ${atletaAsunto}`
+      : `Autoriza la cuenta de ${atletaAsunto} · XUNTAS+XUNTOS`
+
+    // Escapados: los dos vienen de formularios.
+    const tutorNombre = textoParaCorreo(args.tutorNombre)
+    const atletaNombre = textoParaCorreo(args.atletaNombre)
 
     await resend.sendEmail(ctx, {
       from: DE,
@@ -127,9 +138,9 @@ export const enviarAutorizacionTutor = internalMutation({
       replyTo: [RESPONDER_A],
       subject: asunto,
       html: plantilla(
-        `<p style="margin:0 0 14px;">Hola, ${args.tutorNombre}:</p>
+        `<p style="margin:0 0 14px;">Hola, ${tutorNombre}:</p>
          <p style="margin:0 0 14px;">
-           <b>${args.atletaNombre}</b> se registró a la Convocatoria General 2026–2027 del
+           <b>${atletaNombre}</b> se registró a la Convocatoria General 2026–2027 del
            Programa de Desarrollo de XUNTAS+XUNTOS y te señaló como su padre, madre o tutor.
          </p>
          <p style="margin:0 0 14px;">
@@ -141,18 +152,31 @@ export const enviarAutorizacionTutor = internalMutation({
            El enlace vence el 18 de septiembre de 2026. Si no reconoces este registro,
            ignora este correo y responde para avisarnos: la cuenta no quedará autorizada.
          </p>`,
-        `${args.atletaNombre} necesita tu autorización para completar su registro.`,
+        `${atletaNombre} necesita tu autorización para completar su registro.`,
       ),
     })
   },
 })
 
-/** Estados de entrega que reporta Resend por webhook. Solo se registran. */
+/**
+ * Estados de entrega que reporta Resend por webhook.
+ *
+ * Un rebote del correo al tutor es el fallo más caro del sistema: el registro
+ * se ve bien y nadie se entera de que la autorización nunca va a llegar. Se
+ * registra con un prefijo estable para poder filtrarlo en los logs de Convex.
+ */
 export const registrarEventoCorreo = internalMutation({
   args: vOnEmailEventArgs,
   handler: async (_ctx, args) => {
     if (args.event.type === 'email.bounced' || args.event.type === 'email.complained') {
-      console.error(`Correo ${args.event.type}: ${args.id}`)
+      console.error(
+        `[correo] FALLO ${args.event.type} id=${args.id} — ` +
+          'revisa a quién iba dirigido en el dashboard de Resend',
+      )
+      return
+    }
+    if (args.event.type === 'email.delivery_delayed') {
+      console.warn(`[correo] retrasado id=${args.id}`)
     }
   },
 })

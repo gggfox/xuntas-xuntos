@@ -1,37 +1,24 @@
 /**
  * Puente entre el filtro de edad y el alta en Clerk.
  *
- * Vive en sessionStorage y no en la URL: la fecha de nacimiento de una persona
- * menor de edad y el correo de su tutor no van en una query string, ni al
- * historial del navegador, ni a los logs de nadie.
+ * Antes aquí vivían la fecha de nacimiento y el correo del tutor. Ya no: el
+ * filtro de edad lo resuelve el servidor (`convex/preAltas.ts`) y lo único que
+ * guarda el navegador es el token que devuelve, que es una referencia opaca.
  *
- * De aquí pasa a `unsafeMetadata` de Clerk al crear la cuenta, y el webhook
- * `user.created` lo levanta hacia Convex.
+ * Sigue en sessionStorage y no en la URL para que ni siquiera el token quede en
+ * el historial del navegador ni en los logs de nadie.
  */
 
-const CLAVE = 'xx.preAlta'
+const CLAVE = 'xx.preAltaToken'
 
-export type PreAlta = {
-  fechaNacimiento: string
-  tutorNombre?: string
-  tutorEmail?: string
-}
-
-export function guardarPreAlta(datos: PreAlta): void {
+export function guardarTokenPreAlta(token: string): void {
   if (typeof window === 'undefined') return
-  window.sessionStorage.setItem(CLAVE, JSON.stringify(datos))
+  window.sessionStorage.setItem(CLAVE, token)
 }
 
-export function leerPreAlta(): PreAlta | null {
+export function leerTokenPreAlta(): string | null {
   if (typeof window === 'undefined') return null
-  const crudo = window.sessionStorage.getItem(CLAVE)
-  if (!crudo) return null
-  try {
-    const datos = JSON.parse(crudo) as PreAlta
-    return datos.fechaNacimiento ? datos : null
-  } catch {
-    return null
-  }
+  return window.sessionStorage.getItem(CLAVE) || null
 }
 
 export function limpiarPreAlta(): void {
@@ -40,18 +27,11 @@ export function limpiarPreAlta(): void {
 }
 
 /**
- * Edad cumplida. Se calcula en UTC para que no cambie según dónde esté quien
- * llena el formulario.
+ * Edad cumplida, en hora del centro de México.
+ *
+ * Es solo para la interfaz: decidir si mostrar los campos del tutor mientras se
+ * escribe la fecha. Quien decide de verdad es el servidor, que recalcula esto
+ * mismo en `preAltas.crear`. Se reexporta desde el backend para que no puedan
+ * discrepar.
  */
-export function edadEn(fechaNacimientoISO: string, ahora: number = Date.now()): number {
-  const nac = new Date(fechaNacimientoISO)
-  const hoy = new Date(ahora)
-  let edad = hoy.getUTCFullYear() - nac.getUTCFullYear()
-  const mes = hoy.getUTCMonth() - nac.getUTCMonth()
-  if (mes < 0 || (mes === 0 && hoy.getUTCDate() < nac.getUTCDate())) edad--
-  return edad
-}
-
-export function esMenorDeEdad(fechaNacimientoISO: string, ahora: number = Date.now()): boolean {
-  return edadEn(fechaNacimientoISO, ahora) < 18
-}
+export { edadEn, esMenorDeEdad, fechaNacimientoValida } from '../../convex/lib/ciclo'

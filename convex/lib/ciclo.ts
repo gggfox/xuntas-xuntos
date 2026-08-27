@@ -46,20 +46,63 @@ export function ventanaAbierta(ahora: number = Date.now()): boolean {
   return ahora >= APERTURA_MS && ahora <= CIERRE_MS
 }
 
+/** America/Mexico_City es UTC-6 todo el año desde 2022. */
+const OFFSET_MX_MS = 6 * 60 * 60 * 1000
+
+/** Fecha `yyyy-mm-dd` a sus tres números. `null` si no tiene esa forma. */
+function partesISO(iso: string): { anio: number; mes: number; dia: number } | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim())
+  if (!m) return null
+  const anio = Number(m[1])
+  const mes = Number(m[2])
+  const dia = Number(m[3])
+  if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null
+  // Rebota 31 de febrero y compañía.
+  const d = new Date(Date.UTC(anio, mes - 1, dia))
+  if (d.getUTCFullYear() !== anio || d.getUTCMonth() !== mes - 1 || d.getUTCDate() !== dia) {
+    return null
+  }
+  return { anio, mes, dia }
+}
+
+export function fechaNacimientoValida(iso: string, ahora: number = Date.now()): boolean {
+  const p = partesISO(iso)
+  if (!p) return false
+  const ms = Date.UTC(p.anio, p.mes - 1, p.dia)
+  if (ms > ahora) return false
+  if (p.anio < 1930) return false
+  return true
+}
+
 /**
  * Edad cumplida en una fecha dada. Se usa una sola vez, al crear la cuenta:
  * `esMenorAlRegistrarse` se congela y no se recalcula, para que nadie deje de
  * ser menor a mitad del proceso y se pierda el rastro del consentimiento.
+ *
+ * El "hoy" se resuelve en hora del centro de México, no en UTC. Con UTC, quien
+ * cumple 18 años hoy pasaba a contar como mayor desde las 18:00 de ayer, hora
+ * local — seis horas en las que el sistema decidía distinto que la ley.
+ *
+ * Devuelve -1 si la fecha no es una `yyyy-mm-dd` válida, para que quien llame
+ * no confunda "no sé" con "recién nacido".
  */
 export function edadEn(fechaNacimientoISO: string, ahora: number = Date.now()): number {
-  const nac = new Date(fechaNacimientoISO)
-  const hoy = new Date(ahora)
-  let edad = hoy.getUTCFullYear() - nac.getUTCFullYear()
-  const mes = hoy.getUTCMonth() - nac.getUTCMonth()
-  if (mes < 0 || (mes === 0 && hoy.getUTCDate() < nac.getUTCDate())) edad--
+  const nac = partesISO(fechaNacimientoISO)
+  if (!nac) return -1
+
+  const hoy = new Date(ahora - OFFSET_MX_MS)
+  const anioHoy = hoy.getUTCFullYear()
+  const mesHoy = hoy.getUTCMonth() + 1
+  const diaHoy = hoy.getUTCDate()
+
+  let edad = anioHoy - nac.anio
+  if (mesHoy < nac.mes || (mesHoy === nac.mes && diaHoy < nac.dia)) edad--
   return edad
 }
 
 export function esMenorDeEdad(fechaNacimientoISO: string, ahora: number = Date.now()): boolean {
-  return edadEn(fechaNacimientoISO, ahora) < 18
+  const edad = edadEn(fechaNacimientoISO, ahora)
+  // Una fecha ilegible se trata como menor: el error caro es el otro.
+  if (edad < 0) return true
+  return edad < 18
 }
