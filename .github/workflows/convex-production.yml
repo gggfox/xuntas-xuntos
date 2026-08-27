@@ -51,7 +51,7 @@ jobs:
       # `convex deploy` hace typecheck de convex/ antes de subir nada, así que
       # un error de tipos falla aquí y no a medias en producción.
       - name: Desplegar a Convex producción
-        run: npx convex deploy
+        run: npm run deploy:convex
         env:
           # El nombre de la izquierda lo fija el CLI de Convex — es la variable
           # que lee. El de la derecha es cómo se llama el secreto en el repo.
