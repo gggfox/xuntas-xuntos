@@ -35,8 +35,15 @@ esquema en caliente.
 
 En el dashboard de Clerk:
 
-1. **Activa la integración de Convex** y copia el *Frontend API URL*.
-2. Habilita solo **Google** y **Email code (OTP)**. Desactiva contraseñas.
+1. **API keys → copia el _Frontend API URL_.** Ese es el valor de
+   `CLERK_JWT_ISSUER_DOMAIN`. Ya no existe una plantilla JWT de Convex ni una
+   integración que activar: es simplemente esa URL.
+   Dev: `https://<slug>.clerk.accounts.dev` · Prod: `https://clerk.xuntas.org`.
+   Truco: el host va codificado en base64 dentro de la propia publishable key,
+   después del prefijo `pk_test_` / `pk_live_`.
+2. **User & authentication → Email**: deja *Email verification code* y apaga
+   *Email verification link*. En la pestaña **Password**, apaga contraseñas.
+   En **SSO connections**, habilita Google.
 3. **Webhooks → nuevo endpoint** apuntando a
    `https://<tu-deployment>.convex.site/clerk-webhook`, con los eventos
    `user.created`, `user.updated` y `user.deleted`. Copia el *Signing Secret*.
