@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 /**
  * Config aparte de `vite.config.ts` a propósito.
  *
- * La de producción arrastra TanStack Start, Nitro y Paraglide, y exige las
+ * La de producción arrastra TanStack Start y Paraglide, y exige las
  * variables de build. Nada de eso hace falta para probar funciones puras, y
  * cargarlo volvería las pruebas lentas y frágiles.
  */

@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import { nitroV2Plugin } from '@tanstack/nitro-v2-vite-plugin'
 
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -63,22 +62,6 @@ const config = defineConfig(({ command }) => {
       }),
       tanstackStart(),
       viteReact(),
-      /**
-       * Empaqueta el SSR como un servidor de Node que escucha en un puerto.
-       *
-       * Sin esto, `vite build` deja en `dist/server/server.js` un handler
-       * `{ fetch }` que no escucha nada: no hay proceso que arrancar en el
-       * contenedor. Nitro genera `.output/server/index.mjs`, que sí es un
-       * servidor, y `.output/public` con los estáticos del cliente.
-       *
-       * `compatibilityDate` fija el comportamiento de Nitro: sin ella toma la
-       * fecha del día del build y dos builds del mismo commit podrían no ser
-       * idénticos.
-       */
-      nitroV2Plugin({
-        preset: 'node-server',
-        compatibilityDate: '2026-08-27',
-      }),
     ],
   }
 })

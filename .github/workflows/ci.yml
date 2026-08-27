@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, production]
   pull_request:
 
 jobs:
@@ -11,11 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 24 como mínimo: la estrategia `url` de Paraglide usa URLPattern,
-      # que no existe en Node 22. Ver docs/DESPLIEGUE.md.
+      # La misma versión que el Dockerfile, para que CI y producción no puedan
+      # discrepar en lo único que no se puede probar desde aquí.
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -34,5 +34,9 @@ jobs:
           VITE_CONVEX_URL: https://ci-placeholder.convex.cloud
           VITE_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
 
-      - name: El entrypoint del contenedor existe
-        run: test -f .output/server/index.mjs
+      # Las dos mitades que `server.mjs` une. Si `vite build` deja de generar
+      # alguna, el contenedor arrancaría y fallaría en la primera petición.
+      - name: El build deja las dos mitades que server.mjs necesita
+        run: |
+          test -f dist/server/server.js
+          test -d dist/client

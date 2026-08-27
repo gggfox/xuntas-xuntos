@@ -1,16 +1,9 @@
 # syntax=docker/dockerfile:1
 
-# Node 24 como mínimo, NO 22.
-#
-# La estrategia `url` de Paraglide resuelve el idioma con `URLPattern`, que es
-# global a partir de Node 24. En Node 22 no existe y el servidor arranca, pero
-# contesta 500 en TODAS las rutas con `URLPattern is not defined`. No se ve en
-# desarrollo si tu Node local es más nuevo — solo dentro del contenedor.
-
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
-FROM node:24-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 
 # Las dependencias se copian antes que el código para aprovechar la caché de
@@ -22,51 +15,81 @@ RUN npm ci
 
 COPY . .
 
-# Convex y Clerk necesitan estas dos en tiempo de BUILD porque Vite las
-# incrusta en el bundle del cliente (VITE_*). Se pasan con --build-arg desde
-# Dokploy. Si faltan, `vite.config.ts` aborta el build con un mensaje claro en
-# vez de dejar una imagen que contesta 500 en todas las rutas.
+# Todo lo que empieza por VITE_ tiene que existir AQUÍ, en tiempo de build:
+# Vite lo incrusta en el bundle del cliente. Pasarlo como variable de runtime
+# no sirve de nada — el bundle ya se compiló con el valor viejo (o con
+# undefined). Se pasan con --build-arg; en Dokploy son los "Build Time
+# Arguments" de cada environment, y por eso staging y producción necesitan
+# builds separados aunque el commit sea el mismo.
+#
+# CLERK_SECRET_KEY NO va aquí. Es de runtime, y un ARG queda escrito en el
+# historial de la imagen: `docker history` lo enseñaría a cualquiera que
+# pudiera bajar la imagen.
 ARG VITE_CONVEX_URL
 ARG VITE_CLERK_PUBLISHABLE_KEY
+ARG VITE_CLERK_SIGN_IN_URL
+ARG VITE_CLERK_SIGN_UP_URL
+ARG VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
+ARG VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
+
+# Escotilla de desarrollo. Sin valor por defecto a propósito: si no se pasa,
+# queda vacía y la ventana de registro respeta el calendario. Ver
+# convex/lib/ciclo.ts — NUNCA la pongas en 'true' en producción.
+ARG VITE_VENTANA_SIEMPRE_ABIERTA
+
 ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_CLERK_SIGN_IN_URL=$VITE_CLERK_SIGN_IN_URL
+ENV VITE_CLERK_SIGN_UP_URL=$VITE_CLERK_SIGN_UP_URL
+ENV VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=$VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
+ENV VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=$VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
+ENV VITE_VENTANA_SIEMPRE_ABIERTA=$VITE_VENTANA_SIEMPRE_ABIERTA
 
-# Genera .output/server/index.mjs (servidor de Node) y .output/public
-# (estáticos del cliente), vía el plugin de Nitro en vite.config.ts.
+# Si faltan VITE_CONVEX_URL o VITE_CLERK_PUBLISHABLE_KEY, `vite.config.ts`
+# aborta aquí con un mensaje claro. Antes producían una imagen que arrancaba
+# bien y contestaba 500 en todas las rutas, que es mucho peor de diagnosticar.
 RUN npm run build
+
+# El bundle de SSR deja fuera react, @tanstack, @clerk, convex y unas cuantas
+# más: dist/server/server.js las importa por nombre en tiempo de ejecución.
+# Podar aquí y copiar el árbol ya resuelto sale más barato que un segundo
+# `npm ci` en la etapa de runtime, y no vuelve a tocar la red.
+RUN npm prune --omit=dev
 
 # ---------------------------------------------------------------------------
 # Runtime
 # ---------------------------------------------------------------------------
-FROM node:24-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# curl para el HEALTHCHECK. Es lo único que se agrega a la imagen base.
-RUN apk add --no-cache curl
-
 # Usuario sin privilegios. El contenedor no necesita root para servir SSR.
 RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=build --chown=app:app /app/.output ./.output
+# `vite build` deja dos mitades en dist/: el handler de SSR en dist/server y
+# los assets del cliente en dist/client. Las dos hacen falta — server.mjs
+# sirve los estáticos y cae al SSR para todo lo demás.
+COPY --from=build --chown=app:app /app/dist ./dist
+
+# Sin chown a propósito: el árbol es enorme y el usuario `app` solo necesita
+# leerlo. Un --chown aquí añade una capa entera duplicada.
+COPY --from=build /app/node_modules ./node_modules
+
+# package.json NO es opcional. dist/server/server.js termina en .js, y sin
+# "type": "module" en el directorio Node lo interpretaría como CommonJS y
+# reventaría en el primer `import`.
+COPY --chown=app:app package.json ./package.json
+COPY --chown=app:app server.mjs ./server.mjs
 
 USER app
 EXPOSE 3000
 
-# El middleware de Clerk corre en el SSR y exige LAS DOS claves en tiempo de
-# EJECUCIÓN — no basta con la VITE_ del bundle del cliente. Si faltan, cada
-# ruta contesta 500 con "no secret key provided" / "Publishable key is
-# missing". Se configuran como variables de entorno en Dokploy:
-#
-#   CLERK_SECRET_KEY        sk_live_...
-#   CLERK_PUBLISHABLE_KEY   pk_live_...   (la misma que VITE_CLERK_PUBLISHABLE_KEY)
-#
-# NO se declaran con ENV aquí: son secretos y no deben quedar en la imagen.
-
-# Dokploy reinicia el contenedor si esto falla. `/es/` es la portada real, no
+# Dokploy reinicia el contenedor si esto falla. `/es/` es la portada real y no
 # un endpoint sintético: si el SSR se rompe, el healthcheck se entera.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://localhost:3000/es/ >/dev/null || exit 1
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3000)+'/es/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", ".output/server/index.mjs"]
+# `vite build` NO genera un servidor que escuche: dist/server/server.js
+# exporta un handler `fetch`, nada más. server.mjs es quien abre el socket.
+CMD ["node", "server.mjs"]

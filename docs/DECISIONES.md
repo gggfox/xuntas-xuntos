@@ -168,9 +168,10 @@ torneos y los clubes son contenido de la persona y ninguna librería los traduce
 
 ## Pendientes que no son del proveedor
 
-1. **Aviso de privacidad.** XUNTAS lo está buscando. **Bloqueante**: la casilla
-   `ck3` no puede enlazar a una página que no existe, y no debería aceptarse un
-   registro sin él.
+1. **Aviso de privacidad y bases.** XUNTAS los está buscando. Sigue siendo
+   **bloqueante**: las rutas y los enlaces desde las casillas ya existen, pero
+   con el andamio y no con el texto. Mientras `listo` sea `false` en
+   `src/lib/documentos.ts`, las páginas salen marcadas como borrador.
 2. **Política si el tutor nunca confirma.** La recomendación es retener para
    seguimiento manual, nunca auto-rechazar. Falta la decisión formal.
 3. **Correos que reciben invitación de admin.** Se dan de alta desde Clerk.
@@ -192,8 +193,8 @@ torneos y los clubes son contenido de la persona y ninguna librería los traduce
 
 Resueltas desde entonces:
 
-- ~~La ruta del entrypoint en el `Dockerfile` está sin verificar.~~ Verificada:
-  `vite build` no generaba `.output` en absoluto. Se agregó el plugin de Nitro
-  y se probó construyendo y corriendo la imagen. Ver `docs/DESPLIEGUE.md`.
+- ~~La ruta del entrypoint en el `Dockerfile` está sin verificar.~~ Verificada y
+  arreglada: `vite build` no generaba `.output` en absoluto. `server.mjs` une
+  las dos mitades de `dist/` y abre el socket. Ver el README.
 - ~~El filtro de edad viaja en `unsafeMetadata`.~~ Ahora lo resuelve el servidor
   en `convex/preAltas.ts` y por Clerk solo viaja un token opaco.
