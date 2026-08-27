@@ -1,5 +1,6 @@
 import { SignIn } from '@clerk/tanstack-react-start'
 import * as m from '../paraglide/messages.js'
+import { getLocale } from '../paraglide/runtime.js'
 import { aparienciaClerk } from '../lib/clerkApariencia'
 
 export default function PantallaEntrar() {
@@ -11,8 +12,10 @@ export default function PantallaEntrar() {
       <div className="mt-8">
         <SignIn
           appearance={aparienciaClerk}
-          signUpUrl="/empezar"
-          forceRedirectUrl="/mi-registro"
+          routing="path"
+          path={`/${getLocale()}/entrar`}
+          signUpUrl={`/${getLocale()}/empezar`}
+          forceRedirectUrl={`/${getLocale()}/mi-registro`}
         />
       </div>
     </main>

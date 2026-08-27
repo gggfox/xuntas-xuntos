@@ -8,6 +8,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { paraglideVitePlugin } from '@inlang/paraglide-js'
 
 const config = defineConfig({
+  // Respeta PORT para poder levantar dos ramas a la vez sin pelearse el 3000.
+  server: { port: Number(process.env.PORT) || 3000 },
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools(),
@@ -17,10 +19,14 @@ const config = defineConfig({
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide',
-      // `url` primero: el prefijo de ruta manda sobre la cookie y sobre el
-      // idioma del navegador, para que un enlace compartido siempre abra en el
-      // idioma con el que se compartió.
-      strategy: ['url', 'cookie', 'preferredLanguage', 'baseLocale'],
+      // `url` primero: el prefijo de ruta manda sobre la cookie, para que un
+      // enlace compartido siempre abra en el idioma con el que se compartió.
+      //
+      // OJO: `preferredLanguage` NO está en la lista a propósito. `en` existe
+      // pero está vacío; con esa estrategia, una familia mexicana con el
+      // navegador en inglés aterriza en /en/ y ve la interfaz en español con
+      // URLs en inglés. Se agrega el día que en.json tenga traducciones.
+      strategy: ['url', 'cookie', 'baseLocale'],
       urlPatterns: [
         {
           pattern: '/:path(.*)?',

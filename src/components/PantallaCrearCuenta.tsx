@@ -2,6 +2,7 @@ import { SignUp } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import * as m from '../paraglide/messages.js'
+import { getLocale } from '../paraglide/runtime.js'
 import { leerPreAlta, type PreAlta } from '../lib/preAlta'
 import { aparienciaClerk } from '../lib/clerkApariencia'
 
@@ -45,8 +46,12 @@ export default function PantallaCrearCuenta() {
             ...(preAlta.tutorNombre ? { tutorNombre: preAlta.tutorNombre } : {}),
             ...(preAlta.tutorEmail ? { tutorEmail: preAlta.tutorEmail } : {}),
           }}
-          signInUrl="/entrar"
-          forceRedirectUrl="/mi-registro"
+          // Clerk enruta sus pasos internos (OTP, SSO) sobre la URL real del
+          // navegador, que lleva el prefijo de idioma. Sin `path` no monta nada.
+          routing="path"
+          path={`/${getLocale()}/crear-cuenta`}
+          signInUrl={`/${getLocale()}/entrar`}
+          forceRedirectUrl={`/${getLocale()}/mi-registro`}
         />
       </div>
     </main>
