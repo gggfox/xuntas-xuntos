@@ -38,12 +38,17 @@ function Panel() {
   const guardarBorrador = useMutation(api.registros.guardarBorrador)
   const enviarRegistro = useMutation(api.registros.enviar)
 
-  // El webhook de Clerk tarda un instante en crear el usuario en Convex.
+  // Convex devuelve undefined mientras la consulta viaja.
   if (estado === undefined || mio === undefined) {
     return <Marco>{m.comun_cargando()}</Marco>
   }
+
+  // null significa que Convex no encontró al usuario. Pasa unos segundos
+  // después del alta, mientras aterriza el webhook `user.created`. Antes esto
+  // mostraba "Cargando…" para siempre y no había forma de saber si el webhook
+  // estaba mal configurado o solo iba tarde. Ahora se dice qué está pasando.
   if (estado === null || mio === null) {
-    return <Marco>{m.comun_cargando()}</Marco>
+    return <MarcoSincronizando />
   }
 
   const inicial: DatosRegistro = mio.registro
@@ -151,6 +156,23 @@ function AvisoTutor() {
         {mensaje && <span className="text-[12.5px] text-soft">{mensaje}</span>}
       </div>
     </section>
+  )
+}
+
+/**
+ * La cuenta existe en Clerk pero todavía no en Convex. La consulta es reactiva:
+ * en cuanto el webhook inserta al usuario, esta pantalla se reemplaza sola.
+ */
+function MarcoSincronizando() {
+  return (
+    <main className="mx-auto max-w-[560px] px-[22px] pt-[46px] pb-[90px]">
+      <p className="eyebrow">{m.marca_ciclo()}</p>
+      <h1 className="h-display mt-[7px] text-[clamp(24px,4vw,32px)]">
+        {m.sync_titulo()}
+      </h1>
+      <p className="mt-3 max-w-[52ch] font-light text-soft">{m.sync_texto()}</p>
+      <p className="mt-6 text-[12.5px] text-soft">{m.sync_ayuda()}</p>
+    </main>
   )
 }
 

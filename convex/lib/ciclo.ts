@@ -17,7 +17,32 @@ export const CIERRE_MS = Date.parse('2026-09-19T05:59:59.999Z')
 /** Fecha comprometida a los registrantes para la revisión. */
 export const FECHA_REVISION = '23 de septiembre de 2026'
 
+/**
+ * Escotilla de desarrollo: abre la ventana aunque no sea septiembre.
+ *
+ * Sin esto no hay forma de probar el formulario antes del 4 de septiembre, que
+ * es justo cuando ya no se puede probar nada. En Convex se activa con
+ * `npx convex env set VENTANA_SIEMPRE_ABIERTA true`; en el cliente con
+ * VITE_VENTANA_SIEMPRE_ABIERTA en .env.local.
+ *
+ * NO la actives en producción: dejaría entrar registros fuera de la
+ * convocatoria y el Consejo estaría calificando gente que llegó en octubre.
+ */
+function ventanaForzada(): boolean {
+  if (typeof process !== 'undefined' && process.env?.VENTANA_SIEMPRE_ABIERTA === 'true') {
+    return true
+  }
+  try {
+    const env = (import.meta as unknown as { env?: Record<string, string> }).env
+    if (env?.VITE_VENTANA_SIEMPRE_ABIERTA === 'true') return true
+  } catch {
+    // import.meta.env no existe en todos los runtimes; no pasa nada.
+  }
+  return false
+}
+
 export function ventanaAbierta(ahora: number = Date.now()): boolean {
+  if (ventanaForzada()) return true
   return ahora >= APERTURA_MS && ahora <= CIERRE_MS
 }
 
