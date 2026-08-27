@@ -7,7 +7,7 @@ import type { Appearance } from '@clerk/types'
  * como la de cualquier SaaS: azul, redondeado, ajeno. Las variables cubren el
  * 90%; los `elements` corrigen lo que las variables no alcanzan.
  */
-export const apariencaClerk: Appearance = {
+export const aparienciaClerk: Appearance = {
   variables: {
     colorPrimary: '#111111',
     colorText: '#111111',

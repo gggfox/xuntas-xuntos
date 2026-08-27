@@ -1,6 +1,6 @@
 import { SignIn } from '@clerk/tanstack-react-start'
 import * as m from '../paraglide/messages.js'
-import { apariencaClerk } from '../lib/clerkApariencia'
+import { aparienciaClerk } from '../lib/clerkApariencia'
 
 export default function PantallaEntrar() {
   return (
@@ -10,7 +10,7 @@ export default function PantallaEntrar() {
       <p className="mt-3 max-w-[52ch] font-light text-soft">{m.cuenta_sin_contrasena()}</p>
       <div className="mt-8">
         <SignIn
-          appearance={apariencaClerk}
+          appearance={aparienciaClerk}
           signUpUrl="/empezar"
           forceRedirectUrl="/mi-registro"
         />

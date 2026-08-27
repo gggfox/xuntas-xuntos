@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import * as m from '../paraglide/messages.js'
 import { leerPreAlta, type PreAlta } from '../lib/preAlta'
-import { apariencaClerk } from '../lib/clerkApariencia'
+import { aparienciaClerk } from '../lib/clerkApariencia'
 
 export default function PantallaCrearCuenta() {
   const [preAlta, setPreAlta] = useState<PreAlta | null | undefined>(undefined)
@@ -38,7 +38,7 @@ export default function PantallaCrearCuenta() {
 
       <div className="mt-8">
         <SignUp
-          appearance={apariencaClerk}
+          appearance={aparienciaClerk}
           // Viaja con el alta y lo levanta el webhook `user.created`.
           unsafeMetadata={{
             fechaNacimiento: preAlta.fechaNacimiento,

@@ -231,7 +231,7 @@ export const listarParaAdmin = query({
   },
 })
 
-export const validar_ = mutation({
+export const revisar = mutation({
   args: {
     registroId: v.id('registros'),
     estado: v.union(v.literal('validado'), v.literal('rechazado')),
