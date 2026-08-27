@@ -204,5 +204,8 @@ Antes del 4 de septiembre:
 - [ ] Las tres rutas de §3 contestan 200 en `app.xuntas.org`
 - [ ] Prueba de humo completa, con menor y con mayor de edad
 - [ ] Prueba de humo con Google además de con código por correo
-- [ ] Aviso de privacidad publicado y enlazado (ver `docs/DECISIONES.md`)
+- [ ] Aviso de privacidad y bases con el texto final, y `listo: true` en
+      `src/lib/documentos.ts` (mientras esté en `false`, las dos páginas salen
+      marcadas como borrador y el formulario lo dice junto a la casilla)
+- [ ] `npm run check` en verde (typecheck + pruebas)
 - [ ] Alguien de XUNTAS leyó las pantallas de alta de Clerk en español

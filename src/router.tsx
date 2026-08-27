@@ -1,6 +1,8 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { deLocalizeUrl, localizeUrl } from './paraglide/runtime.js'
+import PantallaError from './components/PantallaError'
+import PantallaNoEncontrada from './components/PantallaNoEncontrada'
 
 export function getRouter() {
   const router = createTanStackRouter({
@@ -8,6 +10,13 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    /**
+     * Sin estos dos, un error de render deja la página en blanco y una URL mal
+     * escrita deja al navegador con la pantalla en blanco también. En una app
+     * que se comparte por WhatsApp, los enlaces llegan cortados a menudo.
+     */
+    defaultErrorComponent: ({ error }) => <PantallaError error={error} />,
+    defaultNotFoundComponent: () => <PantallaNoEncontrada />,
     /**
      * Prefijo de idioma en la URL.
      *

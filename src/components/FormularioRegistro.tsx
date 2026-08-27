@@ -8,6 +8,7 @@ import {
   registroVacio,
   validarRegistro,
 } from '../lib/formulario'
+import { DOCUMENTOS } from '../lib/documentos'
 
 type Props = {
   inicial: DatosRegistro
@@ -347,6 +348,7 @@ export default function FormularioRegistro({
           sub={m.reg_ck_bases_sub()}
           checked={datos.confirmaciones.bases}
           onChange={(v) => set('confirmaciones', { ...datos.confirmaciones, bases: v })}
+          documento={{ ...DOCUMENTOS.bases, etiqueta: m.bases_titulo() }}
         />
         <Casilla
           id="ck2"
@@ -361,6 +363,7 @@ export default function FormularioRegistro({
           sub={m.reg_ck_privacidad_sub()}
           checked={datos.confirmaciones.privacidad}
           onChange={(v) => set('confirmaciones', { ...datos.confirmaciones, privacidad: v })}
+          documento={{ ...DOCUMENTOS.avisoPrivacidad, etiqueta: m.privacidad_titulo() }}
         />
       </Apartado>
 
@@ -484,12 +487,15 @@ function Casilla({
   sub,
   checked,
   onChange,
+  documento,
 }: {
   id: string
   titulo: string
   sub: string
   checked: boolean
   onChange: (v: boolean) => void
+  /** Documento que esta casilla dice aceptar. Se enlaza junto al texto. */
+  documento?: { ruta: string; listo: boolean; etiqueta: string }
 }) {
   return (
     <label
@@ -506,6 +512,27 @@ function Casilla({
       <span>
         <b className="block text-[13.5px] font-semibold">{titulo}</b>
         <span className="mt-1 block text-[12.5px] leading-relaxed font-light text-soft">{sub}</span>
+        {documento && (
+          <span className="mt-1.5 block text-[12.5px]">
+            {/*
+              No se puede aceptar un documento que no se puede leer. El enlace
+              abre en otra pestaña para no perder lo capturado, y `onClick` corta
+              la propagación para que abrirlo no marque la casilla.
+            */}
+            <a
+              href={documento.ruta}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="underline"
+            >
+              {documento.etiqueta}
+            </a>
+            {!documento.listo && (
+              <span className="ml-2 text-[11.5px] text-warn">{m.doc_pendiente_chip()}</span>
+            )}
+          </span>
+        )}
       </span>
     </label>
   )

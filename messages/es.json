@@ -130,5 +130,16 @@
   "sync_texto": "Tarda unos segundos. Esta pantalla se actualiza sola en cuanto quede lista; no hace falta recargar.",
   "sync_ayuda": "Si después de un minuto sigues viendo esto, escríbenos y lo resolvemos.",
   "edad_falta_texto": "Tu cuenta quedó sin fecha de nacimiento. La necesitamos antes de que puedas enviar tu registro: de ella depende si hace falta la autorización de tu padre, madre o tutor.",
-  "tutor_demasiados": "Ya se enviaron demasiados correos a tu tutor. Escríbenos a hola@xuntas.org y lo resolvemos contigo."
+  "tutor_demasiados": "Ya se enviaron demasiados correos a tu tutor. Escríbenos a hola@xuntas.org y lo resolvemos contigo.",
+  "privacidad_titulo": "Aviso de privacidad",
+  "bases_titulo": "Bases de la convocatoria",
+  "doc_borrador_titulo": "Este documento todavía no es definitivo",
+  "doc_borrador_texto": "XUNTAS está terminando de redactarlo. Lo que ves aquí es un andamio con los apartados que va a tener, no el texto final. Si tienes dudas antes de registrarte, escríbenos a hola@xuntas.org.",
+  "doc_pendiente_chip": "(borrador)",
+  "error_titulo": "Algo se rompió de nuestro lado",
+  "error_texto": "No es culpa tuya y tu borrador está guardado: el formulario se guarda solo mientras escribes. Vuelve a cargar la página y deberías encontrar todo donde lo dejaste. Si se repite, escríbenos a hola@xuntas.org.",
+  "error_reintentar": "Volver a cargar",
+  "nf_titulo": "Esta página no existe",
+  "nf_texto": "Puede que el enlace haya llegado cortado. Si te lo compartieron por WhatsApp, pide que te lo manden otra vez completo.",
+  "nf_inicio": "Ir al inicio"
 }

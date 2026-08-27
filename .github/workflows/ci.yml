@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 24 como mínimo: la estrategia `url` de Paraglide usa URLPattern,
+      # que no existe en Node 22. Ver docs/DESPLIEGUE.md.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Pruebas
+        run: npm test
+
+      # Con valores de mentiras: no hace falta un proyecto real para saber si
+      # compila, y así el build de producción no puede romperse sin avisar.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_CONVEX_URL: https://ci-placeholder.convex.cloud
+          VITE_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
+
+      - name: El entrypoint del contenedor existe
+        run: test -f .output/server/index.mjs
