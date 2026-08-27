@@ -1,0 +1,78 @@
+# Puerta de calidad de `main` y promoción a `staging`.
+#
+# Flujo de ramas:  main  →  staging  →  production
+#
+# Aquí se cubre el primer salto: si `main` compila, se despliega el backend de
+# staging y se adelanta la rama `staging`, lo que hace que Dokploy construya
+# el contenedor de staging.
+#
+# El segundo salto (staging → production) es manual, en release.yml.
+
+name: main — checks y promoción a staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-main
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Sin variables VITE_* a propósito: aquí solo se comprueba que el
+      # proyecto compila. Los valores reales los inyecta Dokploy como build
+      # args al construir la imagen, y no tienen por qué existir en CI.
+      - name: Build
+        run: npm run build
+
+  promote:
+    name: Desplegar staging y adelantar la rama
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historia completa: sin esto el push a `staging` sale rechazado
+          # por falta de ancestros.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Convex primero y la rama después: el esquema nuevo tiene que estar
+      # arriba antes de que Dokploy levante el frontend que lo consulta.
+      - name: Desplegar a Convex staging
+        run: npx convex deploy
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_STAGING_DEPLOY_KEY }}
+
+      # Fast-forward, sin --force. Si `staging` divergió de `main` esto falla,
+      # y falla bien: significa que alguien commiteó directo a staging y hay
+      # que mirarlo, no aplastarlo.
+      - name: Adelantar staging a main
+        run: git push origin HEAD:staging

@@ -143,6 +143,41 @@ docker build \
 
 ### CI/CD
 
+Tres ramas, en cadena:
+
+```
+main  --(checks + Convex staging)-->  staging  --(release manual)-->  production
+```
+
+| Workflow | Cuándo | Qué hace |
+|---|---|---|
+| `ci-main.yml` | push a `main` | typecheck + build; si pasan, despliega Convex staging y adelanta la rama `staging` |
+| `release.yml` | **a mano** (Actions → Run workflow) | despliega Convex producción y adelanta `production` a `staging` |
+| `convex-production.yml` | push a `production` | red de seguridad: despliega Convex si alguien empuja a `production` desde su máquina |
+
+El contenedor no lo construye ningún workflow: cada push a `staging` o
+`production` llega a Dokploy por el webhook de su GitHub App, y Dokploy
+construye la imagen en el VPS.
+
+En los dos saltos Convex va **antes** que la rama, para que el esquema nuevo
+esté arriba antes de que el frontend nuevo lo consulte.
+
+`release.yml` es manual a propósito: con `autoDeploy` encendido, todo lo que
+entra a `production` sale a usuarios reales. Durante la convocatoria esa
+decisión la toma una persona.
+
+> **Por qué el despliegue de Convex vive dentro de cada workflow y no se
+> encadena.** Los push hechos con `GITHUB_TOKEN` no disparan workflows de
+> Actions — GitHub lo impide para evitar bucles infinitos. El webhook de la
+> GitHub App de Dokploy sí llega, así que el contenedor sí se construye solo.
+
+Secretos necesarios (Settings → Secrets and variables → Actions):
+
+| Secreto | Para |
+|---|---|
+| `CONVEX_PROD_DEPLOY_KEY` | `release.yml` y `convex-production.yml` |
+| `CONVEX_STAGING_DEPLOY_KEY` | `ci-main.yml` |
+
 Un merge a `production` dispara **dos** despliegues independientes:
 
 | Qué | Quién lo dispara | Qué hace |
