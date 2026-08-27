@@ -61,12 +61,19 @@ VITE_CONVEX_URL=
 En Convex, que es donde corre el backend:
 
 ```bash
-npx convex env set CLERK_JWT_ISSUER_DOMAIN https://clerk.xuntas.org
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<slug>.clerk.accounts.dev
 npx convex env set CLERK_WEBHOOK_SECRET whsec_...
 npx convex env set RESEND_API_KEY re_...
-npx convex env set APP_URL https://app.xuntas.org
-npx convex env set RESEND_TEST_MODE false   # ojo: sin esto solo envía a @resend.dev
+npx convex env set APP_URL http://localhost:3000
 ```
+
+> **`npx convex env set` escribe en el deployment de DESARROLLO.** Producción es
+> un deployment aparte, con sus propias variables y su propia base de datos.
+> Para tocar producción hay que agregar `--prod` a cada comando. Ver
+> [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md).
+>
+> `RESEND_TEST_MODE` se queda sin definir en desarrollo: así Resend solo acepta
+> direcciones `@resend.dev` y no le llega correo a nadie por accidente.
 
 ### 4. Resend
 
@@ -101,19 +108,35 @@ El webhook `user.updated` espeja el rol a Convex.
 
 ## Despliegue
 
-Docker sobre Hostinger + Dokploy. `VITE_CONVEX_URL` y
-`VITE_CLERK_PUBLISHABLE_KEY` van como **build args**, no como variables de
-runtime: Vite las incrusta en el bundle del cliente durante el build.
+Son **dos despliegues distintos** y hay que hacer los dos: el backend va a
+Convex y el frontend va a un contenedor en Hostinger + Dokploy. Subir la imagen
+sin haber corrido `convex deploy` deja la app hablándole a un backend viejo.
+
+El procedimiento completo, en orden y con la lista de verificación previa al
+4 de septiembre, está en **[`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md)**. El
+resumen:
 
 ```bash
+# 1. Backend
+npx convex deploy            # o: npm run deploy:convex
+
+# 2. Imagen — VITE_* son build args: Vite las incrusta en el bundle del cliente
 docker build \
   --build-arg VITE_CONVEX_URL=https://xxx.convex.cloud \
   --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_live_xxx \
   -t xuntas-registro .
 ```
 
-Después del primer build exitoso, **verifica la ruta del entrypoint** en el
-`Dockerfile` contra lo que realmente generó `.output/`.
+Y en el entorno de **runtime** del contenedor (Dokploy → Environment), que es
+distinto de los build args:
+
+```
+CLERK_SECRET_KEY=sk_live_...
+CLERK_PUBLISHABLE_KEY=pk_live_...
+```
+
+Las dos hacen falta: el middleware de Clerk corre en el SSR y sin ellas cada
+ruta contesta 500. No basta con la `VITE_` del bundle del cliente.
 
 ---
 

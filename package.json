@@ -9,7 +9,13 @@
     "dev": "vite dev",
     "generate-routes": "tsr generate",
     "build": "vite build",
-    "preview": "vite preview"
+    "start": "node .output/server/index.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run test",
+    "deploy:convex": "convex deploy"
   },
   "dependencies": {
     "@clerk/localizations": "^4.15.7",
@@ -17,6 +23,7 @@
     "@convex-dev/resend": "^0.2.7",
     "@inlang/paraglide-js": "^2.24.1",
     "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/nitro-v2-vite-plugin": "1.155.0",
     "@tanstack/react-devtools": "0.10.12",
     "@tanstack/react-router": "1.170.32",
     "@tanstack/react-router-devtools": "1.167.1",
@@ -44,5 +51,8 @@
       "esbuild",
       "lightningcss"
     ]
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
