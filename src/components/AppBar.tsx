@@ -1,22 +1,22 @@
 import { Show, SignOutButton } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
+import BrandMark from './BrandMark'
 
 /**
  * App header. Solid ink, yellow brand mark, no shadows.
  * It is the same one as in portal_xuntas.html — recognizable from the first pixel.
+ *
+ * The mark is the real one from xuntas.org. The name beside it stays
+ * "XUNTAS–XUNTOS": the site's wordmark reads "XUNTAS" alone, and this is the
+ * registration for a program that has a men's branch.
  */
 export default function AppBar() {
   return (
     <header className="bg-ink text-white">
       <div className="mx-auto flex max-w-[900px] items-center justify-between gap-4 px-[22px] py-[15px]">
         <Link to="/" className="flex min-w-0 items-center gap-[11px] no-underline">
-          <span
-            aria-hidden="true"
-            className="grid size-[34px] flex-none place-items-center rounded-full bg-yel font-disp text-[18px] font-extrabold text-ink"
-          >
-            X
-          </span>
+          <BrandMark className="h-[26px] w-auto flex-none text-yel" />
           <span className="min-w-0">
             <b className="block font-disp text-[16px] leading-[1.15] font-bold">
               {m.brand_name()}

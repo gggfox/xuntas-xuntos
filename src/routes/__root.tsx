@@ -23,7 +23,16 @@ export const Route = createRootRoute({
       { title: m.meta_title() },
       { name: 'description', content: m.meta_description() },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      /*
+       * SVG first: it is one file for every size and stays sharp. The mark
+       * rides on an ink tile because yellow on a light tab strip does not
+       * contrast — the same rule BRAND.md states for yellow on paper.
+       */
+      { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+    ],
   }),
   shellComponent: RootDocument,
 })

@@ -156,3 +156,24 @@ English of every key — it was empty until the day the US college coaches
 needed it, and it is filled now. The two files must hold the same keys: a key
 in one and not the other is what Paraglide reports as a missing message.
 
+---
+
+## The mark
+
+The mark is the one from `xuntas.org`, kept in `src/components/BrandMark.tsx`
+as inline SVG with `fill="currentColor"`. That is the reason it is inline and
+not an `<img>`: it takes the color of whatever it sits in, so it follows
+`styles.css` instead of pinning a hex of its own.
+
+**Two yellows exist and only one belongs here.** The site ships its artwork in
+`#ebf437`; this app's `--color-yel` is `#edf45f`. Anything imported from the
+site gets recolored on the way in. Side by side the difference reads as a
+rendering fault, not as two brands.
+
+**The wordmark is not used.** The site's lockup reads "XUNTAS" alone, and this
+is the registration for a program with a men's branch. The header keeps the
+mark next to `brand_name`, which says "XUNTAS–XUNTOS".
+
+**The favicon carries an ink tile** (`public/favicon.svg`), because the rule
+about yellow on light backgrounds does not stop at the edge of the page — a
+bare yellow mark vanishes in a light browser tab strip.
