@@ -17,12 +17,11 @@ export const Route = createRootRoute({
       // The brand is light paper. Declared so the browser doesn't invent a
       // dark mode over forms that don't have one.
       { name: 'color-scheme', content: 'light only' },
-      { title: 'Registro · Convocatoria 2026–2027 · XUNTAS+XUNTOS' },
-      {
-        name: 'description',
-        content:
-          'Registro al Programa de Desarrollo de XUNTAS+XUNTOS. Ciclo 2026–2027.',
-      },
+      // Translated like everything else. `head` runs per request, so it sees
+      // the locale Paraglide resolved for that request — which matters now
+      // that the browser's language can pick it.
+      { title: m.meta_title() },
+      { name: 'description', content: m.meta_description() },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),

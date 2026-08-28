@@ -151,7 +151,8 @@ are approved and carry legal or institutional meaning:
   admission")
 
 **All copy lives in `messages/es.json`**, not inside the components. If you
-are going to change a word, it changes there. `messages/en.json` exists
-empty on purpose: the English translation arrives when it is time to talk to
-the US college coaches, and that day it will be a translation job, not an
-archaeology job.
+are going to change a word, it changes there. `messages/en.json` carries the
+English of every key — it was empty until the day the US college coaches
+needed it, and it is filled now. The two files must hold the same keys: a key
+in one and not the other is what Paraglide reports as a missing message.
+

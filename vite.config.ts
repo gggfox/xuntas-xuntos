@@ -44,13 +44,14 @@ const config = defineConfig(({ command }) => {
         project: './project.inlang',
         outdir: './src/paraglide',
         // `url` first: the path prefix wins over the cookie, so a shared link
-        // always opens in the language it was shared in.
+        // always opens in the language it was shared in. `cookie` next, so a
+        // deliberate choice outlives the browser's setting.
         //
-        // NOTE: `preferredLanguage` is NOT on the list on purpose. `en` exists
-        // but is empty; with that strategy, a Mexican family with their
-        // browser in English lands on /en/ and sees the interface in Spanish
-        // with English URLs. It gets added the day en.json has translations.
-        strategy: ['url', 'cookie', 'baseLocale'],
+        // `preferredLanguage` was held back while `en.json` was empty: with it
+        // on, a family with their browser in English would have landed on /en/
+        // and found the interface still in Spanish. `en.json` is translated
+        // now, so the condition that comment described is met and it is on.
+        strategy: ['url', 'cookie', 'preferredLanguage', 'baseLocale'],
         urlPatterns: [
           {
             pattern: '/:path(.*)?',
