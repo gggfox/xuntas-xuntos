@@ -6,25 +6,25 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
-# Las dependencias se copian antes que el código para aprovechar la caché de
-# capas: cambiar un .tsx no vuelve a instalar node_modules.
+# Dependencies are copied before the code to take advantage of the layer
+# cache: changing a .tsx does not reinstall node_modules.
 COPY package.json package-lock.json ./
-# `npm ci` respeta el lockfile al pie de la letra. Nunca uses `npm install`
-# aquí: las versiones de producción tienen que ser las mismas que probaste.
+# `npm ci` follows the lockfile to the letter. Never use `npm install` here:
+# the production versions have to be the same ones you tested.
 RUN npm ci
 
 COPY . .
 
-# Todo lo que empieza por VITE_ tiene que existir AQUÍ, en tiempo de build:
-# Vite lo incrusta en el bundle del cliente. Pasarlo como variable de runtime
-# no sirve de nada — el bundle ya se compiló con el valor viejo (o con
-# undefined). Se pasan con --build-arg; en Dokploy son los "Build Time
-# Arguments" de cada environment, y por eso staging y producción necesitan
-# builds separados aunque el commit sea el mismo.
+# Everything that starts with VITE_ has to exist HERE, at build time: Vite
+# embeds it into the client bundle. Passing it as a runtime variable is
+# useless — the bundle was already compiled with the old value (or with
+# undefined). They are passed with --build-arg; in Dokploy they are the
+# "Build Time Arguments" of each environment, which is why staging and
+# production need separate builds even when the commit is the same.
 #
-# CLERK_SECRET_KEY NO va aquí. Es de runtime, y un ARG queda escrito en el
-# historial de la imagen: `docker history` lo enseñaría a cualquiera que
-# pudiera bajar la imagen.
+# CLERK_SECRET_KEY does NOT go here. It is a runtime value, and an ARG stays
+# written in the image history: `docker history` would show it to anyone who
+# could pull the image.
 ARG VITE_CONVEX_URL
 ARG VITE_CLERK_PUBLISHABLE_KEY
 ARG VITE_CLERK_SIGN_IN_URL
@@ -32,10 +32,10 @@ ARG VITE_CLERK_SIGN_UP_URL
 ARG VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
 ARG VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
 
-# Escotilla de desarrollo. Sin valor por defecto a propósito: si no se pasa,
-# queda vacía y la ventana de registro respeta el calendario. Ver
-# convex/lib/ciclo.ts — NUNCA la pongas en 'true' en producción.
-ARG VITE_VENTANA_SIEMPRE_ABIERTA
+# Development escape hatch. No default value on purpose: if it is not passed,
+# it stays empty and the registration window follows the calendar. See
+# convex/lib/cycle.ts — NEVER set it to 'true' in production.
+ARG VITE_WINDOW_ALWAYS_OPEN
 
 ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
@@ -43,17 +43,18 @@ ENV VITE_CLERK_SIGN_IN_URL=$VITE_CLERK_SIGN_IN_URL
 ENV VITE_CLERK_SIGN_UP_URL=$VITE_CLERK_SIGN_UP_URL
 ENV VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=$VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
 ENV VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=$VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
-ENV VITE_VENTANA_SIEMPRE_ABIERTA=$VITE_VENTANA_SIEMPRE_ABIERTA
+ENV VITE_WINDOW_ALWAYS_OPEN=$VITE_WINDOW_ALWAYS_OPEN
 
-# Si faltan VITE_CONVEX_URL o VITE_CLERK_PUBLISHABLE_KEY, `vite.config.ts`
-# aborta aquí con un mensaje claro. Antes producían una imagen que arrancaba
-# bien y contestaba 500 en todas las rutas, que es mucho peor de diagnosticar.
+# If VITE_CONVEX_URL or VITE_CLERK_PUBLISHABLE_KEY are missing,
+# `vite.config.ts` aborts right here with a clear message. They used to
+# produce an image that started fine and answered 500 on every route, which
+# is much worse to diagnose.
 RUN npm run build
 
-# El bundle de SSR deja fuera react, @tanstack, @clerk, convex y unas cuantas
-# más: dist/server/server.js las importa por nombre en tiempo de ejecución.
-# Podar aquí y copiar el árbol ya resuelto sale más barato que un segundo
-# `npm ci` en la etapa de runtime, y no vuelve a tocar la red.
+# The SSR bundle leaves out react, @tanstack, @clerk, convex and a few more:
+# dist/server/server.js imports them by name at runtime. Pruning here and
+# copying the already-resolved tree is cheaper than a second `npm ci` in the
+# runtime stage, and never touches the network again.
 RUN npm prune --omit=dev
 
 # ---------------------------------------------------------------------------
@@ -64,32 +65,32 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Usuario sin privilegios. El contenedor no necesita root para servir SSR.
+# Unprivileged user. The container does not need root to serve SSR.
 RUN addgroup -S app && adduser -S app -G app
 
-# `vite build` deja dos mitades en dist/: el handler de SSR en dist/server y
-# los assets del cliente en dist/client. Las dos hacen falta — server.mjs
-# sirve los estáticos y cae al SSR para todo lo demás.
+# `vite build` leaves two halves in dist/: the SSR handler in dist/server and
+# the client assets in dist/client. Both are needed — server.mjs serves the
+# static files and falls back to SSR for everything else.
 COPY --from=build --chown=app:app /app/dist ./dist
 
-# Sin chown a propósito: el árbol es enorme y el usuario `app` solo necesita
-# leerlo. Un --chown aquí añade una capa entera duplicada.
+# No chown on purpose: the tree is huge and the `app` user only needs to read
+# it. A --chown here adds a whole duplicated layer.
 COPY --from=build /app/node_modules ./node_modules
 
-# package.json NO es opcional. dist/server/server.js termina en .js, y sin
-# "type": "module" en el directorio Node lo interpretaría como CommonJS y
-# reventaría en el primer `import`.
+# package.json is NOT optional. dist/server/server.js ends in .js, and
+# without "type": "module" in the directory Node would interpret it as
+# CommonJS and blow up on the first `import`.
 COPY --chown=app:app package.json ./package.json
 COPY --chown=app:app server.mjs ./server.mjs
 
 USER app
 EXPOSE 3000
 
-# Dokploy reinicia el contenedor si esto falla. `/es/` es la portada real y no
-# un endpoint sintético: si el SSR se rompe, el healthcheck se entera.
+# Dokploy restarts the container if this fails. `/es/` is the real front page
+# and not a synthetic endpoint: if SSR breaks, the healthcheck finds out.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://localhost:'+(process.env.PORT||3000)+'/es/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-# `vite build` NO genera un servidor que escuche: dist/server/server.js
-# exporta un handler `fetch`, nada más. server.mjs es quien abre el socket.
+# `vite build` does NOT generate a server that listens: dist/server/server.js
+# exports a `fetch` handler, nothing more. server.mjs is what opens the socket.
 CMD ["node", "server.mjs"]

@@ -1,30 +1,29 @@
-# Despliega el backend de Convex (funciones, esquema, crons) al deployment de
-# producción cuando algo entra a la rama `production`.
+# Deploys the Convex backend (functions, schema, crons) to the production
+# deployment when something lands on the `production` branch.
 #
-# Por qué vive aquí y no en el Dockerfile: la imagen solo lleva el frontend.
-# Convex es un backend aparte, con su propio ciclo de despliegue — meterlo en
-# el build del contenedor lo ejecutaría en cada rebuild, incluso cuando no
-# cambió una sola función.
+# Why it lives here and not in the Dockerfile: the image only carries the
+# frontend. Convex is a separate backend, with its own deployment cycle —
+# putting it in the container build would run it on every rebuild, even when
+# not a single function changed.
 #
-# OJO con el orden. Este workflow y el webhook de Dokploy arrancan con el
-# mismo push. En la práctica Convex termina primero (segundos contra los
-# minutos que tarda `npm ci` + build de Docker), que es justo el orden que
-# queremos: el esquema nuevo tiene que estar arriba antes de que el frontend
-# nuevo empiece a consultarlo. No está garantizado por nada más que la
-# diferencia de duración; si algún día importa de verdad, hay que encadenar
-# los dos pasos explícitamente.
+# WATCH the order. This workflow and the Dokploy webhook start with the same
+# push. In practice Convex finishes first (seconds versus the minutes that
+# `npm ci` + the Docker build take), which is exactly the order we want: the
+# new schema has to be live before the new frontend starts querying it.
+# Nothing guarantees it beyond the difference in duration; if it ever truly
+# matters, the two steps have to be chained explicitly.
 
-name: Convex — producción
+name: Convex — production
 
 on:
   push:
     branches: [production]
-  # Permite relanzar a mano desde la pestaña Actions si un despliegue falla
-  # sin que haya un commit nuevo que empujar.
+  # Allows re-running by hand from the Actions tab if a deploy fails without
+  # a new commit to push.
   workflow_dispatch:
 
-# Dos merges seguidos no deben desplegar en paralelo: el segundo esperaría y
-# el orden de llegada dejaría de ser el orden de los commits.
+# Two back-to-back merges must not deploy in parallel: the second one would
+# wait, and the arrival order would no longer be the commit order.
 concurrency:
   group: convex-production
   cancel-in-progress: false
@@ -40,19 +39,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Mismo major que el runtime de la imagen (node:22-alpine).
+          # Same major as the image runtime (node:22-alpine).
           node-version: 22
           cache: npm
 
-      # `npm ci` y no `npm install`: el lockfile manda, igual que en el
+      # `npm ci` and not `npm install`: the lockfile rules, same as in the
       # Dockerfile.
       - run: npm ci
 
-      # `convex deploy` hace typecheck de convex/ antes de subir nada, así que
-      # un error de tipos falla aquí y no a medias en producción.
-      - name: Desplegar a Convex producción
+      # `convex deploy` typechecks convex/ before uploading anything, so a
+      # type error fails here and not halfway into production.
+      - name: Deploy to Convex production
         run: npm run deploy:convex
         env:
-          # El nombre de la izquierda lo fija el CLI de Convex — es la variable
-          # que lee. El de la derecha es cómo se llama el secreto en el repo.
+          # The name on the left is fixed by the Convex CLI — it is the
+          # variable it reads. The one on the right is what the secret is
+          # called in the repo.
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PROD_DEPLOY_KEY }}

@@ -4,10 +4,10 @@ import { internal } from './_generated/api'
 const crons = cronJobs()
 
 /**
- * Las pre-altas que nadie usó llevan la fecha de nacimiento de una persona
- * posiblemente menor y el correo de su tutor. Vencen a las dos horas; esto las
- * borra. Cada hora es suficiente: no hay prisa, pero tampoco se acumulan.
+ * Pre-signups nobody used carry the birth date of a possibly underage person
+ * and their guardian's email. They expire after two hours; this deletes them.
+ * Every hour is enough: there is no rush, but they do not pile up either.
  */
-crons.interval('borrar pre-altas vencidas', { hours: 1 }, internal.preAltas.limpiar, {})
+crons.interval('delete expired pre-signups', { hours: 1 }, internal.preSignups.cleanup, {})
 
 export default crons

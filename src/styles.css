@@ -2,39 +2,39 @@
 @import "tailwindcss";
 
 /* ===========================================================================
-   Sistema de diseño XUNTAS+XUNTOS
-   Fuente única de verdad. Portado de portal_xuntas.html / registro_xuntas.html.
-   Las reglas de uso viven en docs/MARCA.md — aquí solo los valores.
+   XUNTAS+XUNTOS design system
+   Single source of truth. Ported from portal_xuntas.html / registro_xuntas.html.
+   The usage rules live in docs/BRAND.md — only the values live here.
    =========================================================================== */
 
 @theme {
-  /* Tinta. El negro nunca es #000: es #111 y respira distinto. */
+  /* Ink. Black is never #000: it is #111 and it breathes differently. */
   --color-ink: #111111;
   --color-ink-2: #1f1f1f;
   --color-ink-3: #2e2e2e;
   --color-soft: rgba(17, 17, 17, 0.58);
 
-  /* Papel. El fondo es hueso, no blanco; las tarjetas sí son blancas. */
+  /* Paper. The background is bone, not white; cards, however, are white. */
   --color-paper: #fafaf8;
   --color-card: #ffffff;
 
-  /* Amarillo. Es el color de la marca y se usa con cuentagotas. */
+  /* Yellow. It is the brand color and it is used sparingly. */
   --color-yel: #edf45f;
   --color-yel-line: #c9d42b;
   --color-yel-d: #d2db3a;
   --color-yel-s: #f8fbd4;
   --color-ochre: #5a6300;
 
-  /* Líneas. Siempre tinta translúcida, nunca gris sólido. */
+  /* Lines. Always translucent ink, never solid gray. */
   --color-line: rgba(17, 17, 17, 0.11);
   --color-line-2: rgba(17, 17, 17, 0.22);
 
-  /* Semánticos. Solo para estado, jamás decorativos. */
+  /* Semantic. For state only, never decorative. */
   --color-ok: #1f7a45;
   --color-warn: #b26b00;
   --color-bad: #b3261e;
 
-  /* Tipografía: display para títulos, sans para lectura, mono para etiquetas. */
+  /* Typography: display for headings, sans for reading, mono for labels. */
   --font-disp: "Bricolage Grotesque", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -43,7 +43,7 @@
   --radius-ctl: 8px;
 }
 
-/* Sin modo oscuro: la marca es papel claro. Declarado, no accidental. */
+/* No dark mode: the brand is light paper. Declared, not accidental. */
 :root {
   color-scheme: light only;
 }
@@ -68,8 +68,8 @@ button {
   cursor: pointer;
 }
 
-/* Foco visible y grueso: mucha de esta gente llena el formulario con teclado
-   en una laptop prestada. */
+/* Visible, thick focus: many of these people fill out the form with the
+   keyboard on a borrowed laptop. */
 :focus-visible {
   outline: 3px solid var(--color-yel-d);
   outline-offset: 2px;
@@ -85,7 +85,7 @@ button {
 }
 
 @layer components {
-  /* Antetítulo en mono y versalitas. Marca jerarquía sin usar tamaño. */
+  /* Eyebrow in mono and small caps. Marks hierarchy without using size. */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 10.5px;
@@ -134,7 +134,7 @@ button {
     border-radius: var(--radius-xt);
   }
 
-  /* Campo de formulario. El anillo de foco es amarillo translúcido, no azul. */
+  /* Form field. The focus ring is translucent yellow, not blue. */
   .fld-input {
     border: 1px solid var(--color-line-2);
     border-radius: var(--radius-ctl);
@@ -189,7 +189,7 @@ button {
     background: rgba(179, 38, 30, 0.07);
   }
 
-  /* Aviso en amarillo suave. Para lo importante-pero-no-error. */
+  /* Notice in soft yellow. For the important-but-not-an-error. */
   .nota {
     background: var(--color-yel-s);
     border: 1px solid var(--color-yel-line);

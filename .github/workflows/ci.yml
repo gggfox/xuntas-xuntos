@@ -6,13 +6,13 @@ on:
   pull_request:
 
 jobs:
-  verificar:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # La misma versión que el Dockerfile, para que CI y producción no puedan
-      # discrepar en lo único que no se puede probar desde aquí.
+      # The same version as the Dockerfile, so CI and production cannot
+      # diverge on the one thing that cannot be tested from here.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -23,20 +23,21 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Pruebas
+      - name: Tests
         run: npm test
 
-      # Con valores de mentiras: no hace falta un proyecto real para saber si
-      # compila, y así el build de producción no puede romperse sin avisar.
+      # With fake values: a real project is not needed to know whether it
+      # compiles, and this way the production build cannot break unannounced.
       - name: Build
         run: npm run build
         env:
           VITE_CONVEX_URL: https://ci-placeholder.convex.cloud
           VITE_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
 
-      # Las dos mitades que `server.mjs` une. Si `vite build` deja de generar
-      # alguna, el contenedor arrancaría y fallaría en la primera petición.
-      - name: El build deja las dos mitades que server.mjs necesita
+      # The two halves that `server.mjs` joins. If `vite build` stops
+      # generating either one, the container would start and fail on the
+      # first request.
+      - name: Build leaves the two halves server.mjs needs
         run: |
           test -f dist/server/server.js
           test -d dist/client

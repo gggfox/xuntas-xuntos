@@ -11,12 +11,12 @@
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
-import type * as lib_ciclo from "../lib/ciclo.js";
+import type * as lib_cycle from "../lib/cycle.js";
 import type * as lib_html from "../lib/html.js";
 import type * as lib_tokens from "../lib/tokens.js";
-import type * as preAltas from "../preAltas.js";
-import type * as registros from "../registros.js";
-import type * as tutor from "../tutor.js";
+import type * as preSignups from "../preSignups.js";
+import type * as registrations from "../registrations.js";
+import type * as guardian from "../guardian.js";
 import type * as users from "../users.js";
 
 import type {
@@ -29,12 +29,12 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   emails: typeof emails;
   http: typeof http;
-  "lib/ciclo": typeof lib_ciclo;
+  "lib/cycle": typeof lib_cycle;
   "lib/html": typeof lib_html;
   "lib/tokens": typeof lib_tokens;
-  preAltas: typeof preAltas;
-  registros: typeof registros;
-  tutor: typeof tutor;
+  preSignups: typeof preSignups;
+  registrations: typeof registrations;
+  guardian: typeof guardian;
   users: typeof users;
 }>;
 

@@ -8,17 +8,17 @@ import {
 } from './_generated/server'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
-import { CICLO_ACTUAL, CIERRE_MS, esMenorDeEdad, fechaNacimientoValida } from './lib/ciclo'
-import { correoValido } from './lib/html'
-import { nuevoToken } from './lib/tokens'
+import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage, isValidBirthDate } from './lib/cycle'
+import { isValidEmail } from './lib/html'
+import { newToken } from './lib/tokens'
 import { vRole } from './schema'
 
-export { nuevoToken }
+export { newToken }
 
 
 
-/** Usuario autenticado, o null. Nunca lanza — la UI decide qué mostrar. */
-export async function usuarioActual(ctx: QueryCtx): Promise<Doc<'users'> | null> {
+/** Authenticated user, or null. Never throws — the UI decides what to show. */
+export async function currentUser(ctx: QueryCtx): Promise<Doc<'users'> | null> {
   const identity = await ctx.auth.getUserIdentity()
   if (!identity) return null
   return await ctx.db
@@ -27,69 +27,69 @@ export async function usuarioActual(ctx: QueryCtx): Promise<Doc<'users'> | null>
     .unique()
 }
 
-/** Igual que `usuarioActual`, pero exige sesión. Para mutations. */
-export async function exigirUsuario(ctx: QueryCtx): Promise<Doc<'users'>> {
-  const user = await usuarioActual(ctx)
+/** Same as `currentUser`, but requires a session. For mutations. */
+export async function requireUser(ctx: QueryCtx): Promise<Doc<'users'>> {
+  const user = await currentUser(ctx)
   if (!user) throw new Error('No hay sesión iniciada.')
   return user
 }
 
-export async function exigirAdmin(ctx: QueryCtx): Promise<Doc<'users'>> {
-  const user = await exigirUsuario(ctx)
+export async function requireAdmin(ctx: QueryCtx): Promise<Doc<'users'>> {
+  const user = await requireUser(ctx)
   if (user.role !== 'admin') throw new Error('Se requiere rol de administrador.')
   return user
 }
 
 /**
- * Estado completo de la cuenta para el panel del atleta: los tres ejes juntos.
- * Es la única consulta que necesita la pantalla "mi registro".
+ * Full account status for the athlete's panel: the three axes together.
+ * It is the only query the "mi registro" screen needs.
  */
-export const miEstado = query({
+export const myStatus = query({
   args: {},
   handler: async (ctx) => {
-    const user = await usuarioActual(ctx)
+    const user = await currentUser(ctx)
     if (!user) return null
 
-    const tutor = await ctx.db
-      .query('tutorAuth')
-      .withIndex('by_user_ciclo', (q) => q.eq('userId', user._id).eq('ciclo', CICLO_ACTUAL))
+    const guardian = await ctx.db
+      .query('guardianAuth')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
       .unique()
 
-    const registro = await ctx.db
-      .query('registros')
-      .withIndex('by_user_ciclo', (q) => q.eq('userId', user._id).eq('ciclo', CICLO_ACTUAL))
+    const registration = await ctx.db
+      .query('registrations')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
       .unique()
 
     return {
-      cuenta: {
-        nombre: user.nombre,
+      account: {
+        name: user.name,
         email: user.email,
-        emailVerificado: user.emailVerificado,
+        emailVerified: user.emailVerified,
         role: user.role,
         /**
-         * `false` significa que la cuenta se creó sin pre-alta válida y no
-         * sabemos su edad. NO significa mayor de edad — esa confusión era
-         * justo el hueco: una cuenta sin fecha pasaba por adulta y nunca se
-         * le pedía autorización del tutor.
+         * `false` means the account was created without a valid pre-signup and
+         * we do not know their age. It does NOT mean of legal age — that
+         * confusion was exactly the hole: an account without a date passed as
+         * an adult and was never asked for guardian authorization.
          */
-        edadDeclarada: user.fechaNacimiento !== undefined,
-        esMenor: user.esMenorAlRegistrarse ?? false,
+        ageDeclared: user.birthDate !== undefined,
+        isMinor: user.wasMinorAtSignup ?? false,
       },
-      tutor: tutor
+      guardian: guardian
         ? {
-            requerido: true,
-            confirmado: tutor.confirmadoEn !== undefined,
-            tutorEmail: tutor.tutorEmail,
-            tutorNombre: tutor.tutorNombre,
-            vecesEnviado: tutor.vecesEnviado,
-            enviadoEn: tutor.enviadoEn,
+            required: true,
+            confirmed: guardian.confirmedAt !== undefined,
+            guardianEmail: guardian.guardianEmail,
+            guardianName: guardian.guardianName,
+            timesSent: guardian.timesSent,
+            sentAt: guardian.sentAt,
           }
-        : { requerido: false, confirmado: true as const },
-      registro: registro
+        : { required: false, confirmed: true as const },
+      registration: registration
         ? {
-            estado: registro.estado,
-            enviadoEn: registro.enviadoEn,
-            actualizadoEn: registro.actualizadoEn,
+            status: registration.status,
+            submittedAt: registration.submittedAt,
+            updatedAt: registration.updatedAt,
           }
         : null,
     }
@@ -97,125 +97,128 @@ export const miEstado = query({
 })
 
 /**
- * Crea la solicitud de autorización del tutor y programa el correo.
+ * Creates the guardian authorization request and schedules the email.
  *
- * Es idempotente por (usuario, ciclo): si ya existe una, no manda otra. Lo
- * llaman el alta y el camino de recuperación, y Svix reintenta los webhooks.
+ * It is idempotent per (user, cycle): if one already exists, it does not send
+ * another. It is called by the signup and by the recovery path, and Svix
+ * retries webhooks.
  */
-async function abrirAutorizacionTutor(
+async function openGuardianAuthorization(
   ctx: MutationCtx,
   args: {
     userId: Id<'users'>
-    tutorNombre: string
-    tutorEmail: string
-    atletaNombre: string
+    guardianName: string
+    guardianEmail: string
+    athleteName: string
   },
 ): Promise<void> {
-  const yaExiste = await ctx.db
-    .query('tutorAuth')
-    .withIndex('by_user_ciclo', (q) => q.eq('userId', args.userId).eq('ciclo', CICLO_ACTUAL))
+  const alreadyExists = await ctx.db
+    .query('guardianAuth')
+    .withIndex('by_user_cycle', (q) => q.eq('userId', args.userId).eq('cycle', CURRENT_CYCLE))
     .unique()
-  if (yaExiste) return
+  if (alreadyExists) return
 
-  const ahora = Date.now()
-  const token = nuevoToken()
-  await ctx.db.insert('tutorAuth', {
+  const now = Date.now()
+  const token = newToken()
+  await ctx.db.insert('guardianAuth', {
     userId: args.userId,
-    ciclo: CICLO_ACTUAL,
-    tutorNombre: args.tutorNombre,
-    tutorEmail: args.tutorEmail,
+    cycle: CURRENT_CYCLE,
+    guardianName: args.guardianName,
+    guardianEmail: args.guardianEmail,
     token,
-    expiraEn: CIERRE_MS,
-    enviadoEn: ahora,
-    vecesEnviado: 1,
+    expiresAt: CLOSES_AT_MS,
+    sentAt: now,
+    timesSent: 1,
   })
-  await ctx.scheduler.runAfter(0, internal.emails.enviarAutorizacionTutor, {
-    para: args.tutorEmail,
-    tutorNombre: args.tutorNombre,
-    atletaNombre: args.atletaNombre,
+  await ctx.scheduler.runAfter(0, internal.emails.sendGuardianAuthorization, {
+    to: args.guardianEmail,
+    guardianName: args.guardianName,
+    athleteName: args.athleteName,
     token,
-    esReenvio: false,
+    isResend: false,
   })
 }
 
 /**
- * Alta desde el webhook `user.created` de Clerk.
+ * Signup from Clerk's `user.created` webhook.
  *
- * La fecha de nacimiento y los datos del tutor NO vienen del webhook: vienen de
- * la pre-alta que `/empezar` creó en el servidor, y por Clerk solo viaja su
- * token. `unsafeMetadata` lo puede reescribir el cliente, así que lo único que
- * puede falsificar es qué pre-alta usar — y solo puede usar una que él mismo
- * creó, con la edad que el servidor ya calculó.
+ * The birth date and guardian data do NOT come from the webhook: they come
+ * from the pre-signup `/empezar` created on the server, and only its token
+ * travels through Clerk. The client can rewrite `unsafeMetadata`, so the only
+ * thing it can forge is which pre-signup to use — and it can only use one it
+ * created itself, with the age the server already computed.
  *
- * Si no hay token, o venció, la cuenta se crea IGUAL pero sin fecha: queda con
- * la edad sin declarar y no puede enviar registro hasta resolverlo desde su
- * panel. Antes, esa misma situación pasaba por mayor de edad en silencio.
+ * If there is no token, or it expired, the account is created ANYWAY but
+ * without a date: it is left with its age undeclared and cannot submit a
+ * registration until this is resolved from its panel. Before, that same
+ * situation silently passed as being of legal age.
  */
-export const alta = internalMutation({
+export const create = internalMutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
-    nombre: v.optional(v.string()),
-    emailVerificado: v.boolean(),
+    name: v.optional(v.string()),
+    emailVerified: v.boolean(),
     role: vRole,
-    preAltaToken: v.optional(v.string()),
+    preSignupToken: v.optional(v.string()),
   },
-  // Anotado a propósito: el handler llama a `internal.preAltas.consumir`, cuyo
-  // tipo pasa por `_generated/api`, que a su vez incluye a esta función. Sin la
-  // anotación TypeScript no puede resolver el ciclo y ambas quedan en `any`.
+  // Annotated on purpose: the handler calls `internal.preSignups.consume`,
+  // whose type goes through `_generated/api`, which in turn includes this
+  // function. Without the annotation TypeScript cannot resolve the cycle and
+  // both end up as `any`.
   handler: async (ctx, args): Promise<Id<'users'>> => {
-    const existente = await ctx.db
+    const existing = await ctx.db
       .query('users')
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique()
 
-    const ahora = Date.now()
+    const now = Date.now()
 
-    if (existente) {
-      await ctx.db.patch(existente._id, {
+    if (existing) {
+      await ctx.db.patch(existing._id, {
         email: args.email,
-        nombre: args.nombre ?? existente.nombre,
-        emailVerificado: args.emailVerificado,
+        name: args.name ?? existing.name,
+        emailVerified: args.emailVerified,
         role: args.role,
-        actualizadoEn: ahora,
+        updatedAt: now,
       })
-      return existente._id
+      return existing._id
     }
 
-    const preAlta = args.preAltaToken
-      ? await ctx.runMutation(internal.preAltas.consumir, {
-          token: args.preAltaToken,
+    const preSignup = args.preSignupToken
+      ? await ctx.runMutation(internal.preSignups.consume, {
+          token: args.preSignupToken,
           clerkId: args.clerkId,
         })
       : null
 
-    if (!preAlta) {
+    if (!preSignup) {
       console.warn(
-        `[alta] cuenta ${args.clerkId} creada sin pre-alta válida. ` +
-          'Queda con la edad sin declarar hasta que la complete desde su panel.',
+        `[users.create] account ${args.clerkId} created without a valid pre-signup. ` +
+          'It stays with its age undeclared until they complete it from their panel.',
       )
     }
 
     const userId = await ctx.db.insert('users', {
       clerkId: args.clerkId,
       email: args.email,
-      nombre: args.nombre,
+      name: args.name,
       role: args.role,
-      emailVerificado: args.emailVerificado,
-      fechaNacimiento: preAlta?.fechaNacimiento,
-      esMenorAlRegistrarse: preAlta?.esMenor,
-      creadoEn: ahora,
-      actualizadoEn: ahora,
+      emailVerified: args.emailVerified,
+      birthDate: preSignup?.birthDate,
+      wasMinorAtSignup: preSignup?.isMinor,
+      createdAt: now,
+      updatedAt: now,
     })
 
-    // Menor de edad: sale el correo al tutor de inmediato. No bloquea el alta,
-    // pero la cuenta queda incompleta hasta que confirme.
-    if (preAlta?.esMenor && preAlta.tutorEmail && preAlta.tutorNombre) {
-      await abrirAutorizacionTutor(ctx, {
+    // Minor: the guardian email goes out immediately. It does not block the
+    // signup, but the account stays incomplete until they confirm.
+    if (preSignup?.isMinor && preSignup.guardianEmail && preSignup.guardianName) {
+      await openGuardianAuthorization(ctx, {
         userId,
-        tutorNombre: preAlta.tutorNombre,
-        tutorEmail: preAlta.tutorEmail,
-        atletaNombre: args.nombre ?? args.email,
+        guardianName: preSignup.guardianName,
+        guardianEmail: preSignup.guardianEmail,
+        athleteName: args.name ?? args.email,
       })
     }
 
@@ -224,71 +227,72 @@ export const alta = internalMutation({
 })
 
 /**
- * Camino de recuperación para una cuenta que quedó sin fecha de nacimiento.
+ * Recovery path for an account left without a birth date.
  *
- * Pasa cuando el alta se completó sin pre-alta válida — el caso real es el
- * rodeo por Google, donde el token puede perderse si el navegador no conserva
- * el sessionStorage. Sin esto, esas cuentas quedaban atrapadas.
+ * It happens when the signup completed without a valid pre-signup — the real
+ * case is the Google detour, where the token can get lost if the browser does
+ * not keep sessionStorage. Without this, those accounts were stuck.
  *
- * Se puede usar UNA vez: la fecha ya declarada no se cambia. Si se pudiera,
- * bastaría con declararse mayor después para deshacerse del tutor.
+ * Usable ONCE: an already-declared date cannot be changed. If it could,
+ * declaring yourself an adult afterwards would be enough to get rid of the
+ * guardian.
  */
-export const declararFechaNacimiento = mutation({
+export const declareBirthDate = mutation({
   args: {
-    fechaNacimiento: v.string(),
-    tutorNombre: v.optional(v.string()),
-    tutorEmail: v.optional(v.string()),
+    birthDate: v.string(),
+    guardianName: v.optional(v.string()),
+    guardianEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await exigirUsuario(ctx)
+    const user = await requireUser(ctx)
 
-    if (user.fechaNacimiento !== undefined) {
+    if (user.birthDate !== undefined) {
       throw new Error('Tu fecha de nacimiento ya está registrada y no se puede cambiar.')
     }
 
-    const ahora = Date.now()
-    const fechaNacimiento = args.fechaNacimiento.trim()
-    if (!fechaNacimientoValida(fechaNacimiento, ahora)) {
+    const now = Date.now()
+    const birthDate = args.birthDate.trim()
+    if (!isValidBirthDate(birthDate, now)) {
       throw new Error('Revisa tu fecha de nacimiento.')
     }
 
-    const esMenor = esMenorDeEdad(fechaNacimiento, ahora)
-    const tutorNombre = args.tutorNombre?.trim()
-    const tutorEmail = args.tutorEmail?.trim().toLowerCase()
+    const isMinor = isUnderage(birthDate, now)
+    const guardianName = args.guardianName?.trim()
+    const guardianEmail = args.guardianEmail?.trim().toLowerCase()
 
-    if (esMenor) {
-      if (!tutorNombre) throw new Error('Escribe el nombre de tu padre, madre o tutor.')
-      if (!tutorEmail || !correoValido(tutorEmail)) {
+    if (isMinor) {
+      if (!guardianName) throw new Error('Escribe el nombre de tu padre, madre o tutor.')
+      if (!guardianEmail || !isValidEmail(guardianEmail)) {
         throw new Error('Escribe un correo válido para tu padre, madre o tutor.')
       }
     }
 
     await ctx.db.patch(user._id, {
-      fechaNacimiento,
-      esMenorAlRegistrarse: esMenor,
-      actualizadoEn: ahora,
+      birthDate,
+      wasMinorAtSignup: isMinor,
+      updatedAt: now,
     })
 
-    if (esMenor && tutorNombre && tutorEmail) {
-      await abrirAutorizacionTutor(ctx, {
+    if (isMinor && guardianName && guardianEmail) {
+      await openGuardianAuthorization(ctx, {
         userId: user._id,
-        tutorNombre,
-        tutorEmail,
-        atletaNombre: user.nombre ?? user.email,
+        guardianName,
+        guardianEmail,
+        athleteName: user.name ?? user.email,
       })
     }
 
-    return { ok: true as const, esMenor }
+    return { ok: true as const, isMinor }
   },
 })
 
-/** `user.updated` de Clerk. Solo espeja; no toca el registro ni al tutor. */
-export const actualizar = internalMutation({
+/** Clerk's `user.updated`. Mirrors only; touches neither the registration nor the guardian. */
+export const update = internalMutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
-    nombre: v.optional(v.string()),
-    emailVerificado: v.boolean(),
+    name: v.optional(v.string()),
+    emailVerified: v.boolean(),
     role: vRole,
   },
   handler: async (ctx, args) => {
@@ -299,22 +303,22 @@ export const actualizar = internalMutation({
     if (!user) return
     await ctx.db.patch(user._id, {
       email: args.email,
-      nombre: args.nombre ?? user.nombre,
-      emailVerificado: args.emailVerificado,
+      name: args.name ?? user.name,
+      emailVerified: args.emailVerified,
       role: args.role,
-      actualizadoEn: Date.now(),
+      updatedAt: Date.now(),
     })
   },
 })
 
 /**
- * `user.deleted` de Clerk.
+ * Clerk's `user.deleted`.
  *
- * Borrado real, no lógico: si alguien ejerce su derecho de cancelación bajo la
- * LFPDPPP, sus datos se van de verdad, incluido el registro y el rastro del
- * tutor.
+ * A real delete, not a soft one: if someone exercises their cancellation
+ * right under the LFPDPPP, their data actually goes away, including the
+ * registration and the guardian trail.
  */
-export const baja = internalMutation({
+export const remove = internalMutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -323,17 +327,17 @@ export const baja = internalMutation({
       .unique()
     if (!user) return
 
-    const registros = await ctx.db
-      .query('registros')
-      .withIndex('by_user_ciclo', (q) => q.eq('userId', user._id))
+    const registrations = await ctx.db
+      .query('registrations')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id))
       .collect()
-    for (const r of registros) await ctx.db.delete(r._id)
+    for (const r of registrations) await ctx.db.delete(r._id)
 
-    const tutores = await ctx.db
-      .query('tutorAuth')
-      .withIndex('by_user_ciclo', (q) => q.eq('userId', user._id))
+    const guardians = await ctx.db
+      .query('guardianAuth')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id))
       .collect()
-    for (const t of tutores) await ctx.db.delete(t._id)
+    for (const g of guardians) await ctx.db.delete(g._id)
 
     await ctx.db.delete(user._id)
   },

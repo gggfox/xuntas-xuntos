@@ -1,16 +1,16 @@
 /**
- * Escape de HTML para las plantillas de correo.
+ * HTML escaping for the email templates.
  *
- * Todo lo que se interpola en un correo viene de un formulario: el nombre del
- * atleta, el nombre del tutor. Sin escapar, quien se registra controla el
- * marcado de un mensaje que sale del dominio verificado de XUNTAS hacia una
- * dirección que también eligió. Eso es phishing con nuestro remitente.
+ * Everything interpolated into an email comes from a form: the athlete's name,
+ * the guardian's name. Without escaping, whoever registers controls the markup
+ * of a message that leaves XUNTAS's verified domain toward an address they
+ * also chose. That is phishing with our sender.
  *
- * No usamos una librería: son cinco reemplazos y no queremos otra dependencia
- * en el camino del correo.
+ * We do not use a library: it is five replacements and we do not want another
+ * dependency on the email path.
  */
-export function escaparHtml(valor: string): string {
-  return valor
+export function escapeHtml(value: string): string {
+  return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -19,17 +19,17 @@ export function escaparHtml(valor: string): string {
 }
 
 /**
- * Recorta y escapa. El límite evita que un nombre de 3 000 caracteres
- * deforme la plantilla o infle el correo.
+ * Trims and escapes. The limit keeps a 3,000-character name from deforming
+ * the template or bloating the email.
  */
-export function textoParaCorreo(valor: string, limite = 120): string {
-  const limpio = valor.trim().replace(/\s+/g, ' ').slice(0, limite)
-  return escaparHtml(limpio)
+export function textForEmail(value: string, limit = 120): string {
+  const clean = value.trim().replace(/\s+/g, ' ').slice(0, limit)
+  return escapeHtml(clean)
 }
 
-/** Correo con forma razonable. El mismo criterio que el resto de la app. */
-export const RE_CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+/** A reasonably shaped email. The same criterion as the rest of the app. */
+export const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
-export function correoValido(valor: string): boolean {
-  return RE_CORREO.test(valor) && valor.length <= 254
+export function isValidEmail(value: string): boolean {
+  return EMAIL_RE.test(value) && value.length <= 254
 }

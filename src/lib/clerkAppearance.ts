@@ -1,13 +1,13 @@
 import type { Appearance } from '@clerk/types'
 
 /**
- * Clerk con la piel de XUNTAS.
+ * Clerk in XUNTAS's skin.
  *
- * Los componentes de Clerk traen su propio diseño y, sin esto, el alta se ve
- * como la de cualquier SaaS: azul, redondeado, ajeno. Las variables cubren el
- * 90%; los `elements` corrigen lo que las variables no alcanzan.
+ * Clerk's components bring their own design and, without this, the sign-up
+ * looks like any SaaS's: blue, rounded, foreign. The variables cover 90%; the
+ * `elements` fix what the variables cannot reach.
  */
-export const aparienciaClerk: Appearance = {
+export const clerkAppearance: Appearance = {
   variables: {
     colorPrimary: '#111111',
     colorText: '#111111',
@@ -15,7 +15,7 @@ export const aparienciaClerk: Appearance = {
     colorBackground: '#FFFFFF',
     colorInputBackground: '#FFFFFF',
     colorInputText: '#111111',
-    // El anillo de foco es amarillo, igual que en el resto de la app.
+    // The focus ring is yellow, just like in the rest of the app.
     colorRing: '#D2DB3A',
     colorDanger: '#B3261E',
     colorSuccess: '#1F7A45',
@@ -29,12 +29,12 @@ export const aparienciaClerk: Appearance = {
     card: 'shadow-none border border-line rounded-xt bg-card',
     headerTitle: 'font-disp font-bold tracking-[-.01em]',
     headerSubtitle: 'text-soft font-light',
-    // El amarillo es el botón principal, siempre con borde de tinta.
+    // Yellow is the primary button, always with an ink border.
     //
-    // Van con `!` porque los estilos internos de Clerk ganan por especificidad
-    // y el botón sale negro (color primario). No se resuelve con `colorPrimary`
-    // en amarillo: esa variable también pinta los enlaces, y amarillo sobre
-    // blanco no contrasta — ver docs/MARCA.md.
+    // They carry `!` because Clerk's internal styles win on specificity and
+    // the button comes out black (the primary color). Setting `colorPrimary`
+    // to yellow does not solve it: that variable also paints the links, and
+    // yellow on white does not contrast — see docs/BRAND.md.
     formButtonPrimary:
       'bg-yel! text-ink! border! border-ink! font-semibold text-[13.5px] normal-case shadow-none hover:bg-yel-d!',
     socialButtonsBlockButton: 'border-line-2 text-ink hover:bg-ink/5',

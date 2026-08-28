@@ -23,36 +23,36 @@ type ClerkEvent = {
   }
 }
 
-/** Correo primario y si Clerk ya lo verificó. */
-function correoPrimario(data: ClerkEvent['data']): { email: string; verificado: boolean } {
-  const lista = data.email_addresses ?? []
-  const principal = lista.find((e) => e.id === data.primary_email_address_id) ?? lista[0]
+/** Primary email and whether Clerk already verified it. */
+function primaryEmail(data: ClerkEvent['data']): { email: string; verified: boolean } {
+  const list = data.email_addresses ?? []
+  const primary = list.find((e) => e.id === data.primary_email_address_id) ?? list[0]
   return {
-    email: principal?.email_address ?? '',
-    verificado: principal?.verification?.status === 'verified',
+    email: primary?.email_address ?? '',
+    verified: primary?.verification?.status === 'verified',
   }
 }
 
-function nombreCompleto(data: ClerkEvent['data']): string | undefined {
+function fullName(data: ClerkEvent['data']): string | undefined {
   const n = [data.first_name, data.last_name].filter(Boolean).join(' ').trim()
   return n || undefined
 }
 
-/** El rol vive en Clerk publicMetadata y aquí solo se espeja. */
-function rol(data: ClerkEvent['data']): 'atleta' | 'admin' {
-  return data.public_metadata?.role === 'admin' ? 'admin' : 'atleta'
+/** The role lives in Clerk publicMetadata and is only mirrored here. */
+function role(data: ClerkEvent['data']): 'athlete' | 'admin' {
+  return data.public_metadata?.role === 'admin' ? 'admin' : 'athlete'
 }
 
-function texto(v: unknown): string | undefined {
+function text(v: unknown): string | undefined {
   return typeof v === 'string' && v.trim() ? v.trim() : undefined
 }
 
 /**
- * Webhook de Clerk. Es la única forma en que un usuario llega a Convex.
+ * Clerk webhook. It is the only way a user gets into Convex.
  *
- * Se eligió webhook y no upsert perezoso a propósito: quien se da de alta el 5
- * de septiembre y nunca vuelve deja rastro igual, y esa es justo la lista a la
- * que XUNTAS querrá escribirle antes del cierre.
+ * Webhook and not lazy upsert was chosen on purpose: whoever signs up on
+ * September 5 and never comes back leaves a trace anyway, and that is exactly
+ * the list XUNTAS will want to write to before the close.
  */
 http.route({
   path: '/clerk-webhook',
@@ -60,67 +60,67 @@ http.route({
   handler: httpAction(async (ctx, req) => {
     const secret = process.env.CLERK_WEBHOOK_SECRET
     if (!secret) {
-      console.error('Falta CLERK_WEBHOOK_SECRET en el entorno de Convex.')
-      return new Response('Webhook no configurado', { status: 500 })
+      console.error('Missing CLERK_WEBHOOK_SECRET in the Convex environment.')
+      return new Response('Webhook not configured', { status: 500 })
     }
 
     const svixId = req.headers.get('svix-id')
     const svixTimestamp = req.headers.get('svix-timestamp')
     const svixSignature = req.headers.get('svix-signature')
     if (!svixId || !svixTimestamp || !svixSignature) {
-      return new Response('Faltan encabezados svix', { status: 400 })
+      return new Response('Missing svix headers', { status: 400 })
     }
 
-    const cuerpo = await req.text()
+    const body = await req.text()
 
-    let evento: ClerkEvent
+    let event: ClerkEvent
     try {
-      evento = new Webhook(secret).verify(cuerpo, {
+      event = new Webhook(secret).verify(body, {
         'svix-id': svixId,
         'svix-timestamp': svixTimestamp,
         'svix-signature': svixSignature,
       }) as ClerkEvent
     } catch {
-      return new Response('Firma inválida', { status: 400 })
+      return new Response('Invalid signature', { status: 400 })
     }
 
-    switch (evento.type) {
+    switch (event.type) {
       case 'user.created': {
-        const { email, verificado } = correoPrimario(evento.data)
-        const meta = evento.data.unsafe_metadata ?? {}
-        await ctx.runMutation(internal.users.alta, {
-          clerkId: evento.data.id,
+        const { email, verified } = primaryEmail(event.data)
+        const meta = event.data.unsafe_metadata ?? {}
+        await ctx.runMutation(internal.users.create, {
+          clerkId: event.data.id,
           email,
-          nombre: nombreCompleto(evento.data),
-          emailVerificado: verificado,
-          role: rol(evento.data),
+          name: fullName(event.data),
+          emailVerified: verified,
+          role: role(event.data),
           /**
-           * Lo ÚNICO que se lee de `unsafeMetadata`, y a propósito: es una
-           * referencia opaca a la pre-alta que el servidor ya resolvió.
+           * The ONLY thing read from `unsafeMetadata`, and on purpose: it is
+           * an opaque reference to the pre-signup the server already resolved.
            *
-           * `unsafeMetadata` la puede escribir el cliente en cualquier momento.
-           * Antes por aquí venían la fecha de nacimiento y el correo del tutor,
-           * así que bastaba con editarla para declararse mayor de edad y
-           * saltarse la autorización. Ahora lo peor que se puede hacer es
-           * apuntar a otra pre-alta propia, que también calculó el servidor.
+           * `unsafeMetadata` can be written by the client at any time. The
+           * birth date and the guardian's email used to come through here, so
+           * editing it was enough to declare yourself of legal age and skip
+           * the authorization. Now the worst you can do is point to another
+           * pre-signup of your own, which the server also computed.
            */
-          preAltaToken: texto(meta.preAltaToken),
+          preSignupToken: text(meta.preSignupToken),
         })
         break
       }
       case 'user.updated': {
-        const { email, verificado } = correoPrimario(evento.data)
-        await ctx.runMutation(internal.users.actualizar, {
-          clerkId: evento.data.id,
+        const { email, verified } = primaryEmail(event.data)
+        await ctx.runMutation(internal.users.update, {
+          clerkId: event.data.id,
           email,
-          nombre: nombreCompleto(evento.data),
-          emailVerificado: verificado,
-          role: rol(evento.data),
+          name: fullName(event.data),
+          emailVerified: verified,
+          role: role(event.data),
         })
         break
       }
       case 'user.deleted': {
-        await ctx.runMutation(internal.users.baja, { clerkId: evento.data.id })
+        await ctx.runMutation(internal.users.remove, { clerkId: event.data.id })
         break
       }
       default:
@@ -131,7 +131,7 @@ http.route({
   }),
 })
 
-/** Estados de entrega de Resend (entregado, rebote, queja). */
+/** Resend delivery statuses (delivered, bounce, complaint). */
 http.route({
   path: '/resend-webhook',
   method: 'POST',

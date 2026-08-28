@@ -14,8 +14,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      // La marca es papel claro. Se declara para que el navegador no invente
-      // un modo oscuro sobre formularios que no lo tienen.
+      // The brand is light paper. Declared so the browser doesn't invent a
+      // dark mode over forms that don't have one.
       { name: 'color-scheme', content: 'light only' },
       { title: 'Registro · Convocatoria 2026–2027 · XUNTAS+XUNTOS' },
       {
@@ -43,7 +43,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <footer className="mt-20 border-t border-line">
               <div className="mx-auto max-w-[900px] px-[22px] py-6">
                 <p className="eyebrow">
-                  {m.marca_ciclo()} · {m.reg_cierre()}
+                  {m.brand_cycle()} · {m.reg_closing()}
                 </p>
               </div>
             </footer>

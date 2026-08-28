@@ -1,36 +1,36 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
-import { DOCUMENTOS } from '../lib/documentos'
+import { DOCUMENTS } from '../lib/documents'
 
 export const Route = createFileRoute('/aviso-de-privacidad')({
-  component: AvisoPrivacidad,
+  component: PrivacyNotice,
 })
 
 /**
- * Aviso de privacidad — LFPDPPP.
+ * Privacy notice — LFPDPPP.
  *
- * El texto lo tiene que entregar XUNTAS: es un documento legal y no se
- * improvisa desde el código. Lo que está aquí es el ANDAMIO, con los apartados
- * que la ley pide, para que solo haya que rellenarlos.
+ * The text has to come from XUNTAS: it is a legal document and you don't
+ * improvise one from code. What lives here is the SCAFFOLD, with the sections
+ * the law asks for, so they only need to be filled in.
  *
- * Mientras `DOCUMENTOS.avisoPrivacidad.listo` sea `false`, la página se muestra
- * con un aviso visible de que no es el documento definitivo. Eso es a
- * propósito: una página que parece un aviso de privacidad pero no lo es sería
- * peor que no tener ninguna.
+ * While `DOCUMENTS.privacyNotice.ready` is `false`, the page is shown with a
+ * visible warning that it is not the final document. That is on purpose: a
+ * page that looks like a privacy notice but isn't one would be worse than not
+ * having any.
  */
-function AvisoPrivacidad() {
+function PrivacyNotice() {
   return (
     <main className="mx-auto max-w-[720px] px-[22px] pt-[46px] pb-[90px]">
-      <p className="eyebrow">{m.marca_ciclo()}</p>
+      <p className="eyebrow">{m.brand_cycle()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">
-        {m.privacidad_titulo()}
+        {m.privacy_title()}
       </h1>
 
-      {!DOCUMENTOS.avisoPrivacidad.listo && (
+      {!DOCUMENTS.privacyNotice.ready && (
         <section className="nota mt-7 border-bad/40 bg-bad/5">
-          <b className="mb-1.5 block font-disp text-[14.5px]">{m.doc_borrador_titulo()}</b>
+          <b className="mb-1.5 block font-disp text-[14.5px]">{m.doc_draft_title()}</b>
           <p className="m-0 text-[13px] leading-relaxed font-light text-ink-3">
-            {m.doc_borrador_texto()}
+            {m.doc_draft_text()}
           </p>
         </section>
       )}
