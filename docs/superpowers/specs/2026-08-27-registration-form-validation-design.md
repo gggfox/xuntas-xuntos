@@ -221,7 +221,9 @@ TDD throughout; rules before wiring.
 - `tests/guardianRules.test.ts` — includes the same-email case that has never worked.
 - `tests/registrationSchema.test.ts` — the current `tests/form.test.ts`, renamed to
   match its module.
-- `tests/registrationAutosave.test.ts` — the loop-cut regression.
+- `tests/draftAutosave.test.ts` — the loop-cut, as a pure unit.
+- `tests/components/useDraftAutosave.test.tsx` — the loop-cut in a real render:
+  a re-render carrying the values just saved must not save again.
 - `tests/registrationProgress.test.ts` — progress calculation.
 
 Parity between client and server needs no test: they import the same module.
