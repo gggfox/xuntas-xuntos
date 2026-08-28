@@ -1,17 +1,17 @@
-# Promoción manual de `staging` a `production`. Este es el botón de release.
+# Manual promotion of `staging` to `production`. This is the release button.
 #
-# Se dispara a mano a propósito: con `autoDeploy` encendido en Dokploy, todo
-# lo que entra a `production` sale a usuarios reales. Durante la convocatoria
-# esa decisión la toma una persona, no un merge.
+# It is triggered by hand on purpose: with `autoDeploy` turned on in Dokploy,
+# everything that lands on `production` goes out to real users. During the
+# call period that decision is made by a person, not by a merge.
 #
-# OJO — por qué el despliegue de Convex se hace aquí dentro y no se deja al
-# trigger de convex-production.yml: los push hechos con GITHUB_TOKEN no
-# disparan workflows de Actions (GitHub lo impide para evitar bucles). El
-# webhook de la GitHub App de Dokploy sí llega, así que el contenedor sí se
-# construye solo. convex-production.yml se queda como red de seguridad para
-# cuando alguien empuja a `production` a mano desde su máquina.
+# NOTE — why the Convex deploy happens inline here instead of being left to
+# convex-production.yml's trigger: pushes made with GITHUB_TOKEN do not
+# trigger Actions workflows (GitHub prevents it to avoid loops). The webhook
+# of Dokploy's GitHub App does arrive, so the container does build on its
+# own. convex-production.yml stays on as a safety net for when someone pushes
+# to `production` by hand from their machine.
 
-name: release — promover staging a production
+name: release — promote staging to production
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   release:
-    name: Promover a producción
+    name: Promote to production
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -39,13 +39,13 @@ jobs:
 
       - run: npm ci
 
-      # Mismo orden que en staging: backend antes que frontend.
-      - name: Desplegar a Convex producción
+      # Same order as in staging: backend before frontend.
+      - name: Deploy to Convex production
         run: npm run deploy:convex
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PROD_DEPLOY_KEY }}
 
-      # El push a `production` es lo que hace que Dokploy construya y cambie
-      # el contenedor de producción.
-      - name: Adelantar production a staging
+      # The push to `production` is what makes Dokploy build and swap the
+      # production container.
+      - name: Fast-forward production to staging
         run: git push origin HEAD:production

@@ -5,88 +5,88 @@ import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
 
 export const Route = createFileRoute('/autorizar/$token')({
-  component: Autorizar,
+  component: Authorize,
 })
 
 /**
- * Pantalla del tutor. Sin sesión: quien abre el enlace no tiene cuenta y no
- * debe tener que crear una. El token es la credencial.
+ * The guardian's screen. No session: whoever opens the link has no account
+ * and shouldn't have to create one. The token is the credential.
  */
-function Autorizar() {
+function Authorize() {
   const { token } = Route.useParams()
-  const solicitud = useQuery(api.tutor.verSolicitud, { token })
-  const confirmar = useMutation(api.tutor.confirmar)
-  const [enviando, setEnviando] = useState(false)
-  const [resultado, setResultado] = useState<string | null>(null)
+  const request = useQuery(api.guardian.getRequest, { token })
+  const confirm = useMutation(api.guardian.confirm)
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
 
-  async function autorizar() {
-    setEnviando(true)
+  async function authorize() {
+    setSubmitting(true)
     try {
-      const r = await confirmar({
+      const r = await confirm({
         token,
-        agente: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : undefined,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : undefined,
       })
-      setResultado(r.motivo)
+      setResult(r.reason)
     } finally {
-      setEnviando(false)
+      setSubmitting(false)
     }
   }
 
-  if (solicitud === undefined) {
-    return <Marco>{m.comun_cargando()}</Marco>
+  if (request === undefined) {
+    return <Frame>{m.common_loading()}</Frame>
   }
 
-  const estado = resultado ?? solicitud.estado
+  const status = result ?? request.status
 
-  if (estado === 'confirmado' || estado === 'ya_confirmado') {
+  if (status === 'confirmed' || status === 'already_confirmed') {
     return (
-      <Marco titulo={estado === 'confirmado' ? m.autorizar_ok_titulo() : m.autorizar_ya_titulo()}>
+      <Frame title={status === 'confirmed' ? m.authorize_ok_title() : m.authorize_already_title()}>
         <p className="font-light text-soft">
-          {estado === 'confirmado' ? m.autorizar_ok_texto() : m.autorizar_ya_texto()}
+          {status === 'confirmed' ? m.authorize_ok_text() : m.authorize_already_text()}
         </p>
-      </Marco>
+      </Frame>
     )
   }
 
-  if (estado === 'vencido') {
+  if (status === 'expired') {
     return (
-      <Marco titulo={m.autorizar_vencido_titulo()}>
-        <p className="font-light text-soft">{m.autorizar_vencido_texto()}</p>
-      </Marco>
+      <Frame title={m.authorize_expired_title()}>
+        <p className="font-light text-soft">{m.authorize_expired_text()}</p>
+      </Frame>
     )
   }
 
-  if (estado === 'invalido') {
+  if (status === 'invalid') {
     return (
-      <Marco titulo={m.autorizar_invalido_titulo()}>
-        <p className="font-light text-soft">{m.autorizar_invalido_texto()}</p>
-      </Marco>
+      <Frame title={m.authorize_invalid_title()}>
+        <p className="font-light text-soft">{m.authorize_invalid_text()}</p>
+      </Frame>
     )
   }
 
   return (
-    <Marco titulo={m.autorizar_titulo()}>
+    <Frame title={m.authorize_title()}>
       <p className="font-light text-soft">
-        <b className="font-medium text-ink">{solicitud.atletaNombre}</b> se registró a la{' '}
-        {m.marca_ciclo()} del Programa de Desarrollo de {m.marca_nombre()} y te señaló como su
+        <b className="font-medium text-ink">{request.athleteName}</b> se registró a la{' '}
+        {m.brand_cycle()} del Programa de Desarrollo de {m.brand_name()} y te señaló como su
         padre, madre o tutor.
       </p>
       <p className="mt-3 font-light text-soft">
         Como es menor de edad, necesitamos tu autorización para crear su cuenta y tratar sus datos.
         No hay ningún documento que cargar.
       </p>
-      <button className="btn mt-7" onClick={autorizar} disabled={enviando}>
-        {enviando ? m.comun_cargando() : m.autorizar_confirmar()}
+      <button className="btn mt-7" onClick={authorize} disabled={submitting}>
+        {submitting ? m.common_loading() : m.authorize_confirm()}
       </button>
-    </Marco>
+    </Frame>
   )
 }
 
-function Marco({ titulo, children }: { titulo?: string; children: React.ReactNode }) {
+function Frame({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
     <main className="mx-auto max-w-[560px] px-[22px] pt-[46px] pb-[90px]">
-      <p className="eyebrow">{m.autorizar_eyebrow()}</p>
-      {titulo && <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,36px)]">{titulo}</h1>}
+      <p className="eyebrow">{m.authorize_eyebrow()}</p>
+      {title && <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,36px)]">{title}</h1>}
       <div className="mt-5">{children}</div>
     </main>
   )

@@ -8,47 +8,48 @@ import tailwindcss from '@tailwindcss/vite'
 import { paraglideVitePlugin } from '@inlang/paraglide-js'
 
 /**
- * Vite incrusta las VITE_* en el bundle del cliente durante el build, así que
- * si faltan no hay error de compilación: el contenedor arranca y contesta 500
- * en todas las rutas. Preferimos que reviente aquí, donde se lee el log.
+ * Vite embeds the VITE_* variables into the client bundle during the build,
+ * so if they are missing there is no compile error: the container starts and
+ * answers 500 on every route. We prefer it to blow up here, where the log
+ * gets read.
  *
- * Solo en build: `vite dev` las toma de .env.local y ahí sí puede faltar
- * alguna mientras se configura el proyecto por primera vez.
+ * Build only: `vite dev` takes them from .env.local, and there one may well
+ * be missing while the project is being set up for the first time.
  */
-function exigirVariablesDeBuild() {
-  const faltantes = ['VITE_CONVEX_URL', 'VITE_CLERK_PUBLISHABLE_KEY'].filter(
+function requireBuildVariables() {
+  const missing = ['VITE_CONVEX_URL', 'VITE_CLERK_PUBLISHABLE_KEY'].filter(
     (k) => !process.env[k],
   )
-  if (faltantes.length > 0) {
+  if (missing.length > 0) {
     throw new Error(
-      `Faltan variables de build: ${faltantes.join(', ')}.\n` +
-        'Se pasan como --build-arg al construir la imagen (ver README, "Despliegue").',
+      `Missing build variables: ${missing.join(', ')}.\n` +
+        'They are passed as --build-arg when building the image (see README, "Deployment").',
     )
   }
 }
 
 const config = defineConfig(({ command }) => {
-  if (command === 'build') exigirVariablesDeBuild()
+  if (command === 'build') requireBuildVariables()
 
   return {
-    // Respeta PORT para poder levantar dos ramas a la vez sin pelearse el 3000.
+    // Respects PORT so two branches can run at once without fighting over 3000.
     server: { port: Number(process.env.PORT) || 3000 },
     resolve: { tsconfigPaths: true },
     plugins: [
       devtools(),
       tailwindcss(),
-      // Compila los mensajes a funciones tipadas antes del bundle. Corre antes
-      // que TanStack Start para que las rutas ya vean src/paraglide.
+      // Compiles the messages into typed functions before the bundle. Runs
+      // before TanStack Start so the routes already see src/paraglide.
       paraglideVitePlugin({
         project: './project.inlang',
         outdir: './src/paraglide',
-        // `url` primero: el prefijo de ruta manda sobre la cookie, para que un
-        // enlace compartido siempre abra en el idioma con el que se compartió.
+        // `url` first: the path prefix wins over the cookie, so a shared link
+        // always opens in the language it was shared in.
         //
-        // OJO: `preferredLanguage` NO está en la lista a propósito. `en` existe
-        // pero está vacío; con esa estrategia, una familia mexicana con el
-        // navegador en inglés aterriza en /en/ y ve la interfaz en español con
-        // URLs en inglés. Se agrega el día que en.json tenga traducciones.
+        // NOTE: `preferredLanguage` is NOT on the list on purpose. `en` exists
+        // but is empty; with that strategy, a Mexican family with their
+        // browser in English lands on /en/ and sees the interface in Spanish
+        // with English URLs. It gets added the day en.json has translations.
         strategy: ['url', 'cookie', 'baseLocale'],
         urlPatterns: [
           {

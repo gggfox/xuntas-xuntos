@@ -1,14 +1,14 @@
 /**
- * Entrada de producción.
+ * Production entry point.
  *
- * `vite build` NO genera un servidor que escuche un puerto: deja en
- * dist/server/server.js un handler `fetch` al estilo web, y en dist/client los
- * assets estáticos. Algo tiene que unir las dos mitades y abrir el socket.
- * En desarrollo lo hace Vite; aquí lo hacemos con srvx, que es la misma
- * librería que usa `vite preview` por dentro.
+ * `vite build` does NOT generate a server that listens on a port: it leaves a
+ * web-style `fetch` handler in dist/server/server.js, and the static assets
+ * in dist/client. Something has to join the two halves and open the socket.
+ * In development Vite does it; here we do it with srvx, which is the same
+ * library `vite preview` uses under the hood.
  *
- * Ojo con el orden: los estáticos van primero como middleware. Si la petición
- * no corresponde a un archivo de dist/client, cae al handler de SSR.
+ * Mind the order: static files go first, as middleware. If the request does
+ * not match a file in dist/client, it falls through to the SSR handler.
  */
 import { serve } from 'srvx'
 import { serveStatic } from 'srvx/static'
@@ -19,8 +19,8 @@ const port = Number(process.env.PORT) || 3000
 
 serve({
   port,
-  // 0.0.0.0 y no localhost: dentro del contenedor nadie llegaría al servidor
-  // si solo escuchara en la interfaz de loopback.
+  // 0.0.0.0 and not localhost: inside the container nobody would reach the
+  // server if it only listened on the loopback interface.
   hostname: '0.0.0.0',
   middleware: [serveStatic({ dir: './dist/client' })],
   fetch: handler.fetch,

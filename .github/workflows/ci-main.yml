@@ -1,17 +1,17 @@
-# Promoción de `main` a `staging`.
+# Promotion of `main` to `staging`.
 #
-# Flujo de ramas:  main  →  staging  →  production
+# Branch flow:  main  →  staging  →  production
 #
-# Este workflow NO vuelve a correr los checks: espera a que el workflow "CI"
-# (ci.yml) termine en verde sobre `main` y solo entonces adelanta la rama.
-# Duplicar typecheck/pruebas aquí sería más lento y, peor, podría discrepar
-# de ci.yml sin que nadie se diera cuenta.
+# This workflow does NOT re-run the checks: it waits for the "CI" workflow
+# (ci.yml) to finish green on `main` and only then fast-forwards the branch.
+# Duplicating typecheck/tests here would be slower and, worse, could drift
+# from ci.yml without anyone noticing.
 #
-# `workflow_run` se dispara al terminar CI, en éxito o en fallo — por eso el
-# `if` del job comprueba la conclusión. Sin esa comprobación se promocionaría
-# también cuando las pruebas fallan.
+# `workflow_run` fires when CI finishes, on success or on failure — that is
+# why the job's `if` checks the conclusion. Without that check it would also
+# promote when the tests fail.
 
-name: main — promoción a staging
+name: main — promote to staging
 
 on:
   workflow_run:
@@ -26,26 +26,25 @@ concurrency:
 
 jobs:
   promote:
-    name: Desplegar staging y adelantar la rama
-    # En workflow_dispatch no hay `workflow_run`, así que se promociona a mano
-    # bajo responsabilidad de quien pulsa el botón.
+    name: Deploy staging and fast-forward the branch
+    # On workflow_dispatch there is no `workflow_run`, so promotion happens by
+    # hand under the responsibility of whoever presses the button.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    # Se expone como env para poder preguntar por él en un `if`: el contexto
-    # `secrets` no está disponible en las condiciones de un step, el de `env`
-    # sí.
+    # Exposed as env so an `if` can ask about it: the `secrets` context is not
+    # available in step conditions, the `env` context is.
     env:
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_STAGING_DEPLOY_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
-          # El commit exacto que CI verificó. Con workflow_run el checkout por
-          # defecto apunta a la rama por defecto, no al commit del evento, y
-          # se promocionaría algo distinto de lo que pasó los checks.
+          # The exact commit that CI verified. With workflow_run the default
+          # checkout points at the default branch, not at the event's commit,
+          # and something other than what passed the checks would be promoted.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           fetch-depth: 0
 
@@ -56,28 +55,30 @@ jobs:
 
       - run: npm ci
 
-      # Convex primero y la rama después: el esquema nuevo tiene que estar
-      # arriba antes de que Dokploy levante el frontend que lo consulta.
+      # Convex first and the branch after: the new schema has to be live
+      # before Dokploy brings up the frontend that queries it.
       #
-      # TEMPORAL — todavía no existe el deployment de Convex de staging ni su
-      # deploy key. Mientras falte el secreto este paso se salta en lugar de
-      # tumbar el workflow. No es `continue-on-error`: eso dejaría el job en
-      # amarillo permanente y con el tiempo nadie lo miraría.
+      # TEMPORARY — the Convex staging deployment does not exist yet, nor does
+      # its deploy key. While the secret is missing this step is skipped
+      # instead of taking the workflow down. It is not `continue-on-error`:
+      # that would leave the job permanently yellow and over time nobody
+      # would look at it.
       #
-      # Para cerrarlo: crear el deployment de staging en Convex, generar la
-      # key (`npx convex deployment token create ci-token`) y guardarla como
-      # CONVEX_STAGING_DEPLOY_KEY. El paso se activa solo, sin tocar el YAML.
-      - name: Desplegar a Convex staging
+      # To close it out: create the staging deployment in Convex, generate the
+      # key (`npx convex deployment token create ci-token`) and store it as
+      # CONVEX_STAGING_DEPLOY_KEY. The step turns itself on, without touching
+      # the YAML.
+      - name: Deploy to Convex staging
         if: env.CONVEX_DEPLOY_KEY != ''
         run: npm run deploy:convex
 
-      - name: Aviso — Convex staging sin configurar
+      - name: Warning — Convex staging not configured
         if: env.CONVEX_DEPLOY_KEY == ''
         run: |
-          echo "::warning title=Convex staging sin desplegar::Falta el secreto CONVEX_STAGING_DEPLOY_KEY, así que se saltó el despliegue del backend. El contenedor de staging sí se va a construir, pero apuntando a los placeholders REEMPLAZAR_* — va a responder errores hasta que se carguen los valores reales."
+          echo "::warning title=Convex staging not deployed::The CONVEX_STAGING_DEPLOY_KEY secret is missing, so the backend deploy was skipped. The staging container will still be built, but pointing at the REEMPLAZAR_* placeholders — it will answer errors until the real values are loaded."
 
-      # Fast-forward, sin --force. Si `staging` divergió de `main` esto falla,
-      # y falla bien: significa que alguien commiteó directo a staging y hay
-      # que mirarlo, no aplastarlo.
-      - name: Adelantar staging a main
+      # Fast-forward, without --force. If `staging` diverged from `main` this
+      # fails, and fails for the right reason: it means someone committed
+      # straight to staging and it needs looking at, not flattening.
+      - name: Fast-forward staging to main
         run: git push origin HEAD:staging

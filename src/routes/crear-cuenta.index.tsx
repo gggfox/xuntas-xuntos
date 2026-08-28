@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import PantallaCrearCuenta from '../components/PantallaCrearCuenta'
+import SignUpScreen from '../components/SignUpScreen'
 
 export const Route = createFileRoute('/crear-cuenta/')({
-  component: PantallaCrearCuenta,
+  component: SignUpScreen,
 })

@@ -1,8 +1,8 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { deLocalizeUrl, localizeUrl } from './paraglide/runtime.js'
-import PantallaError from './components/PantallaError'
-import PantallaNoEncontrada from './components/PantallaNoEncontrada'
+import ErrorScreen from './components/ErrorScreen'
+import NotFoundScreen from './components/NotFoundScreen'
 
 export function getRouter() {
   const router = createTanStackRouter({
@@ -11,19 +11,19 @@ export function getRouter() {
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
     /**
-     * Sin estos dos, un error de render deja la página en blanco y una URL mal
-     * escrita deja al navegador con la pantalla en blanco también. En una app
-     * que se comparte por WhatsApp, los enlaces llegan cortados a menudo.
+     * Without these two, a render error leaves the page blank and a mistyped
+     * URL leaves the browser with a blank screen as well. In an app that gets
+     * shared over WhatsApp, links often arrive cut off.
      */
-    defaultErrorComponent: ({ error }) => <PantallaError error={error} />,
-    defaultNotFoundComponent: () => <PantallaNoEncontrada />,
+    defaultErrorComponent: ({ error }) => <ErrorScreen error={error} />,
+    defaultNotFoundComponent: () => <NotFoundScreen />,
     /**
-     * Prefijo de idioma en la URL.
+     * Language prefix in the URL.
      *
-     * `input` quita el prefijo antes de emparejar rutas, así que los archivos
-     * en src/routes se escriben sin `/es`. `output` lo vuelve a poner al
-     * generar enlaces, para que lo que se comparte por WhatsApp abra en el
-     * idioma con el que se compartió.
+     * `input` strips the prefix before matching routes, so the files in
+     * src/routes are written without `/es`. `output` puts it back when
+     * generating links, so that whatever gets shared over WhatsApp opens in
+     * the language it was shared in.
      */
     rewrite: {
       input: ({ url }) => deLocalizeUrl(url),

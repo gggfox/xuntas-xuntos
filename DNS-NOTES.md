@@ -53,7 +53,7 @@ Sign-up mail (welcome, verification, magic link, OTP, password reset, double opt
 
 ## Adding `app.xuntas.org`
 
-The registro app. Points at the Hostinger VPS that runs Dokploy — the same box
+The registration app. Points at the Hostinger VPS that runs Dokploy — the same box
 the Dokploy panel itself answers on.
 
 **Status: done.** Added 2026-08-26 in the cPanel Zone Editor, confirmed live on

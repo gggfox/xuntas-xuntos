@@ -3,8 +3,8 @@ import { Link } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
 
 /**
- * Cabecera de la app. Tinta sólida, marca amarilla, sin sombras.
- * Es la misma que en portal_xuntas.html — reconocible desde el primer píxel.
+ * App header. Solid ink, yellow brand mark, no shadows.
+ * It is the same one as in portal_xuntas.html — recognizable from the first pixel.
  */
 export default function AppBar() {
   return (
@@ -19,10 +19,10 @@ export default function AppBar() {
           </span>
           <span className="min-w-0">
             <b className="block font-disp text-[16px] leading-[1.15] font-bold">
-              {m.marca_nombre()}
+              {m.brand_name()}
             </b>
             <span className="font-mono text-[10px] tracking-[.12em] text-white/50 uppercase">
-              {m.marca_ciclo()}
+              {m.brand_cycle()}
             </span>
           </span>
         </Link>
@@ -30,17 +30,17 @@ export default function AppBar() {
         <nav className="flex items-center gap-4 text-[13px]">
           <Show when="signed-in">
             <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
-              {m.nav_mi_registro()}
+              {m.nav_my_registration()}
             </Link>
             <SignOutButton>
               <button className="font-mono text-[11.5px] tracking-[.06em] text-white/60 hover:text-white">
-                {m.nav_salir()}
+                {m.nav_sign_out()}
               </button>
             </SignOutButton>
           </Show>
           <Show when="signed-out">
             <Link to="/entrar" className="text-white/72 no-underline hover:text-white">
-              {m.nav_entrar()}
+              {m.nav_sign_in()}
             </Link>
           </Show>
         </nav>

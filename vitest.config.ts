@@ -1,21 +1,21 @@
 import { defineConfig } from 'vitest/config'
 
 /**
- * Config aparte de `vite.config.ts` a propósito.
+ * A config separate from `vite.config.ts` on purpose.
  *
- * La de producción arrastra TanStack Start y Paraglide, y exige las
- * variables de build. Nada de eso hace falta para probar funciones puras, y
- * cargarlo volvería las pruebas lentas y frágiles.
+ * The production one drags in TanStack Start and Paraglide, and demands the
+ * build variables. None of that is needed to test pure functions, and
+ * loading it would make the tests slow and fragile.
  */
 export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
     /**
-     * La escotilla de desarrollo abre la ventana de registro pase lo que pase.
-     * Si alguien la tiene puesta en su shell, las pruebas de `ventanaAbierta`
-     * fallarían por el entorno y no por el código.
+     * The development escape hatch opens the registration window no matter
+     * what. If someone has it set in their shell, the `isWindowOpen` tests
+     * would fail because of the environment and not because of the code.
      */
-    env: { VENTANA_SIEMPRE_ABIERTA: '' },
+    env: { WINDOW_ALWAYS_OPEN: '' },
   },
 })

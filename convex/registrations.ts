@@ -1,0 +1,346 @@
+import { v } from 'convex/values'
+import { mutation, query } from './_generated/server'
+import { internal } from './_generated/api'
+import { CURRENT_CYCLE, CLOSES_AT_MS, isWindowOpen } from './lib/cycle'
+import { requireAdmin, requireUser, currentUser } from './users'
+import type { Doc } from './_generated/dataModel'
+import { vBranch } from './schema'
+
+/**
+ * Form payload. Same fields as registro_xuntas.html — XUNTAS already approved
+ * that shape and we do not change it.
+ */
+const vRegistrationData = v.object({
+  personal: v.object({
+    name: v.string(),
+    email: v.string(),
+    whatsapp: v.string(),
+    birthDate: v.string(),
+    branch: vBranch,
+    cityState: v.string(),
+  }),
+  academic: v.object({
+    school: v.string(),
+    grade: v.string(),
+    graduationYear: v.optional(v.string()),
+    interest: v.optional(v.string()),
+  }),
+  athletic: v.object({
+    club: v.string(),
+    coach: v.string(),
+    ghin: v.string(),
+    amateurStatus: v.boolean(),
+  }),
+  results: v.array(v.object({ tournament: v.string(), result: v.string() })),
+  rankings: v.array(v.object({ name: v.string(), position: v.string() })),
+  calendar: v.array(v.object({ event: v.string(), date: v.string() })),
+  motivationLetter: v.string(),
+  confirmations: v.object({
+    rules: v.boolean(),
+    scholarshipUnderstood: v.boolean(),
+    privacy: v.boolean(),
+  }),
+})
+
+const LETTER_LIMIT = 3000
+
+/** Draft caps. Generous: they exist to bound, not to validate. */
+const FIELD_LIMIT = 500
+const ROW_LIMIT = 60
+
+/**
+ * The registration fields that are actually data, without the metadata
+ * (`status`, `updatedAt`, etc.). This is what gets compared to decide whether
+ * there is anything to write.
+ */
+const DATA_FIELDS = [
+  'personal',
+  'academic',
+  'athletic',
+  'results',
+  'rankings',
+  'calendar',
+  'motivationLetter',
+  'confirmations',
+] as const
+
+function isUnchanged(
+  existing: Doc<'registrations'>,
+  data: typeof vRegistrationData.type,
+): boolean {
+  return DATA_FIELDS.every(
+    (field) => JSON.stringify(existing[field]) === JSON.stringify(data[field]),
+  )
+}
+
+/**
+ * A draft does not go through `validate`, so without this an arbitrarily large
+ * document could be saved until hitting Convex's 1 MB limit — and the error
+ * would surface as an opaque failure halfway through filling the form.
+ */
+function requireReasonableSizes(data: typeof vRegistrationData.type) {
+  if (data.motivationLetter.length > LETTER_LIMIT) {
+    throw new Error(`La carta excede el máximo de ${LETTER_LIMIT} caracteres.`)
+  }
+  if (
+    data.results.length > ROW_LIMIT ||
+    data.rankings.length > ROW_LIMIT ||
+    data.calendar.length > ROW_LIMIT
+  ) {
+    throw new Error(`No se pueden registrar más de ${ROW_LIMIT} renglones por sección.`)
+  }
+
+  const texts = [
+    ...Object.values(data.personal),
+    ...Object.values(data.academic),
+    ...Object.values(data.athletic),
+    ...data.results.flatMap((r) => [r.tournament, r.result]),
+    ...data.rankings.flatMap((r) => [r.name, r.position]),
+    ...data.calendar.flatMap((c) => [c.event, c.date]),
+  ]
+  for (const t of texts) {
+    if (typeof t === 'string' && t.length > FIELD_LIMIT) {
+      throw new Error(`Hay un campo con más de ${FIELD_LIMIT} caracteres.`)
+    }
+  }
+}
+
+/** Frozen after the window closes. Applies to draft and to submitted alike. */
+function requireWindowOpen() {
+  if (!isWindowOpen()) {
+    throw new Error('El periodo de registro está cerrado. Cerró el 18 de septiembre de 2026.')
+  }
+}
+
+/** Server-side validation. The client validates too, but it is not trusted. */
+function validate(data: typeof vRegistrationData.type): string[] {
+  const errors: string[] = []
+  const { personal, academic, athletic, results, motivationLetter, confirmations } = data
+
+  if (!personal.name.trim()) errors.push('Escribe tu nombre completo.')
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(personal.email)) errors.push('Escribe un correo válido.')
+  if (!personal.whatsapp.trim()) errors.push('Escribe un número de contacto.')
+  if (!personal.birthDate) errors.push('Indica tu fecha de nacimiento.')
+  if (!personal.cityState.trim()) errors.push('Indica dónde resides.')
+
+  if (!academic.school.trim()) errors.push('Indica dónde estudias.')
+  if (!academic.grade.trim()) errors.push('Indica tu grado.')
+
+  if (!athletic.club.trim()) errors.push('Indica tu club o academia.')
+  if (!athletic.coach.trim()) errors.push('Indica quién es tu coach.')
+  if (!athletic.ghin.trim()) errors.push('Indica tu índice GHIN vigente o equivalente.')
+
+  if (!results.some((r) => r.tournament.trim() && r.result.trim())) {
+    errors.push('Registra al menos un resultado.')
+  }
+
+  if (!motivationLetter.trim()) errors.push('Escribe tu carta de motivos.')
+  if (motivationLetter.length > LETTER_LIMIT) {
+    errors.push(`La carta excede el máximo de ${LETTER_LIMIT.toLocaleString('es-MX')} caracteres.`)
+  }
+
+  if (!confirmations.rules) errors.push('Debes aceptar las bases de la convocatoria.')
+  if (!confirmations.scholarshipUnderstood) errors.push('Debes confirmar que entiendes cómo se otorga la beca.')
+  if (!confirmations.privacy) errors.push('Debes aceptar el aviso de privacidad.')
+
+  return errors
+}
+
+/** The signed-in user's registration, with the window and the lock resolved. */
+export const mine = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await currentUser(ctx)
+    if (!user) return null
+
+    const registration = await ctx.db
+      .query('registrations')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .unique()
+
+    return {
+      registration,
+      editable: isWindowOpen(),
+      closesAt: CLOSES_AT_MS,
+    }
+  },
+})
+
+/**
+ * Draft autosave. It does not validate the fields: it is a draft. It does
+ * bound the sizes, because a Convex document has a 1 MB cap and this gets
+ * written without going through `validate`.
+ */
+export const saveDraft = mutation({
+  args: { data: vRegistrationData },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx)
+    requireWindowOpen()
+    requireReasonableSizes(args.data)
+
+    const existing = await ctx.db
+      .query('registrations')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .unique()
+
+    const now = Date.now()
+
+    if (existing) {
+      if (existing.status === 'validated' || existing.status === 'rejected') {
+        throw new Error('Tu registro ya fue revisado y no se puede editar.')
+      }
+
+      // No changes, no write.
+      //
+      // It is not just savings: `updatedAt` changes the document, that
+      // invalidates the reactive query feeding the screen, the screen
+      // re-renders and the autosave fires again. The client already breaks
+      // that loop; this breaks it here too, so a stale tab or a buggy client
+      // cannot reopen it.
+      if (isUnchanged(existing, args.data)) return existing._id
+
+      await ctx.db.patch(existing._id, { ...args.data, updatedAt: now })
+      return existing._id
+    }
+
+    return await ctx.db.insert('registrations', {
+      userId: user._id,
+      cycle: CURRENT_CYCLE,
+      ...args.data,
+      status: 'draft',
+      updatedAt: now,
+    })
+  },
+})
+
+/**
+ * Submission. Validates for real and fires the confirmation.
+ *
+ * Submitting is allowed even if the guardian authorization is missing: the
+ * registration is flagged and a person resolves it. A minor is never
+ * auto-rejected because their mother or father did not open an email.
+ */
+export const submit = mutation({
+  args: { data: vRegistrationData },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx)
+    requireWindowOpen()
+    requireReasonableSizes(args.data)
+
+    /**
+     * No birth date, no submission. It is the age gate's backstop: if the
+     * account was created without a valid pre-signup, we do not know whether
+     * a guardian's authorization is needed, and a minor's registration
+     * without that consent must not get in. The screen already asks for the
+     * date before reaching here; this exists in case someone calls the
+     * mutation directly.
+     */
+    if (user.birthDate === undefined) {
+      return {
+        ok: false as const,
+        errors: ['Antes de enviar tu registro necesitamos tu fecha de nacimiento.'],
+      }
+    }
+
+    const errors = validate(args.data)
+    if (errors.length > 0) return { ok: false as const, errors }
+
+    const existing = await ctx.db
+      .query('registrations')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .unique()
+
+    if (existing && (existing.status === 'validated' || existing.status === 'rejected')) {
+      throw new Error('Tu registro ya fue revisado y no se puede editar.')
+    }
+
+    const now = Date.now()
+    const fields = {
+      ...args.data,
+      status: 'submitted' as const,
+      submittedAt: existing?.submittedAt ?? now,
+      updatedAt: now,
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id, fields)
+    } else {
+      await ctx.db.insert('registrations', { userId: user._id, cycle: CURRENT_CYCLE, ...fields })
+    }
+
+    // Only the first submission is confirmed; later edits do not re-send.
+    const isFirstSubmit = !existing || existing.status !== 'submitted'
+    if (isFirstSubmit) {
+      const guardian = await ctx.db
+        .query('guardianAuth')
+        .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+        .unique()
+
+      // It goes to the ACCOUNT email, which Clerk already verified — not to
+      // the one typed into the form. If it went to the form's, anyone with a
+      // session could make registro@xuntas.org send an email to whatever
+      // address they wanted.
+      await ctx.scheduler.runAfter(0, internal.emails.sendAthleteConfirmation, {
+        to: user.email,
+        name: args.data.personal.name,
+        guardianMissing: guardian !== null && guardian.confirmedAt === undefined,
+      })
+    }
+
+    return { ok: true as const, errors: [] as string[] }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// Administration. The table UI lands after launch; these functions exist so
+// the XUNTAS admins can validate on the fly.
+// ---------------------------------------------------------------------------
+
+export const listForAdmin = query({
+  args: { status: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx)
+
+    const registrations = args.status
+      ? await ctx.db
+          .query('registrations')
+          .withIndex('by_cycle_status', (q) => q.eq('cycle', CURRENT_CYCLE).eq('status', args.status as never))
+          .collect()
+      : await ctx.db
+          .query('registrations')
+          .withIndex('by_user_cycle', (q) => q)
+          .filter((q) => q.eq(q.field('cycle'), CURRENT_CYCLE))
+          .collect()
+
+    return await Promise.all(
+      registrations.map(async (r) => {
+        const guardian = await ctx.db
+          .query('guardianAuth')
+          .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', CURRENT_CYCLE))
+          .unique()
+        return {
+          ...r,
+          guardianRequired: guardian !== null,
+          guardianConfirmed: guardian === null || guardian.confirmedAt !== undefined,
+        }
+      }),
+    )
+  },
+})
+
+export const review = mutation({
+  args: {
+    registrationId: v.id('registrations'),
+    status: v.union(v.literal('validated'), v.literal('rejected')),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx)
+    await ctx.db.patch(args.registrationId, {
+      status: args.status,
+      validatedBy: admin._id,
+      validatedAt: Date.now(),
+      validationNote: args.note,
+    })
+  },
+})
