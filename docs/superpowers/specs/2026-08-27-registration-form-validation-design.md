@@ -44,6 +44,26 @@ Three problems, one subsystem.
 - Unused message keys: `gate_guardian_email_same`, `reg_status_error`,
   `reg_draft_saved`, `common_required`, `common_optional`.
 
+## Open decisions
+
+Four thresholds in section 3 are product decisions, not technical ones. They are
+proposals and need XUNTAS's confirmation before stage 2 ships. Each is a single
+constant in `convex/lib/registrationRules.ts`, so changing one later is a one-line
+edit plus a test update.
+
+- **P1 — minimum name length, proposed 2.** Guards against a single stray character.
+- **P2 — minimum WhatsApp digits, proposed 10.** Mexican mobile numbers are 10
+  digits; the rule strips spaces, dashes, parens and `+` first so `+52` prefixed
+  and international numbers still pass. Risk: a registrant abroad with a shorter
+  national format is rejected.
+- **P3 — graduation year window, proposed current year -1 to +12.** Covers a
+  registrant who has already graduated through one starting secondary school.
+- **P4 — minimum letter length, proposed 200 characters.** This is the one with
+  real rejection risk: the brief asks for "one page at most, written by you", and
+  a floor that is too high turns a terse but genuine letter into an error. If
+  XUNTAS would rather accept a two-sentence letter than block anyone, set this to
+  0 and keep only the upper cap.
+
 ## Non-goals
 
 - Redesigning the eight sections or their copy. XUNTAS approved that wording; the
@@ -82,7 +102,8 @@ Rules return **error codes**, never prose:
 export type FieldErrorCode =
   | 'name_required' | 'email_invalid' | 'whatsapp_invalid'
   | 'birth_date_required' | 'birth_date_future' | 'birth_date_implausible'
-  | 'branch_required' | 'city_required' | ...
+  | 'branch_required' | 'city_required'
+  // ...abridged; the full union is one code per row of the table in 3.
 ```
 
 Each side maps codes to text: the client through Paraglide, the server not at all
@@ -109,15 +130,15 @@ now a link to its field, and each field renders its own message.
 
 | Field | Rule |
 |---|---|
-| `name` | non-empty after trim, >= 2 chars |
+| `name` | non-empty after trim, >= 2 chars **(P1)** |
 | `email` | existing regex, plus trim/lowercase before test |
-| `whatsapp` | >= 10 digits after stripping spaces, dashes, parens, `+` |
+| `whatsapp` | >= 10 digits after stripping spaces, dashes, parens, `+` **(P2)** |
 | `birthDate` | `isValidBirthDate` from `convex/lib/cycle.ts`: real calendar date, not future, year >= 1930. Distinct codes for future vs implausible. |
 | `branch` | must be `womens` or `mens`. **Added server-side.** |
 | `cityState`, `school`, `grade`, `club`, `coach`, `ghin` | non-empty after trim |
-| `graduationYear` | if present, 4 digits, within current year -1 .. +12 |
+| `graduationYear` | if present, 4 digits, within current year -1 .. +12 **(P3)** |
 | `results` | at least one row with both cells filled |
-| `motivationLetter` | non-empty, >= 200 chars, <= `LETTER_LIMIT`. Enforced client-side too. |
+| `motivationLetter` | non-empty, >= 200 chars **(P4)**, <= `LETTER_LIMIT`. Enforced client-side too. |
 | confirmations | each unchecked box gets its own error code with real error copy |
 | guardian email | valid address **and** not equal to the registrant's own email (`gate_guardian_email_same`) |
 
