@@ -7,9 +7,8 @@
 export {
   LETTER_LIMIT,
   FIXED_RANKINGS,
-  emptyRow,
   emptyRegistration,
   prepareForSubmit,
 } from '../../convex/lib/registrationSchema'
 
-export type { Row, RegistrationData } from '../../convex/lib/registrationSchema'
+export type { RegistrationData } from '../../convex/lib/registrationSchema'

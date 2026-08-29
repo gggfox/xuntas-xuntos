@@ -11,8 +11,6 @@ export const LETTER_LIMIT = 3000
 /** The four rankings XUNTAS follows. The fifth row is free-form. */
 export const FIXED_RANKINGS = ['CNIJ', 'AJGA', 'Junior Scoreboard', 'WAGR'] as const
 
-export type Row = { a: string; b: string }
-
 export type RegistrationData = {
   personal: {
     name: string
@@ -43,10 +41,6 @@ export type RegistrationData = {
     scholarshipUnderstood: boolean
     privacy: boolean
   }
-}
-
-export function emptyRow(): Row {
-  return { a: '', b: '' }
 }
 
 /** Starts with three results and two events visible, like the prototype. */

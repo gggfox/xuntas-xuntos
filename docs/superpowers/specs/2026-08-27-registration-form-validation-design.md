@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-27
 **Branch:** `refactor/registration-form-validation`
-**Status:** approved, pending implementation plan
+**Status:** stages 2 and 4 implemented. Stage 1 (ESLint) and the
+`mi-registro` half of stage 3 remain.
 
 ## Problem
 
@@ -58,11 +59,13 @@ edit plus a test update.
   national format is rejected.
 - **P3 — graduation year window, proposed current year -1 to +12.** Covers a
   registrant who has already graduated through one starting secondary school.
-- **P4 — minimum letter length, proposed 200 characters.** This is the one with
-  real rejection risk: the brief asks for "one page at most, written by you", and
-  a floor that is too high turns a terse but genuine letter into an error. If
-  XUNTAS would rather accept a two-sentence letter than block anyone, set this to
-  0 and keep only the upper cap.
+- **P4 — minimum letter length. DECIDED: 0.** The brief asks for "one page at
+  most, written by you", and a floor that is too high turns a terse but genuine
+  letter into an error. XUNTAS would rather read two sentences than reject
+  anyone for brevity, so only the upper cap is enforced. `checkLetter` takes the
+  floor as a parameter, so a test exercises the rejection path while it is
+  switched off in production, and raising `LETTER_MIN` turns it back on with no
+  other edit. P1–P3 ship at their proposed values and remain open.
 
 ## Non-goals
 
@@ -138,7 +141,7 @@ now a link to its field, and each field renders its own message.
 | `cityState`, `school`, `grade`, `club`, `coach`, `ghin` | non-empty after trim |
 | `graduationYear` | if present, 4 digits, within current year -1 .. +12 **(P3)** |
 | `results` | at least one row with both cells filled |
-| `motivationLetter` | non-empty, >= 200 chars **(P4)**, <= `LETTER_LIMIT`. Enforced client-side too. |
+| `motivationLetter` | non-empty, <= `LETTER_LIMIT`. No minimum **(P4 = 0)**. Enforced client-side too. |
 | confirmations | each unchecked box gets its own error code with real error copy |
 | guardian email | valid address **and** not equal to the registrant's own email (`gate_guardian_email_same`) |
 
@@ -147,7 +150,13 @@ errors, in both `es.json` and `en.json`.
 
 ### 4. Component split
 
-`src/components/` stays flat, matching the existing convention.
+**Amended during implementation.** `src/components/` is a tree of
+per-feature directories, not flat: `AppBar/`, `DateField/`, `Home/`,
+`MyRegistration/`, `RegistrationForm/`, each an `index.tsx` plus the
+one-component files it owns. The flat layout this section originally
+called for would have put eleven `RegistrationForm` pieces next to eleven
+unrelated ones with nothing marking which belonged together. Importers are
+unaffected: `./RegistrationForm` resolves to the directory's `index.tsx`.
 
 From `RegistrationForm.tsx`:
 `RegistrationForm`, `FormSection`, `FieldGrid`, `TextField`, `SelectField`,
@@ -196,8 +205,13 @@ components are deliberately not used: they generate component definitions that
 would fight the one-component-per-file rule.
 
 - Array fields (`mode="array"`) for `results`, `rankings`, `calendar`.
-- Validators: `onBlur` for first feedback, `onChange` after a field has errored,
-  `onSubmit` for the whole form.
+- Validation timing is `revalidateLogic({ mode: 'blur', modeAfterSubmission:
+  'change' })` with `onDynamic` field validators, rather than hand-wiring
+  `onBlur`/`onChange` per field as this section first described. It is the same
+  behaviour — blur before the first submit, change after it — expressed once on
+  the form instead of twice on every field.
+- The summary is filled from `validateRegistration` inside `onSubmitInvalid`,
+  so it and the per-field errors come from one rule set and cannot disagree.
 - On failed submit, focus moves to the first invalid field.
 - `aria-invalid` and `aria-describedby` wire each input to its `FieldError`.
 

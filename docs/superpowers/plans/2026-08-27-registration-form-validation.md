@@ -8,6 +8,19 @@
 
 **Tech Stack:** TypeScript 6, React 19, TanStack Start/Router 1.x, TanStack Form 1.33, Convex 1.45, Paraglide (inlang) 2.24, Tailwind v4, Vitest 3.2, ESLint 9 flat config.
 
+> **Implementation note (superseding the Stage 3 table below).** Components
+> live in per-feature directories — `src/components/RegistrationForm/`,
+> `MyRegistration/`, `AppBar/`, `DateField/`, `Home/` — not flat in
+> `src/components/`. The Stage 3 file table names the components correctly;
+> only their paths differ. Stage 2 and Stage 4 are implemented. Stage 1
+> (ESLint) and the `mi-registro` half of Stage 3 (`PageFrame`,
+> `BirthDateForm`) are not.
+>
+> Two deviations inside Stage 4, both recorded in the design doc: validation
+> timing uses `revalidateLogic` with `onDynamic` validators rather than
+> per-field `onBlur`/`onChange`, and `LETTER_MIN` ships at 0.
+
+
 **Spec:** [`docs/superpowers/specs/2026-08-27-registration-form-validation-design.md`](../specs/2026-08-27-registration-form-validation-design.md)
 
 ## Global Constraints
