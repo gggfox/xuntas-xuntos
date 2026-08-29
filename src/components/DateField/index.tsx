@@ -167,9 +167,7 @@ export default function DateField({
   const shown = error ?? localError
   const age = selected ? ageAt(value) : -1
 
-  const describedBy = [shown ? errorId : null, help ? `${id}-help` : null]
-    .filter(Boolean)
-    .join(' ')
+  const describedBy = shown ? errorId : help ? `${id}-help` : undefined
 
   return (
     <div
@@ -202,7 +200,7 @@ export default function DateField({
           onChange={(e) => onType(e.target.value)}
           onFocus={() => !inline && setOpen(true)}
           aria-invalid={Boolean(shown)}
-          aria-describedby={describedBy || undefined}
+          aria-describedby={describedBy}
           autoComplete={autoComplete}
           maxLength={10}
         />
@@ -242,16 +240,15 @@ export default function DateField({
         </p>
       )}
 
-      {shown && (
-        <p id={errorId} className="text-[11.5px] text-bad">
-          {shown}
-        </p>
-      )}
-      {help && !shown && (
-        <p id={`${id}-help`} className="text-[11.5px] text-soft">
-          {help}
-        </p>
-      )}
+      {/* One slot, always here, carrying whichever of the two there is to
+          say. Reserved so that a message appearing does not shove the
+          calendar and everything under it down the page. */}
+      <p
+        id={shown ? errorId : `${id}-help`}
+        className={`min-h-[1.45em] text-[11.5px] leading-[1.45] ${shown ? 'text-bad' : 'text-soft'}`}
+      >
+        {shown ?? help ?? null}
+      </p>
     </div>
   )
 }

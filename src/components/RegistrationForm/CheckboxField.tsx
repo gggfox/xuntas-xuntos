@@ -47,7 +47,7 @@ export default function CheckboxField({
     <div className="flex h-full flex-col">
       <label
         htmlFor={id}
-        className={`group relative flex h-full cursor-pointer flex-col rounded-[9px] border bg-card p-4 transition-colors duration-150
+        className={`group relative flex flex-1 cursor-pointer flex-col rounded-[9px] border bg-card p-4 transition-colors duration-150
           has-[:checked]:border-ochre/60 has-[:checked]:bg-yel-s
           has-[:focus-visible]:border-ink has-[:focus-visible]:shadow-[0_0_0_3px_rgba(237,244,95,0.5)]
           has-[:disabled]:cursor-default ${error ? 'border-bad/60 bg-bad/[0.03]' : 'border-line'}`}
@@ -106,7 +106,9 @@ export default function CheckboxField({
           </span>
         )}
       </label>
-      <FieldError id={errorId} code={error} />
+      {/* Two lines: these cards are a third of a column wide and the
+          sentences wrap. */}
+      <FieldError id={errorId} code={error} lines={2} />
     </div>
   )
 }

@@ -308,3 +308,38 @@ describe('the confirmation cards', () => {
     expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(false)
   })
 })
+
+/**
+ * An error message used to render nothing at all when the field was fine, so
+ * every message appearing pushed the rest of the form down. In the row of
+ * confirmation cards it was worse: the message sat under each card, so a card
+ * with a two-line message, one with a single line and one with none all came
+ * out different heights.
+ */
+describe('an error does not move the page', () => {
+  it('keeps the slot under a field that has nothing wrong with it', () => {
+    renderWizard({ initial: emptyRegistration(), initialStep: 0 })
+    const slot = document.getElementById('name-err')
+    expect(slot).toBeInTheDocument()
+    expect(slot).toHaveClass('min-h-[1.45em]')
+    expect(slot?.textContent).toBe('')
+  })
+
+  it('leaves two lines under a confirmation, whose sentences wrap', () => {
+    const d = complete()
+    d.confirmations = { rules: false, scholarshipUnderstood: false, privacy: false }
+    renderWizard({ initial: d })
+    expect(document.getElementById('ck1-err')).toHaveClass('min-h-[2.9em]')
+  })
+
+  /** The three cards are one grid row, and a row is as tall as its tallest cell. */
+  it('gives every confirmation the same slot whether or not it is wrong', () => {
+    const d = complete()
+    d.confirmations = { rules: false, scholarshipUnderstood: false, privacy: true }
+    renderWizard({ initial: d })
+
+    const slots = ['ck1-err', 'ck2-err', 'ck3-err'].map((id) => document.getElementById(id))
+    expect(slots.every(Boolean)).toBe(true)
+    for (const s of slots) expect(s).toHaveClass('min-h-[2.9em]')
+  })
+})

@@ -27,7 +27,7 @@ export default function SelectField({
   const describedBy = [error ? errorId : null, help ? helpId : null].filter(Boolean).join(' ')
 
   return (
-    <div className="mb-[15px] flex flex-col gap-1.5">
+    <div className="mb-[2px] flex flex-col gap-1.5">
       <label htmlFor={id} className="text-[12.5px] font-medium">
         {label} {req && <span className="text-bad">*</span>}
       </label>
