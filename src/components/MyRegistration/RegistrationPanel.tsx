@@ -18,7 +18,14 @@ import type { RegistrationError } from '../../lib/registrationRules'
  * Everything behind the sign-in wall: the form itself, plus the screens that
  * stand in for it while the account is not ready to fill it out.
  */
-export default function RegistrationPanel() {
+export default function RegistrationPanel({
+  step,
+  onStepChange,
+}: {
+  /** The step the URL asked for. The form decides whether it is allowed. */
+  step?: number
+  onStepChange?: (step: number) => void
+} = {}) {
   const { user } = useUser()
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
   const status = useQuery(api.users.myStatus)
@@ -128,6 +135,16 @@ export default function RegistrationPanel() {
           alreadySubmitted={alreadySubmitted}
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit}
+          /* All three are true by the time this renders — the panel returns
+             earlier otherwise — and that is the point: the bar used to open
+             at nothing for someone who had already done all of it. */
+          account={{
+            created: true,
+            emailVerified: status.account.emailVerified,
+            ageDeclared: status.account.ageDeclared,
+          }}
+          initialStep={step}
+          onStepChange={onStepChange}
         />
       </div>
     </main>

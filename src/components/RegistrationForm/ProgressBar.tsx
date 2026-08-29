@@ -1,12 +1,15 @@
 import * as m from '../../paraglide/messages.js'
 
 /**
- * Sticky progress bar. It reports how much of the form has been answered, not
- * how much of it is valid — see `computeProgress`.
+ * The progress bar. It reports how much of the form has been answered, not how
+ * much of it is valid — see `computeProgress`.
+ *
+ * Not sticky itself: it sits inside the form's sticky header, alongside the
+ * stepper, and two independently pinned elements would stack.
  */
 export default function ProgressBar({ percent }: { percent: number }) {
   return (
-    <div className="sticky top-0 z-40 -mx-[22px] mb-8 border-b border-line bg-paper/95 px-[22px] py-3 backdrop-blur">
+    <div className="py-3">
       <div className="flex items-center gap-3">
         <span className="eyebrow whitespace-nowrap">{m.reg_progress({ percent })}</span>
         <div

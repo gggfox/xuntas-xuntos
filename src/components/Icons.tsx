@@ -1,6 +1,6 @@
 /**
  * Every inline icon in the app, under one name: `Icons.Chevron`,
- * `Icons.Calendar`, `Icons.BrandMark`.
+ * `Icons.Calendar`, `Icons.Check`, `Icons.BrandMark`.
  *
  * One import instead of three, and one place to look when a new icon is
  * needed — which also makes the answer to "do we already draw this?"
@@ -70,6 +70,21 @@ function Calendar(props: IconProps) {
   )
 }
 
+/** A step that is done, a box that is ticked. Drawn once, used for both. */
+function Check(props: IconProps) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M2.25 6.4 4.8 9l5-6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 /**
  * The XUNTAS mark.
  *
@@ -95,6 +110,6 @@ function BrandMark(props: IconProps) {
   )
 }
 
-export const Icons = { Chevron, Calendar, BrandMark }
+export const Icons = { Chevron, Calendar, Check, BrandMark }
 
 export default Icons

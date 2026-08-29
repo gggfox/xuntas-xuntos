@@ -1,33 +1,25 @@
-import { useCallback, useState } from 'react'
-import { revalidateLogic, useForm, useStore } from '@tanstack/react-form'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useStore } from '@tanstack/react-form'
 import * as m from '../../paraglide/messages.js'
-import DateField from '../DateField'
-import CheckboxField from './CheckboxField'
-import DynamicRows from './DynamicRows'
 import ErrorSummary from './ErrorSummary'
-import FieldGrid from './FieldGrid'
 import FormSection from './FormSection'
-import LetterField from './LetterField'
 import ProgressBar from './ProgressBar'
-import RankingRows from './RankingRows'
-import SelectField from './SelectField'
-import TextField from './TextField'
+import StepNav from './StepNav'
+import Stepper from './Stepper'
+import { useRegistrationForm } from './useRegistrationForm'
+import { LAST_STEP, STEPS, STEP_FIELDS } from './steps'
 import { useDraftAutosave } from '../../hooks/useDraftAutosave'
 import { computeProgress } from '../../lib/registrationProgress'
-import { errorMessage } from '../../lib/registrationErrors'
-import { DOCUMENTS } from '../../lib/documents'
-import type { RegistrationData } from '../../lib/registrationSchema'
+import type { AccountMilestones } from '../../lib/registrationProgress'
 import {
-  checkBranch,
-  checkEmail,
-  checkGraduationYear,
-  checkLetter,
-  checkName,
-  checkRequiredText,
-  checkWhatsapp,
-  checkBirthDate,
-  validateRegistration,
-} from '../../lib/registrationRules'
+  clampStep,
+  firstIncompleteStep,
+  firstStepWithError,
+  stepErrors,
+  stepOfField,
+} from '../../lib/registrationSteps'
+import { validateRegistration } from '../../lib/registrationRules'
+import type { RegistrationData } from '../../lib/registrationSchema'
 import type { RegistrationError, RegistrationFieldPath } from '../../lib/registrationRules'
 
 type Props = {
@@ -36,6 +28,12 @@ type Props = {
   onSaveDraft: (data: RegistrationData) => void
   onSubmit: (data: RegistrationData) => Promise<RegistrationError[]>
   alreadySubmitted: boolean
+  /** What the reader had already done before this form opened. For the bar. */
+  account: AccountMilestones
+  /** The step the URL asked for. Treated as a request, not an instruction. */
+  initialStep?: number
+  /** Where a step change is written back to, so a reload lands in the same place. */
+  onStepChange?: (step: number) => void
 }
 
 /**
@@ -63,27 +61,26 @@ const FIELD_IDS: Partial<Record<RegistrationFieldPath, string>> = {
   'confirmations.privacy': 'ck3',
 }
 
-/** The first error in the returned list is the first one in the document. */
-function focusFirst(errors: RegistrationError[]) {
-  const first = errors.map((e) => FIELD_IDS[e.field]).find(Boolean)
-  const el = first ? document.getElementById(first) : null
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    el.focus({ preventScroll: true })
-    return
-  }
-  document.getElementById('errors')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+function focusById(id: string | undefined) {
+  const el = id ? document.getElementById(id) : null
+  if (!el) return false
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.focus({ preventScroll: true })
+  return true
 }
 
 /**
- * Registration form. The eight sections and their copy are the ones from
- * registro_xuntas.html: XUNTAS already approved them, and changing them
- * reopens a conversation the calendar has no room for.
+ * The registration, one step at a time.
  *
- * Validation runs on blur before the first submit and on change after it
- * (`revalidateLogic`), so nobody is told they are wrong halfway through
- * typing their own name, and a field they have already fixed clears itself
- * without waiting for another submit.
+ * This file coordinates and renders almost nothing: the eight steps and their
+ * fields live in `./steps`, one file each, and the whole form is a single
+ * TanStack store created in `./useRegistrationForm`. What is left here is the
+ * three things only something above all eight steps can answer — which step
+ * is showing, whether the reader may leave it, and where a failing rule sends
+ * them when the field it names is not currently on screen.
+ *
+ * The section copy is the one from registro_xuntas.html: XUNTAS approved it,
+ * and changing it reopens a conversation the calendar has no room for.
  */
 export default function RegistrationForm({
   initial,
@@ -91,6 +88,9 @@ export default function RegistrationForm({
   onSaveDraft,
   onSubmit,
   alreadySubmitted,
+  account,
+  initialStep,
+  onStepChange,
 }: Props) {
   /**
    * Errors shown in the summary at the top. Distinct from the per-field state
@@ -99,29 +99,158 @@ export default function RegistrationForm({
    */
   const [summary, setSummary] = useState<RegistrationError[]>([])
 
-  const form = useForm({
-    defaultValues: initial,
-    validationLogic: revalidateLogic({ mode: 'blur', modeAfterSubmission: 'change' }),
-    onSubmit: async ({ value }) => {
+  /**
+   * Where the reader is, and the furthest they have got.
+   *
+   * The URL is a request. Clamping it to the first unfilled step is what stops
+   * a hand-typed `?paso=8` from walking around the gate on "next"; it is
+   * applied here, on arrival, and never again, because someone who reaches
+   * step 5 and then empties a field on step 2 has not been sent back to step 2.
+   */
+  const [step, setStep] = useState(() => {
+    const wanted = initialStep ?? firstIncompleteStep(STEP_FIELDS, initial)
+    // Same reason the gate and the stepper drop their restrictions once the
+    // window has closed: with nothing left to fill in there is no order to
+    // read it in, and clamping would fight the stepper on every reload.
+    return editable ? clampStep(wanted, STEP_FIELDS, initial) : Math.min(Math.max(0, wanted), LAST_STEP)
+  })
+  const [reachable, setReachable] = useState(step)
+
+  const headingRef = useRef<HTMLLegendElement>(null)
+  /** Set when the thing to focus after a step change is a field, not the heading. */
+  const pendingField = useRef<string | null>(null)
+  const isFirstRender = useRef(true)
+
+  const form = useRegistrationForm({
+    initial,
+    onValid: async (value) => {
       const serverErrors = await onSubmit(value)
       setSummary(serverErrors)
-      if (serverErrors.length > 0) focusFirst(serverErrors)
+      if (serverErrors.length > 0) goToFirstError(serverErrors)
     },
-    onSubmitInvalid: ({ value }) => {
+    onInvalid: (value) => {
       // The fields have already marked themselves. This fills the summary
       // from the same rules, so the two can never disagree.
       const localErrors = validateRegistration(value)
       setSummary(localErrors)
-      focusFirst(localErrors)
+      goToFirstError(localErrors)
     },
   })
 
   const values = useStore(form.store, (s) => s.values)
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting)
 
-  useDraftAutosave({ values, initial, enabled: editable, onSave: onSaveDraft })
+  const flushDraft = useDraftAutosave({ values, initial, enabled: editable, onSave: onSaveDraft })
+
+  /** One pass of the shared rules, reused by the stepper, the gate and the bar. */
+  const errors = useMemo(() => validateRegistration(values), [values])
+
+  const errorSteps = useMemo(() => {
+    const marked = new Set<number>()
+    for (const e of errors) {
+      const s = stepOfField(STEP_FIELDS, e.field)
+      // Only steps already visited: a step nobody has opened is not "wrong",
+      // it is unwritten, and colouring it red on arrival would be a lie.
+      if (s !== null && s <= reachable) marked.add(s)
+    }
+    return marked
+  }, [errors, reachable])
+
+  const doneSteps = useMemo(() => {
+    const done = new Set<number>()
+    for (let i = 0; i <= reachable; i++) {
+      if (!errorSteps.has(i)) done.add(i)
+    }
+    return done
+  }, [errorSteps, reachable])
+
+  const go = useCallback(
+    (next: number) => {
+      const target = Math.min(Math.max(0, next), LAST_STEP)
+      // Leaving a step is a moment where the work is finished but the debounce
+      // has not run out. Cheap when nothing changed — the fingerprint decides.
+      flushDraft()
+      setStep(target)
+      setReachable((r) => Math.max(r, target))
+      onStepChange?.(target)
+    },
+    [flushDraft, onStepChange],
+  )
+
+  const goToFirstError = useCallback(
+    (list: RegistrationError[]) => {
+      const target = firstStepWithError(STEP_FIELDS, list)
+      const id = list.map((e) => FIELD_IDS[e.field]).find(Boolean)
+      if (target === null) {
+        // Nothing that belongs to a step — a rejection of the whole submission.
+        document.getElementById('errors')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      if (target === step) {
+        if (!focusById(id)) {
+          document.getElementById('errors')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+        return
+      }
+      // The input does not exist yet. The layout effect below focuses it once
+      // the step it lives on has mounted.
+      pendingField.current = id ?? null
+      go(target)
+    },
+    [go, step],
+  )
+
+  /**
+   * Focus follows the step.
+   *
+   * Doing nothing here is worse than it sounds: the button that was just
+   * pressed unmounts, focus falls back to `<body>`, and the next Tab starts
+   * again from the top of the page.
+   */
+  useLayoutEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    const id = pendingField.current
+    pendingField.current = null
+    if (id && focusById(id)) return
+    headingRef.current?.focus({ preventScroll: true })
+    headingRef.current?.scrollIntoView({ block: 'start' })
+  }, [step])
+
+  const onNext = useCallback(() => {
+    // A closed window has nothing to gate. Holding someone on a step over a
+    // field they are no longer allowed to fill in would be a door with no
+    // handle — and the stepper beside it already lets them past.
+    const blocking = editable ? stepErrors(STEP_FIELDS, step, errors) : []
+    if (blocking.length > 0) {
+      // Nothing is disabled, so this is the moment the reader finds out what
+      // is missing: mark the step's fields so each one says so for itself.
+      for (const field of STEPS[step].fields) void form.validateField(field, 'submit')
+      focusById(blocking.map((e) => FIELD_IDS[e.field]).find(Boolean))
+      return
+    }
+    go(step + 1)
+  }, [editable, errors, form, go, step])
+
+  const onSelectError = useCallback(
+    (field: RegistrationError['field'], id: string) => {
+      const target = stepOfField(STEP_FIELDS, field)
+      if (target === null || target === step) {
+        focusById(id)
+        return
+      }
+      pendingField.current = id
+      go(target)
+    },
+    [go, step],
+  )
 
   const fieldId = useCallback((field: RegistrationFieldPath) => FIELD_IDS[field], [])
+
+  const current = STEPS[step]
+  const Step = current.Component
 
   return (
     <form
@@ -131,408 +260,55 @@ export default function RegistrationForm({
         void form.handleSubmit()
       }}
     >
-      <ProgressBar percent={computeProgress(values)} />
-
-      <ErrorSummary errors={summary} fieldId={fieldId} />
-
-      <FormSection n={1} title={m.reg_s1_title()} sub={m.reg_s1_sub()}>
-        <FieldGrid>
-          <form.Field name="personal.name" validators={{ onDynamic: ({ value }) => checkName(value) }}>
-            {(field) => (
-              <TextField
-                id="name"
-                label={m.reg_name()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-                autoComplete="name"
-              />
-            )}
-          </form.Field>
-
-          <form.Field name="personal.email" validators={{ onDynamic: ({ value }) => checkEmail(value) }}>
-            {(field) => (
-              <TextField
-                id="mail"
-                type="email"
-                label={m.reg_email()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-                autoComplete="email"
-              />
-            )}
-          </form.Field>
-
-          <form.Field name="personal.whatsapp" validators={{ onDynamic: ({ value }) => checkWhatsapp(value) }}>
-            {(field) => (
-              <TextField
-                id="tel"
-                type="tel"
-                label={m.reg_whatsapp()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-                autoComplete="tel"
-              />
-            )}
-          </form.Field>
-
-          <form.Field name="personal.birthDate" validators={{ onDynamic: ({ value }) => checkBirthDate(value) }}>
-            {(field) => (
-              <div className="mb-[15px]">
-                <DateField
-                  id="birth"
-                  label={m.reg_birth_date()}
-                  req
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  onBlur={field.handleBlur}
-                  error={field.state.meta.errors[0] ? errorMessage(field.state.meta.errors[0]) : undefined}
-                  autoComplete="bday"
-                />
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="personal.branch" validators={{ onDynamic: ({ value }) => checkBranch(value) }}>
-            {(field) => (
-              <SelectField
-                id="branch"
-                label={m.reg_branch()}
-                req
-                value={field.state.value}
-                onChange={(v) => field.handleChange(v as 'womens' | 'mens')}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-                options={[
-                  { v: '', t: m.reg_branch_select() },
-                  { v: 'womens', t: m.reg_branch_womens() },
-                  { v: 'mens', t: m.reg_branch_mens() },
-                ]}
-              />
-            )}
-          </form.Field>
-
-          <form.Field
-            name="personal.cityState"
-            validators={{ onDynamic: ({ value }) => checkRequiredText(value, 'city_required') }}
-          >
-            {(field) => (
-              <TextField
-                id="city"
-                label={m.reg_city()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-              />
-            )}
-          </form.Field>
-        </FieldGrid>
-      </FormSection>
-
-      <FormSection n={2} title={m.reg_s2_title()} sub={m.reg_s2_sub()}>
-        <FieldGrid>
-          <form.Field
-            name="academic.school"
-            validators={{ onDynamic: ({ value }) => checkRequiredText(value, 'school_required') }}
-          >
-            {(field) => (
-              <TextField
-                id="school"
-                label={m.reg_school()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-              />
-            )}
-          </form.Field>
-
-          <form.Field
-            name="academic.grade"
-            validators={{ onDynamic: ({ value }) => checkRequiredText(value, 'grade_required') }}
-          >
-            {(field) => (
-              <TextField
-                id="grade"
-                label={m.reg_grade()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-              />
-            )}
-          </form.Field>
-
-          <form.Field
-            name="academic.graduationYear"
-            validators={{ onDynamic: ({ value }) => checkGraduationYear(value) }}
-          >
-            {(field) => (
-              <TextField
-                id="grad"
-                label={m.reg_graduation()}
-                help={m.reg_graduation_help()}
-                value={field.state.value ?? ''}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-              />
-            )}
-          </form.Field>
-
-          <form.Field name="academic.interest">
-            {(field) => (
-              <TextField
-                id="interest"
-                label={m.reg_interest()}
-                value={field.state.value ?? ''}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-              />
-            )}
-          </form.Field>
-        </FieldGrid>
-      </FormSection>
-
-      <FormSection n={3} title={m.reg_s3_title()}>
-        <FieldGrid>
-          <form.Field
-            name="athletic.club"
-            validators={{ onDynamic: ({ value }) => checkRequiredText(value, 'club_required') }}
-          >
-            {(field) => (
-              <TextField
-                id="club"
-                label={m.reg_club()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-              />
-            )}
-          </form.Field>
-
-          <form.Field
-            name="athletic.coach"
-            validators={{ onDynamic: ({ value }) => checkRequiredText(value, 'coach_required') }}
-          >
-            {(field) => (
-              <TextField
-                id="coach"
-                label={m.reg_coach()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-              />
-            )}
-          </form.Field>
-
-          <form.Field name="athletic.amateurStatus">
-            {(field) => (
-              <SelectField
-                id="status"
-                label={m.reg_status()}
-                req
-                help={m.reg_status_help()}
-                value={field.state.value ? 'amateur' : ''}
-                onChange={(v) => field.handleChange(v === 'amateur')}
-                onBlur={field.handleBlur}
-                options={[
-                  { v: '', t: m.reg_branch_select() },
-                  { v: 'amateur', t: m.reg_status_amateur() },
-                  { v: 'pro', t: m.reg_status_pro() },
-                ]}
-              />
-            )}
-          </form.Field>
-
-          <form.Field
-            name="athletic.ghin"
-            validators={{ onDynamic: ({ value }) => checkRequiredText(value, 'ghin_required') }}
-          >
-            {(field) => (
-              <TextField
-                id="ghin"
-                label={m.reg_ghin()}
-                req
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
-              />
-            )}
-          </form.Field>
-        </FieldGrid>
-      </FormSection>
-
-      <FormSection n={4} title={m.reg_s4_title()} sub={m.reg_s4_sub()}>
-        <form.Field
-          name="results"
-          mode="array"
-          validators={{
-            onDynamic: ({ value }) =>
-              value.some((r) => r.tournament.trim() && r.result.trim())
-                ? undefined
-                : ('results_required' as const),
-          }}
-        >
-          {(field) => (
-            <>
-              <DynamicRows
-                rows={field.state.value.map((r) => ({ a: r.tournament, b: r.result }))}
-                phA={m.reg_tournament_name()}
-                phB={m.reg_tournament_result()}
-                addLabel={m.reg_add_tournament()}
-                onEdit={(i, key, v) => {
-                  const row = field.state.value[i]
-                  field.replaceValue(i, key === 'a' ? { ...row, tournament: v } : { ...row, result: v })
-                }}
-                onRemove={(i) => field.removeValue(i)}
-                onAdd={() => field.pushValue({ tournament: '', result: '' })}
-                onBlur={field.handleBlur}
-              />
-              {field.state.meta.errors[0] && (
-                <p className="mt-1.5 text-[11.5px] text-bad">
-                  {errorMessage(field.state.meta.errors[0])}
-                </p>
-              )}
-            </>
-          )}
-        </form.Field>
-      </FormSection>
-
-      <FormSection n={5} title={m.reg_s5_title()} sub={m.reg_s5_sub()}>
-        <form.Field name="rankings" mode="array">
-          {(field) => (
-            <RankingRows
-              rankings={field.state.value}
-              onChange={(i, value) => {
-                if (i < field.state.value.length) field.replaceValue(i, value)
-                else field.pushValue(value)
-              }}
-              onBlur={field.handleBlur}
-            />
-          )}
-        </form.Field>
-      </FormSection>
-
-      <FormSection n={6} title={m.reg_s6_title()} sub={m.reg_s6_sub()}>
-        <form.Field name="calendar" mode="array">
-          {(field) => (
-            <DynamicRows
-              rows={field.state.value.map((c) => ({ a: c.event, b: c.date }))}
-              phA={m.reg_event_name()}
-              phB={m.reg_event_date()}
-              addLabel={m.reg_add_event()}
-              onEdit={(i, key, v) => {
-                const row = field.state.value[i]
-                field.replaceValue(i, key === 'a' ? { ...row, event: v } : { ...row, date: v })
-              }}
-              onRemove={(i) => field.removeValue(i)}
-              onAdd={() => field.pushValue({ event: '', date: '' })}
-              onBlur={field.handleBlur}
-            />
-          )}
-        </form.Field>
-      </FormSection>
-
-      <FormSection n={7} title={m.reg_s7_title()} sub={m.reg_s7_sub()}>
-        <form.Field name="motivationLetter" validators={{ onDynamic: ({ value }) => checkLetter(value) }}>
-          {(field) => (
-            <LetterField
-              id="letter"
-              label={m.reg_s7_title()}
-              value={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              error={field.state.meta.errors[0]}
-            />
-          )}
-        </form.Field>
-      </FormSection>
-
-      <FormSection n={8} title={m.reg_s8_title()}>
-        <form.Field
-          name="confirmations.rules"
-          validators={{ onDynamic: ({ value }) => (value ? undefined : ('confirm_rules_required' as const)) }}
-        >
-          {(field) => (
-            <CheckboxField
-              id="ck1"
-              title={m.reg_ck_rules()}
-              sub={m.reg_ck_rules_sub()}
-              checked={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              error={field.state.meta.errors[0]}
-              doc={{ ...DOCUMENTS.rules, label: m.rules_title() }}
-            />
-          )}
-        </form.Field>
-
-        <form.Field
-          name="confirmations.scholarshipUnderstood"
-          validators={{
-            onDynamic: ({ value }) => (value ? undefined : ('confirm_scholarship_required' as const)),
-          }}
-        >
-          {(field) => (
-            <CheckboxField
-              id="ck2"
-              title={m.reg_ck_scholarship()}
-              sub={m.reg_ck_scholarship_sub()}
-              checked={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              error={field.state.meta.errors[0]}
-            />
-          )}
-        </form.Field>
-
-        <form.Field
-          name="confirmations.privacy"
-          validators={{ onDynamic: ({ value }) => (value ? undefined : ('confirm_privacy_required' as const)) }}
-        >
-          {(field) => (
-            <CheckboxField
-              id="ck3"
-              title={m.reg_ck_privacy()}
-              sub={m.reg_ck_privacy_sub()}
-              checked={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              error={field.state.meta.errors[0]}
-              doc={{ ...DOCUMENTS.privacyNotice, label: m.privacy_title() }}
-            />
-          )}
-        </form.Field>
-      </FormSection>
-
-      <div className="mt-9 flex flex-wrap items-center gap-4">
-        <button type="submit" className="btn" disabled={!editable || isSubmitting}>
-          {isSubmitting
-            ? m.common_loading()
-            : alreadySubmitted
-              ? m.reg_save_changes()
-              : m.reg_submit()}
-        </button>
-        <span className="eyebrow">{editable ? m.reg_closing() : m.reg_closed()}</span>
+      {/* One header, one stepper. Rendering a second copy for a narrow screen
+          would put eight buttons and a landmark on the page twice, which a
+          screen reader has no way to know is the same set of eight. The
+          account pill sheds its label instead. */}
+      <div className="sticky top-0 z-40 -mx-[22px] mb-6 border-b border-line bg-paper/95 px-[22px] backdrop-blur">
+        <ProgressBar percent={computeProgress(values, account)} />
+        <Stepper
+          steps={STEPS}
+          current={step}
+          /* A closed window has nothing to gate: nothing can be changed, so
+             there is no wrong order to read it in. */
+          reachable={editable ? reachable : LAST_STEP}
+          errorSteps={errorSteps}
+          doneSteps={doneSteps}
+          onSelect={go}
+        />
       </div>
+
+      {/* The position only. The title is announced by the legend that focus
+          lands on, and saying both here would say everything twice. */}
+      <p aria-live="polite" className="sr-only">
+        {m.reg_step_of({ n: step + 1, total: STEPS.length })}
+      </p>
+
+      <ErrorSummary errors={summary} fieldId={fieldId} onSelect={onSelectError} />
+
+      <FormSection
+        key={step}
+        n={current.n}
+        title={current.title()}
+        sub={current.sub?.()}
+        headingRef={headingRef}
+        disabled={!editable}
+      >
+        <Step form={form} />
+      </FormSection>
+
+      <StepNav
+        step={step}
+        total={STEPS.length}
+        isLast={step === LAST_STEP}
+        editable={editable}
+        isSubmitting={isSubmitting}
+        alreadySubmitted={alreadySubmitted}
+        onBack={() => go(step - 1)}
+        onNext={onNext}
+      />
+
+      <p className="eyebrow mt-4">{editable ? m.reg_closing() : m.reg_closed()}</p>
     </form>
   )
 }

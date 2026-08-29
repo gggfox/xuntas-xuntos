@@ -43,6 +43,9 @@ function complete(): RegistrationData {
   return d
 }
 
+/** The panel only renders the form once all three are true. */
+const SIGNED_UP = { created: true, emailVerified: true, ageDeclared: true }
+
 function renderForm(overrides: Partial<Parameters<typeof RegistrationForm>[0]> = {}) {
   const onSubmit = vi.fn<(d: RegistrationData) => Promise<RegistrationError[]>>(async () => [])
   const onSaveDraft = vi.fn()
@@ -51,6 +54,7 @@ function renderForm(overrides: Partial<Parameters<typeof RegistrationForm>[0]> =
     <RegistrationForm
       initial={initial}
       editable
+      account={SIGNED_UP}
       alreadySubmitted={false}
       onSaveDraft={onSaveDraft}
       onSubmit={onSubmit}
@@ -150,6 +154,7 @@ describe('RegistrationForm validation', () => {
       <RegistrationForm
         initial={complete()}
         editable
+        account={SIGNED_UP}
         alreadySubmitted={false}
         onSaveDraft={vi.fn()}
         onSubmit={onSubmit}
@@ -172,6 +177,7 @@ describe('RegistrationForm autosave', () => {
       <RegistrationForm
         initial={emptyRegistration()}
         editable
+        account={SIGNED_UP}
         alreadySubmitted={false}
         onSaveDraft={onSaveDraft}
         onSubmit={async () => []}
@@ -192,6 +198,7 @@ describe('RegistrationForm autosave', () => {
       <RegistrationForm
         initial={complete()}
         editable
+        account={SIGNED_UP}
         alreadySubmitted={false}
         onSaveDraft={onSaveDraft}
         onSubmit={async () => []}
@@ -207,6 +214,7 @@ describe('RegistrationForm autosave', () => {
       <RegistrationForm
         initial={emptyRegistration()}
         editable={false}
+        account={SIGNED_UP}
         alreadySubmitted
         onSaveDraft={onSaveDraft}
         onSubmit={async () => []}

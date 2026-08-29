@@ -13,10 +13,17 @@ import type { RegistrationError } from '../../lib/registrationRules'
 export default function ErrorSummary({
   errors,
   fieldId,
+  onSelect,
 }: {
   errors: RegistrationError[]
   /** Maps a field path to the DOM id of its input. */
   fieldId: (field: RegistrationError['field']) => string | undefined
+  /**
+   * Where following an entry goes. The summary cannot do this itself any
+   * more: the field it names is very often on a step that is not rendered,
+   * and only the orchestrator can put it on screen before focusing it.
+   */
+  onSelect: (field: RegistrationError['field'], id: string) => void
 }) {
   if (errors.length === 0) return null
 
@@ -39,11 +46,10 @@ export default function ErrorSummary({
                   className="underline"
                   onClick={(ev) => {
                     // Focus, not just scroll: a keyboard reader following this
-                    // link must land in the input, not next to it.
+                    // link must land in the input, not next to it — and on the
+                    // step that holds it, which may not be this one.
                     ev.preventDefault()
-                    const el = document.getElementById(id)
-                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                    el?.focus({ preventScroll: true })
+                    onSelect(e.field, id)
                   }}
                 >
                   {text}

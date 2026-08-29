@@ -6,12 +6,16 @@ function Harness({
   values,
   onSave,
   initial,
+  flushRef,
 }: {
   values: { a: number }
   initial: { a: number }
   onSave: (v: { a: number }) => void
+  /** How a test reaches the flush without a button to press. */
+  flushRef?: { current: (() => void) | null }
 }) {
-  useDraftAutosave({ values, initial, enabled: true, delayMs: 1200, onSave })
+  const flush = useDraftAutosave({ values, initial, enabled: true, delayMs: 1200, onSave })
+  if (flushRef) flushRef.current = flush
   return null
 }
 
@@ -82,6 +86,79 @@ describe('useDraftAutosave', () => {
     const { rerender } = render(<Locked values={initial} />)
     rerender(<Locked values={{ a: 1 }} />)
     act(() => void vi.advanceTimersByTime(5000))
+    expect(onSave).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * Leaving a step is a moment where the work is done but the silence has not
+ * arrived. Filling a step in and pressing "next" inside the debounce window
+ * used to lose it if the tab closed on the way.
+ */
+describe('useDraftAutosave flush', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('saves immediately instead of waiting out the debounce', () => {
+    const onSave = vi.fn()
+    const initial = { a: 0 }
+    const flushRef: { current: (() => void) | null } = { current: null }
+    const { rerender } = render(
+      <Harness values={initial} initial={initial} onSave={onSave} flushRef={flushRef} />,
+    )
+
+    rerender(<Harness values={{ a: 1 }} initial={initial} onSave={onSave} flushRef={flushRef} />)
+    expect(onSave).not.toHaveBeenCalled()
+
+    act(() => flushRef.current?.())
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onSave).toHaveBeenCalledWith({ a: 1 })
+  })
+
+  /** The flush cancels the pending timer rather than racing it. */
+  it('does not save a second time when the debounce would have fired', () => {
+    const onSave = vi.fn()
+    const initial = { a: 0 }
+    const flushRef: { current: (() => void) | null } = { current: null }
+    const { rerender } = render(
+      <Harness values={initial} initial={initial} onSave={onSave} flushRef={flushRef} />,
+    )
+
+    rerender(<Harness values={{ a: 1 }} initial={initial} onSave={onSave} flushRef={flushRef} />)
+    act(() => flushRef.current?.())
+    act(() => void vi.advanceTimersByTime(5000))
+    expect(onSave).toHaveBeenCalledTimes(1)
+  })
+
+  /** Which is what makes flushing on every step change cost nothing. */
+  it('writes nothing when the step changed but no value did', () => {
+    const onSave = vi.fn()
+    const initial = { a: 0 }
+    const flushRef: { current: (() => void) | null } = { current: null }
+    render(<Harness values={initial} initial={initial} onSave={onSave} flushRef={flushRef} />)
+
+    act(() => flushRef.current?.())
+    act(() => flushRef.current?.())
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('does not write once the window has closed', () => {
+    const onSave = vi.fn()
+    const initial = { a: 0 }
+    const flushRef: { current: (() => void) | null } = { current: null }
+    function Locked({ values }: { values: { a: number } }) {
+      flushRef.current = useDraftAutosave({
+        values,
+        initial,
+        enabled: false,
+        delayMs: 1200,
+        onSave,
+      })
+      return null
+    }
+    const { rerender } = render(<Locked values={initial} />)
+    rerender(<Locked values={{ a: 1 }} />)
+    act(() => flushRef.current?.())
     expect(onSave).not.toHaveBeenCalled()
   })
 })
