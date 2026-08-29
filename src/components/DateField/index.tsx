@@ -31,6 +31,14 @@ type Props = {
   label: string
   value: string
   onChange: (iso: string) => void
+  /**
+   * Reported when focus leaves the field, and only then. The text box, the
+   * toggle and the calendar grid are one widget as far as the reader is
+   * concerned, so a handler on the input alone would fire on the way to the
+   * grid and call an empty date wrong while they are still on their way to
+   * filling it in.
+   */
+  onBlur?: () => void
   req?: boolean
   help?: string
   error?: string
@@ -49,6 +57,7 @@ export default function DateField({
   label,
   value,
   onChange,
+  onBlur,
   req,
   help,
   error,
@@ -166,6 +175,14 @@ export default function DateField({
     <div
       ref={rootRef}
       className="flex flex-col gap-1.5"
+      onBlur={(ev) => {
+        /* React's onBlur bubbles, so this sees focus leaving any part of the
+           widget. Where focus went is what separates leaving the field from
+           moving around inside it. A null relatedTarget — a click on dead
+           space, or the window losing focus — really is leaving. */
+        if (rootRef.current?.contains(ev.relatedTarget)) return
+        onBlur?.()
+      }}
       onKeyDown={(ev) => {
         if (ev.key === 'Escape' && open && !inline) setOpen(false)
       }}

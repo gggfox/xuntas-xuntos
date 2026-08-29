@@ -17,6 +17,15 @@ function label(text: string) {
   return new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i')
 }
 
+/**
+ * `DateField` puts the field's label on its calendar panel as well as on its
+ * input, so a label match alone is ambiguous there. Everything this suite
+ * asks about is a form control.
+ */
+function control(text: string) {
+  return screen.getByLabelText(label(text), { selector: 'input, select, textarea' })
+}
+
 function complete(): RegistrationData {
   const d = emptyRegistration({
     name: 'Ana Gómez',
@@ -206,5 +215,63 @@ describe('RegistrationForm autosave', () => {
     fireEvent.change(screen.getByLabelText(label(m.reg_name())), { target: { value: 'Ana' } })
     act(() => void vi.advanceTimersByTime(10000))
     expect(onSaveDraft).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * `DateField` is a text box, a toggle and a calendar grid in one widget, and
+ * moving between those three is not leaving the field. It reported no blur at
+ * all for a while — the component had no `onBlur` prop to report it with — so
+ * `personal.birthDate` was the one field of twenty-one whose validator never
+ * ran until the form was submitted.
+ */
+describe('date of birth blur', () => {
+  it('reports an empty date of birth once the field is left', () => {
+    renderForm()
+    const birth = control(m.reg_birth_date())
+    expect(birth).toHaveAttribute('aria-invalid', 'false')
+
+    fireEvent.focusOut(birth, { relatedTarget: document.body })
+    expect(birth).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('stays quiet while focus is still moving around inside the field', () => {
+    renderForm()
+    const birth = control(m.reg_birth_date())
+    const toggle = screen.getByRole('button', { name: m.date_open() })
+
+    // On the way to the calendar: the date is empty, but they are not done.
+    fireEvent.focusOut(birth, { relatedTarget: toggle })
+    expect(birth).toHaveAttribute('aria-invalid', 'false')
+
+    // Out of the widget altogether, and now it is fair to say so.
+    fireEvent.focusOut(toggle, { relatedTarget: document.body })
+    expect(birth).toHaveAttribute('aria-invalid', 'true')
+  })
+})
+
+/**
+ * Asked generically rather than field by field. A required input that never
+ * reports blur cannot report anything until submit, and the type system will
+ * not catch the omission: `onBlur` is optional on every field wrapper. The
+ * next field wired without one fails here instead of in front of a reader.
+ */
+describe('every required field in section 1', () => {
+  const required = [
+    m.reg_name(),
+    m.reg_email(),
+    m.reg_whatsapp(),
+    m.reg_birth_date(),
+    m.reg_branch(),
+    m.reg_city(),
+  ]
+
+  it.each(required)('marks %s as wrong once it is left empty', (text) => {
+    renderForm()
+    const input = control(text)
+    expect(input).toHaveAttribute('aria-invalid', 'false')
+
+    fireEvent.focusOut(input, { relatedTarget: document.body })
+    expect(input).toHaveAttribute('aria-invalid', 'true')
   })
 })

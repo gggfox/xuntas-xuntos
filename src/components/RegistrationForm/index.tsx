@@ -193,6 +193,7 @@ export default function RegistrationForm({
                   req
                   value={field.state.value}
                   onChange={field.handleChange}
+                  onBlur={field.handleBlur}
                   error={field.state.meta.errors[0] ? errorMessage(field.state.meta.errors[0]) : undefined}
                   autoComplete="bday"
                 />
