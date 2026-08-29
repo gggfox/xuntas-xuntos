@@ -299,7 +299,6 @@ export default function RegistrationForm({
 
       <StepNav
         step={step}
-        total={STEPS.length}
         isLast={step === LAST_STEP}
         editable={editable}
         isSubmitting={isSubmitting}

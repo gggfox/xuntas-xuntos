@@ -197,6 +197,15 @@ body {
     border-color: var(--color-bad);
     background: rgba(179, 38, 30, 0.03);
   }
+  /* Matches a field inside a disabled fieldset too, which is how the closed
+     window locks a whole step. Without this the field looks editable and
+     simply swallows every click. */
+  .fld-input:disabled {
+    background: rgba(17, 17, 17, 0.035);
+    color: var(--color-soft);
+    border-color: var(--color-line);
+    cursor: not-allowed;
+  }
 
   .chip {
     display: inline-block;

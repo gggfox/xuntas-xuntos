@@ -4,13 +4,15 @@ import Icons from '../Icons'
 /**
  * Back, next, and — on the last step — submit.
  *
+ * No step counter here. The stepper is a few lines above saying the same
+ * thing in a form that also shows what is done and what is left.
+ *
  * "Next" is never disabled. A disabled button says nothing about why, and it
  * cannot be focused to be asked: pressing it and being shown what is missing
  * is the interaction that actually tells the reader something.
  */
 export default function StepNav({
   step,
-  total,
   isLast,
   editable,
   isSubmitting,
@@ -19,7 +21,6 @@ export default function StepNav({
   onNext,
 }: {
   step: number
-  total: number
   isLast: boolean
   editable: boolean
   isSubmitting: boolean
@@ -53,10 +54,6 @@ export default function StepNav({
           <Icons.Chevron dir="right" />
         </button>
       )}
-
-      <span className="eyebrow ml-auto whitespace-nowrap">
-        {m.reg_step_of({ n: step + 1, total })}
-      </span>
     </div>
   )
 }
