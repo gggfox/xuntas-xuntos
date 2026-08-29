@@ -1,5 +1,5 @@
 import { useUser } from '@clerk/tanstack-react-start'
-import { useMutation, useQuery } from 'convex/react'
+import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { useCallback } from 'react'
 import { api } from '../../../convex/_generated/api'
 import * as m from '../../paraglide/messages.js'
@@ -8,6 +8,7 @@ import AccountStatus from './AccountStatus'
 import BirthDateStep from './BirthDateStep'
 import GuardianNotice from './GuardianNotice'
 import LoadingFrame from './LoadingFrame'
+import SessionFrame from './SessionFrame'
 import SyncingFrame from './SyncingFrame'
 import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../../lib/registrationSchema'
 import { errorCodeFromConvex } from '../../lib/registrationErrors'
@@ -19,6 +20,7 @@ import type { RegistrationError } from '../../lib/registrationRules'
  */
 export default function RegistrationPanel() {
   const { user } = useUser()
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
   const status = useQuery(api.users.myStatus)
   const mine = useQuery(api.registrations.mine)
   const saveDraft = useMutation(api.registrations.saveDraft)
@@ -52,15 +54,28 @@ export default function RegistrationPanel() {
     [submitRegistration],
   )
 
-  // Convex returns undefined while the query is in flight.
-  if (status === undefined || mine === undefined) {
+  // Convex returns undefined while the query is in flight, and the session is
+  // still worth nothing until Clerk's token has been exchanged.
+  if (authLoading || status === undefined || mine === undefined) {
     return <LoadingFrame>{m.common_loading()}</LoadingFrame>
   }
 
-  // null means Convex didn't find the user. It happens for a few seconds
-  // after sign-up, while the `user.created` webhook lands. This used to show
-  // "Loading…" forever and there was no way to tell whether the webhook was
-  // misconfigured or just running late. Now it says what is going on.
+  /**
+   * Signed in as far as Clerk is concerned, yet Convex refuses the session.
+   * The queries answer null here for the same reason they do for a missing
+   * user — `currentUser` cannot tell them apart — so the difference has to be
+   * read from the auth state instead of from the data.
+   *
+   * Without this the reader fell into `SyncingFrame` and was told to wait for
+   * an account that already existed. Nothing was coming: the token was never
+   * accepted in the first place.
+   */
+  if (!isAuthenticated) {
+    return <SessionFrame />
+  }
+
+  // Authenticated, and still no row: the `user.created` webhook has not landed
+  // yet. That one really does resolve on its own, in a few seconds.
   if (status === null || mine === null) {
     return <SyncingFrame />
   }
