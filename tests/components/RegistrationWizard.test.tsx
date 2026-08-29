@@ -188,6 +188,38 @@ describe('submitting from the last step', () => {
     expect(screen.getByLabelText(new RegExp(`^${m.reg_school()}`, 'i'))).toHaveFocus()
   })
 
+  /**
+   * It used to follow the reader everywhere. On the old one-page form the
+   * summary sat above every field it named; here it was a list of problems
+   * with a step they had already left, on screen for the rest of the session.
+   */
+  it('stops showing the summary once the reader moves on', async () => {
+    const broken = complete()
+    broken.confirmations.privacy = false
+    renderWizard({ initial: broken })
+
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+
+    fireEvent.click(back())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  /** But it has to survive the jump it was drawn for. */
+  it('keeps the summary when it is what sent the reader to another step', async () => {
+    const broken = complete()
+    broken.academic.school = ''
+    renderWizard({ initial: broken, initialStep: 7, editable: false })
+
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+    expect(shownStep()).toBe(2)
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+  })
+
   it('sends the registration when the last step is reached and everything holds', async () => {
     const { onSubmit } = renderWizard({ initial: complete() })
     await act(async () => {

@@ -165,11 +165,17 @@ export default function RegistrationForm({
   }, [errorSteps, reachable])
 
   const go = useCallback(
-    (next: number) => {
+    (next: number, opts?: { keepSummary?: boolean }) => {
       const target = Math.min(Math.max(0, next), LAST_STEP)
       // Leaving a step is a moment where the work is finished but the debounce
       // has not run out. Cheap when nothing changed — the fingerprint decides.
       flushDraft()
+      /* The summary is the picture at the moment of a submit. Once the reader
+         has moved on it is a list of problems with a step they are no longer
+         looking at, and the stepper says which steps those are anyway. It has
+         to survive the jump to the failing step, though — that jump is what
+         it was drawn for. */
+      if (!opts?.keepSummary) setSummary([])
       setStep(target)
       setReachable((r) => Math.max(r, target))
       onStepChange?.(target)
@@ -195,7 +201,7 @@ export default function RegistrationForm({
       // The input does not exist yet. The layout effect below focuses it once
       // the step it lives on has mounted.
       pendingField.current = id ?? null
-      go(target)
+      go(target, { keepSummary: true })
     },
     [go, step],
   )
@@ -242,7 +248,7 @@ export default function RegistrationForm({
         return
       }
       pendingField.current = id
-      go(target)
+      go(target, { keepSummary: true })
     },
     [go, step],
   )
@@ -274,7 +280,7 @@ export default function RegistrationForm({
           reachable={editable ? reachable : LAST_STEP}
           errorSteps={errorSteps}
           doneSteps={doneSteps}
-          onSelect={go}
+          onSelect={(i) => go(i)}
         />
       </div>
 
