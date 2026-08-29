@@ -5,6 +5,7 @@ import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
 
 export const Route = createFileRoute('/autorizar/$token')({
+  head: () => ({ meta: [{ title: m.meta_page({ page: m.authorize_title() }) }] }),
   component: Authorize,
 })
 
@@ -84,7 +85,7 @@ function Authorize() {
 
 function Frame({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-[560px] px-[22px] pt-[46px] pb-[90px]">
+    <main className="col col-560 pt-[46px] pb-[90px]">
       <p className="eyebrow">{m.authorize_eyebrow()}</p>
       {title && <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,36px)]">{title}</h1>}
       <div className="mt-5">{children}</div>

@@ -3,6 +3,7 @@ import * as m from '../paraglide/messages.js'
 import { DOCUMENTS } from '../lib/documents'
 
 export const Route = createFileRoute('/aviso-de-privacidad')({
+  head: () => ({ meta: [{ title: m.meta_page({ page: m.privacy_title() }) }] }),
   component: PrivacyNotice,
 })
 
@@ -20,7 +21,7 @@ export const Route = createFileRoute('/aviso-de-privacidad')({
  */
 function PrivacyNotice() {
   return (
-    <main className="mx-auto max-w-[720px] px-[22px] pt-[46px] pb-[90px]">
+    <main className="col col-720 pt-[46px] pb-[90px]">
       <p className="eyebrow">{m.brand_cycle()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">
         {m.privacy_title()}

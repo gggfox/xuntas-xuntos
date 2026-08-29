@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as m from '../paraglide/messages.js'
+import DateField from './DateField'
 import type { RegistrationData, Row } from '../lib/form'
 import {
   LETTER_LIMIT,
@@ -49,6 +50,14 @@ export default function RegistrationForm({
    * feeding this screen, the parent re-renders and the effect fires again.
    * Without this cut, every open tab wrote to Convex every 1.2 s forever, even
    * if nobody was typing.
+   *
+   * Why an effect and not the change handlers: the save is not one
+   * interaction, it is the silence after the last of them. Every keystroke has
+   * to cancel the timer the one before it started, which is exactly what the
+   * cleanup does; a handler would have to hold the same timer in a ref and
+   * rebuild the cancelling by hand, in every one of the form's setters.
+   * `onSaveDraft` is memoised by the route, so it does not restart the timer.
+   * See `.agents/skills/vercel-react-best-practices/rules/rerender-move-effect-to-event.md`.
    */
   useEffect(() => {
     if (!editable) return
@@ -148,14 +157,16 @@ export default function RegistrationForm({
             onChange={(v) => set('personal', { ...data.personal, whatsapp: v })}
             autoComplete="tel"
           />
-          <Field
-            id="birth"
-            type="date"
-            label={m.reg_birth_date()}
-            req
-            value={data.personal.birthDate}
-            onChange={(v) => set('personal', { ...data.personal, birthDate: v })}
-          />
+          <div className="mb-[15px]">
+            <DateField
+              id="birth"
+              label={m.reg_birth_date()}
+              req
+              value={data.personal.birthDate}
+              onChange={(v) => set('personal', { ...data.personal, birthDate: v })}
+              autoComplete="bday"
+            />
+          </div>
           <Select
             id="branch"
             label={m.reg_branch()}

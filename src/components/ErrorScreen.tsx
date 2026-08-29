@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
+import { useDocumentTitle } from '../lib/title'
 
 /**
  * What you see when something blows up on the client or in SSR.
@@ -15,9 +16,10 @@ import * as m from '../paraglide/messages.js'
  */
 export default function ErrorScreen({ error }: { error: Error }) {
   console.error('[ui] unhandled error:', error)
+  useDocumentTitle(m.error_title())
 
   return (
-    <main className="mx-auto max-w-[560px] px-[22px] pt-[46px] pb-[90px]">
+    <main className="col col-560 pt-[46px] pb-[90px]">
       <p className="eyebrow">{m.brand_cycle()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(24px,4vw,32px)]">{m.error_title()}</h1>
       <p className="mt-3 max-w-[52ch] font-light text-soft">{m.error_text()}</p>

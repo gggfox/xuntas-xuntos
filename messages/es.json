@@ -4,6 +4,8 @@
   "brand_cycle": "Convocatoria 2026–2027",
   "meta_title": "Registro · Convocatoria 2026–2027 · XUNTAS+XUNTOS",
   "meta_description": "Registro al Programa de Desarrollo de XUNTAS+XUNTOS. Ciclo 2026–2027.",
+  "meta_page": "{page} · XUNTAS+XUNTOS",
+  "meta_start": "Empezar registro",
   "nav_my_registration": "Mi registro",
   "nav_sign_out": "Salir",
   "nav_sign_in": "Entrar",
@@ -143,5 +145,17 @@
   "error_retry": "Volver a cargar",
   "nf_title": "Esta página no existe",
   "nf_text": "Puede que el enlace haya llegado cortado. Si te lo compartieron por WhatsApp, pide que te lo manden otra vez completo.",
-  "nf_home": "Ir al inicio"
+  "nf_home": "Ir al inicio",
+  "date_placeholder": "dd/mm/aaaa",
+  "date_open": "Abrir calendario",
+  "date_close": "Cerrar calendario",
+  "date_prev_month": "Mes anterior",
+  "date_next_month": "Mes siguiente",
+  "date_prev_years": "Años anteriores",
+  "date_next_years": "Años siguientes",
+  "date_pick_month_year": "Elegir mes y año",
+  "date_invalid": "Esa fecha no existe.",
+  "date_age": "{age} años",
+  "date_age_adult": "Mayor de edad",
+  "date_age_minor": "Necesitas autorización"
 }

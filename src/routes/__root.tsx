@@ -20,6 +20,10 @@ export const Route = createRootRoute({
       // Translated like everything else. `head` runs per request, so it sees
       // the locale Paraglide resolved for that request — which matters now
       // that the browser's language can pick it.
+      //
+      // This is the home page's title and the fallback for anything that does
+      // not set one: each route overrides it from its own `head`, and the
+      // deepest title wins.
       { title: m.meta_title() },
       { name: 'description', content: m.meta_description() },
     ],
@@ -43,13 +47,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-paper text-ink font-body antialiased">
+      <body className="flex min-h-dvh flex-col bg-paper text-ink font-body antialiased">
         <ClerkProvider localization={esMX}>
           <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
             <AppBar />
             {children}
-            <footer className="mt-20 border-t border-line">
-              <div className="mx-auto max-w-[900px] px-[22px] py-6">
+            {/*
+              mt-auto, not a fixed margin: on a page shorter than the window the
+              footer lands on the bottom edge instead of floating with a band of
+              paper underneath it. On a long page the margin collapses to nothing
+              and the page's own bottom padding does the spacing.
+            */}
+            <footer className="mt-auto border-t border-line">
+              <div className="band py-[15px]">
                 <p className="eyebrow">
                   {m.brand_cycle()} · {m.reg_closing()}
                 </p>

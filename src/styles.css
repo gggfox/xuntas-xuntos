@@ -1,5 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap");
 @import "tailwindcss";
+/* The calendar lives with its component; see the header of that file. */
+@import "./components/DateField/calendar.css";
 
 /* ===========================================================================
    XUNTAS+XUNTOS design system
@@ -63,9 +65,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button {
-  font: inherit;
-  cursor: pointer;
+/*
+ * Undoes the browser's own button font so a button reads like the page.
+ *
+ * It has to sit in `@layer base`. Unlayered rules outrank every layered one
+ * whatever the specificity, so while this was loose in the file it beat
+ * `.btn`, `.cal-day` and anything else in `@layer components` that sets a
+ * font: every button on the site rendered at the inherited 15 px / 400
+ * instead of the size and weight its own class asked for.
+ */
+@layer base {
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
 }
 
 /* Visible, thick focus: many of these people fill out the form with the
@@ -85,6 +98,36 @@ button {
 }
 
 @layer components {
+  /*
+   * The reading column. 900 px is the default from BRAND.md — forms and
+   * reading; a page whose content is narrower says so and stops parking
+   * itself left of centre with a third of the column empty.
+   *
+   * The header and the footer deliberately do NOT use this: they are chrome
+   * and run the full width of the window.
+   */
+  .col {
+    width: 100%;
+    max-width: 900px;
+    margin-inline: auto;
+    padding-inline: 22px;
+  }
+  .col-560 {
+    max-width: 560px;
+  }
+  .col-720 {
+    max-width: 720px;
+  }
+
+  /*
+   * The chrome band. Full width, so the mark sits in the top-left corner of
+   * the window and the sign-in link in the top-right, whatever the page
+   * underneath is measured at. The gutter is the same 22 px as the column.
+   */
+  .band {
+    padding-inline: 22px;
+  }
+
   /* Eyebrow in mono and small caps. Marks hierarchy without using size. */
   .eyebrow {
     font-family: var(--font-mono);
