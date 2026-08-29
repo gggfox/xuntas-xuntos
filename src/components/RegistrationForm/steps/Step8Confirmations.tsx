@@ -1,4 +1,5 @@
 import * as m from '../../../paraglide/messages.js'
+import Icons from '../../Icons'
 import CheckboxField from '../CheckboxField'
 import { DOCUMENTS } from '../../../lib/documents'
 import type { StepFieldPath } from '../../../lib/registrationSteps'
@@ -12,7 +13,7 @@ export const fields = [
 
 export default function Step8Confirmations({ form }: StepProps) {
   return (
-    <>
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
       <form.Field
         name="confirmations.rules"
         validators={{ onDynamic: ({ value }) => (value ? undefined : ('confirm_rules_required' as const)) }}
@@ -20,6 +21,7 @@ export default function Step8Confirmations({ form }: StepProps) {
         {(field) => (
           <CheckboxField
             id="ck1"
+            icon={<Icons.Document />}
             title={m.reg_ck_rules()}
             sub={m.reg_ck_rules_sub()}
             checked={field.state.value}
@@ -40,6 +42,7 @@ export default function Step8Confirmations({ form }: StepProps) {
         {(field) => (
           <CheckboxField
             id="ck2"
+            icon={<Icons.Award />}
             title={m.reg_ck_scholarship()}
             sub={m.reg_ck_scholarship_sub()}
             checked={field.state.value}
@@ -57,6 +60,7 @@ export default function Step8Confirmations({ form }: StepProps) {
         {(field) => (
           <CheckboxField
             id="ck3"
+            icon={<Icons.Shield />}
             title={m.reg_ck_privacy()}
             sub={m.reg_ck_privacy_sub()}
             checked={field.state.value}
@@ -67,6 +71,6 @@ export default function Step8Confirmations({ form }: StepProps) {
           />
         )}
       </form.Field>
-    </>
+    </div>
   )
 }

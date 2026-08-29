@@ -262,3 +262,49 @@ describe('once the window has closed', () => {
     expect(screen.getByRole('button', { name: m.reg_submit() })).toBeDisabled()
   })
 })
+
+/**
+ * The confirmations are cards you press, not boxes you tick. The input is
+ * still a real checkbox underneath — `sr-only` rather than hidden, because a
+ * hidden input cannot be focused and `focusFirst()` sends the reader to these
+ * by id when a confirmation is what is missing.
+ */
+describe('the confirmation cards', () => {
+  function goToConfirmations() {
+    const d = complete()
+    d.confirmations = { rules: false, scholarshipUnderstood: false, privacy: false }
+    // With the confirmations unset, step 8 is where the form opens anyway.
+    renderWizard({ initial: d })
+  }
+
+  it('keeps a real checkbox behind each card', () => {
+    goToConfirmations()
+    const box = document.getElementById('ck1') as HTMLInputElement
+    expect(box).toBeInTheDocument()
+    expect(box.type).toBe('checkbox')
+  })
+
+  /** `display:none` would break `focusFirst`, which targets these by id. */
+  it('leaves that checkbox focusable', () => {
+    goToConfirmations()
+    const box = document.getElementById('ck1') as HTMLInputElement
+    box.focus()
+    expect(box).toHaveFocus()
+  })
+
+  it('ticks from a press on the card itself', () => {
+    goToConfirmations()
+    const box = document.getElementById('ck1') as HTMLInputElement
+    expect(box.checked).toBe(false)
+
+    fireEvent.click(screen.getByText(m.reg_ck_rules()))
+    expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(true)
+  })
+
+  /** Opening the document must not count as accepting it. */
+  it('does not tick when the document link is followed', () => {
+    goToConfirmations()
+    fireEvent.click(screen.getByRole('link', { name: m.rules_title() }))
+    expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(false)
+  })
+})

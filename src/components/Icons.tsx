@@ -1,6 +1,7 @@
 /**
  * Every inline icon in the app, under one name: `Icons.Chevron`,
- * `Icons.Calendar`, `Icons.Check`, `Icons.BrandMark`.
+ * `Icons.Calendar`, `Icons.Check`, `Icons.Document`, `Icons.Award`,
+ * `Icons.Shield`, `Icons.BrandMark`.
  *
  * One import instead of three, and one place to look when a new icon is
  * needed — which also makes the answer to "do we already draw this?"
@@ -85,6 +86,49 @@ function Check(props: IconProps) {
   )
 }
 
+/** The three confirmations, one each: the terms, the scholarship, the notice. */
+function Document(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M11.5 2.5H5.75A1.75 1.75 0 0 0 4 4.25v11.5a1.75 1.75 0 0 0 1.75 1.75h8.5A1.75 1.75 0 0 0 16 15.75V7z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M11.5 2.5V7H16M7 10.5h6M7 13.5h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function Award(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <circle cx="10" cy="7.75" r="5" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M6.75 11.75 5.5 17.5l4.5-2.25 4.5 2.25-1.25-5.75"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function Shield(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M10 2.5 4.25 4.75v4.5c0 3.4 2.35 6.55 5.75 7.75 3.4-1.2 5.75-4.35 5.75-7.75v-4.5z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M7.75 9.75 9.25 11.25l3-3.25" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 /**
  * The XUNTAS mark.
  *
@@ -110,6 +154,6 @@ function BrandMark(props: IconProps) {
   )
 }
 
-export const Icons = { Chevron, Calendar, Check, BrandMark }
+export const Icons = { Chevron, Calendar, Check, Document, Award, Shield, BrandMark }
 
 export default Icons
