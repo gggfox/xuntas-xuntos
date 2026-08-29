@@ -2,6 +2,8 @@ import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { CURRENT_CYCLE, CLOSES_AT_MS, isWindowOpen } from './lib/cycle'
+import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
+import { LETTER_LIMIT } from './lib/registrationSchema'
 import { requireAdmin, requireUser, currentUser } from './users'
 import type { Doc } from './_generated/dataModel'
 import { vBranch } from './schema'
@@ -41,12 +43,6 @@ const vRegistrationData = v.object({
     privacy: v.boolean(),
   }),
 })
-
-const LETTER_LIMIT = 3000
-
-/** Draft caps. Generous: they exist to bound, not to validate. */
-const FIELD_LIMIT = 500
-const ROW_LIMIT = 60
 
 /**
  * The registration fields that are actually data, without the metadata

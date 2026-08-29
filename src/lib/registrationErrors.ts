@@ -1,0 +1,79 @@
+import { ConvexError } from 'convex/values'
+import * as m from '../paraglide/messages.js'
+import type { AppErrorCode } from '../../convex/lib/errorCodes'
+import { LETTER_LIMIT } from './registrationSchema'
+import { FIELD_LIMIT, ROW_LIMIT } from '../../convex/lib/registrationLimits'
+
+/**
+ * Turns an error code into a sentence in the reader's language.
+ *
+ * This is the only place prose meets a code, and it is client-side on
+ * purpose: the server used to build Spanish sentences, so an English session
+ * that failed validation got Spanish back.
+ */
+
+const MESSAGES: Record<AppErrorCode, () => string> = {
+  // Fields — most of these messages already existed and are simply reused.
+  name_required: m.reg_name_error,
+  name_too_short: m.reg_name_too_short,
+  email_invalid: m.reg_email_error,
+  whatsapp_invalid: m.reg_whatsapp_error,
+  birth_date_required: m.gate_date_error,
+  birth_date_future: m.gate_date_future,
+  birth_date_implausible: m.gate_date_implausible,
+  branch_required: m.reg_branch_error,
+  city_required: m.reg_city_error,
+  school_required: m.reg_school_error,
+  grade_required: m.reg_grade_error,
+  graduation_year_invalid: m.reg_graduation_error,
+  club_required: m.reg_club_error,
+  coach_required: m.reg_coach_error,
+  ghin_required: m.reg_ghin_error,
+  results_required: m.reg_results_error,
+  letter_required: m.reg_letter_error,
+  letter_too_short: m.reg_letter_too_short,
+  letter_too_long: () => m.reg_letter_too_long({ limit: LETTER_LIMIT }),
+  confirm_rules_required: m.reg_ck_rules_error,
+  confirm_scholarship_required: m.reg_ck_scholarship_error,
+  confirm_privacy_required: m.reg_ck_privacy_error,
+  guardian_name_required: m.gate_guardian_name_error,
+  guardian_name_too_long: m.gate_guardian_name_too_long,
+  guardian_email_invalid: m.gate_guardian_email_error,
+  guardian_email_same_as_own: m.gate_guardian_email_same,
+
+  // Actions.
+  window_closed: m.reg_closed,
+  already_reviewed: m.err_already_reviewed,
+  birth_date_missing: m.err_birth_date_missing,
+  birth_date_locked: m.err_birth_date_locked,
+  not_signed_in: m.err_not_signed_in,
+  admin_required: m.err_admin_required,
+  guardian_not_required: m.err_guardian_not_required,
+  guardian_already_confirmed: m.err_guardian_already_confirmed,
+  field_too_long: () => m.err_field_too_long({ limit: FIELD_LIMIT }),
+  too_many_rows: () => m.err_too_many_rows({ limit: ROW_LIMIT }),
+  generic: m.err_generic,
+}
+
+export function errorMessage(code: AppErrorCode): string {
+  return MESSAGES[code]()
+}
+
+/**
+ * Digs the code out of whatever a Convex mutation threw.
+ *
+ * `ConvexError` carries a structured `data` payload across the wire; a plain
+ * `Error` does not, and its message arrives wrapped in Convex's own framing.
+ */
+export function errorCodeFromConvex(err: unknown): AppErrorCode | undefined {
+  if (!(err instanceof ConvexError)) return undefined
+  const data = err.data as { code?: string } | undefined
+  const code = data?.code
+  if (typeof code !== 'string') return undefined
+  return code in MESSAGES ? (code as AppErrorCode) : undefined
+}
+
+export function describeConvexError(err: unknown): string {
+  const code = errorCodeFromConvex(err)
+  return code ? errorMessage(code) : m.err_generic()
+}
