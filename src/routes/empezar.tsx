@@ -6,6 +6,7 @@ import * as m from '../paraglide/messages.js'
 import DateField from '../components/DateField'
 import GuardianFields from '../components/GuardianFields'
 import { isUnderage, savePreSignupToken } from '../lib/preSignup'
+import { describeConvexError } from '../lib/registrationErrors'
 
 export const Route = createFileRoute('/empezar')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.meta_start() }) }] }),
@@ -67,12 +68,11 @@ function AgeGate() {
       savePreSignupToken(token)
       await navigate({ to: '/crear-cuenta' })
     } catch (err) {
-      // The server revalidates everything. If it rejects, its message is
-      // shown: it can know things the client doesn't, like the date not
-      // having a valid shape.
-      setErrors({
-        birthDate: err instanceof Error ? err.message : m.gate_date_error(),
-      })
+      // The server revalidates everything. If it rejects, its code is
+      // rendered here: it can know things the client doesn't, like the date
+      // not having a valid shape. Reading the code rather than the thrown
+      // message is what keeps that sentence in the reader's language.
+      setErrors({ birthDate: describeConvexError(err) })
       setSubmitting(false)
     }
   }

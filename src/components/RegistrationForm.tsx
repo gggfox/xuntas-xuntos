@@ -7,15 +7,17 @@ import {
   FIXED_RANKINGS,
   emptyRow,
   emptyRegistration,
-  validateRegistration,
 } from '../lib/registrationSchema'
+import { validateRegistration } from '../lib/registrationRules'
+import type { RegistrationError } from '../lib/registrationRules'
+import { errorMessage } from '../lib/registrationErrors'
 import { DOCUMENTS } from '../lib/documents'
 
 type Props = {
   initial: RegistrationData
   editable: boolean
   onSaveDraft: (data: RegistrationData) => void
-  onSubmit: (data: RegistrationData) => Promise<string[]>
+  onSubmit: (data: RegistrationData) => Promise<RegistrationError[]>
   alreadySubmitted: boolean
 }
 
@@ -32,7 +34,7 @@ export default function RegistrationForm({
   alreadySubmitted,
 }: Props) {
   const [data, setData] = useState<RegistrationData>(initial)
-  const [errors, setErrors] = useState<string[]>([])
+  const [errors, setErrors] = useState<RegistrationError[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   /**
@@ -123,7 +125,7 @@ export default function RegistrationForm({
           </b>
           <ul className="m-0 list-disc pl-5 text-[13px] text-ink-3">
             {errors.map((e) => (
-              <li key={e}>{e}</li>
+              <li key={`${e.field}:${e.code}`}>{errorMessage(e.code)}</li>
             ))}
           </ul>
         </div>

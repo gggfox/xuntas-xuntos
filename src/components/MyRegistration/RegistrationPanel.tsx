@@ -10,6 +10,8 @@ import GuardianNotice from './GuardianNotice'
 import LoadingFrame from './LoadingFrame'
 import SyncingFrame from './SyncingFrame'
 import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../../lib/registrationSchema'
+import { errorCodeFromConvex } from '../../lib/registrationErrors'
+import type { RegistrationError } from '../../lib/registrationRules'
 
 /**
  * Everything behind the sign-in wall: the form itself, plus the screens that
@@ -35,9 +37,17 @@ export default function RegistrationPanel() {
   )
 
   const handleSubmit = useCallback(
-    async (d: RegistrationData) => {
-      const r = await submitRegistration({ data: prepareForSubmit(d) })
-      return r.ok ? [] : r.errors
+    async (d: RegistrationData): Promise<RegistrationError[]> => {
+      try {
+        const r = await submitRegistration({ data: prepareForSubmit(d) })
+        return r.ok ? [] : r.errors
+      } catch (err) {
+        // A thrown error is about the action, not a field: the window closed,
+        // the registration was already reviewed. Surface it as a form-level
+        // problem rather than losing it — before this, the throw escaped the
+        // handler and the user saw nothing happen at all.
+        return [{ field: 'form', code: errorCodeFromConvex(err) ?? 'generic' }]
+      }
     },
     [submitRegistration],
   )

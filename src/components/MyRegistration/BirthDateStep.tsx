@@ -5,6 +5,7 @@ import * as m from '../../paraglide/messages.js'
 import DateField from '../DateField'
 import GuardianFields from '../GuardianFields'
 import { isUnderage } from '../../lib/preSignup'
+import { describeConvexError } from '../../lib/registrationErrors'
 
 /**
  * Age-gate recovery for an account that ended up without a birth date.
@@ -37,7 +38,7 @@ export default function BirthDateStep() {
       // No need to navigate: `myStatus` is reactive and this screen replaces
       // itself with the form as soon as the mutation confirms.
     } catch (err) {
-      setError(err instanceof Error ? err.message : m.gate_date_error())
+      setError(describeConvexError(err))
       setSubmitting(false)
     }
   }

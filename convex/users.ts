@@ -1,4 +1,4 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import {
   internalMutation,
   mutation,
@@ -8,14 +8,22 @@ import {
 } from './_generated/server'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
-import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage, isValidBirthDate } from './lib/cycle'
-import { isValidEmail } from './lib/html'
+import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage } from './lib/cycle'
+import { validateBirthDateDeclaration } from './lib/guardianRules'
+import type { AppErrorCode } from './lib/errorCodes'
 import { newToken } from './lib/tokens'
 import { vRole } from './schema'
 
+/**
+ * Errors cross the wire as codes so the browser can say them in the reader's
+ * language. A plain `Error` message arrives wrapped in Convex's own framing
+ * and is whatever language the server happened to be written in.
+ */
+function fail(code: AppErrorCode): never {
+  throw new ConvexError({ code })
+}
+
 export { newToken }
-
-
 
 /** Authenticated user, or null. Never throws — the UI decides what to show. */
 export async function currentUser(ctx: QueryCtx): Promise<Doc<'users'> | null> {
@@ -30,13 +38,13 @@ export async function currentUser(ctx: QueryCtx): Promise<Doc<'users'> | null> {
 /** Same as `currentUser`, but requires a session. For mutations. */
 export async function requireUser(ctx: QueryCtx): Promise<Doc<'users'>> {
   const user = await currentUser(ctx)
-  if (!user) throw new Error('No hay sesión iniciada.')
+  if (!user) fail('not_signed_in')
   return user
 }
 
 export async function requireAdmin(ctx: QueryCtx): Promise<Doc<'users'>> {
   const user = await requireUser(ctx)
-  if (user.role !== 'admin') throw new Error('Se requiere rol de administrador.')
+  if (user.role !== 'admin') fail('admin_required')
   return user
 }
 
@@ -247,25 +255,24 @@ export const declareBirthDate = mutation({
     const user = await requireUser(ctx)
 
     if (user.birthDate !== undefined) {
-      throw new Error('Tu fecha de nacimiento ya está registrada y no se puede cambiar.')
+      fail('birth_date_locked')
     }
 
     const now = Date.now()
     const birthDate = args.birthDate.trim()
-    if (!isValidBirthDate(birthDate, now)) {
-      throw new Error('Revisa tu fecha de nacimiento.')
-    }
-
-    const isMinor = isUnderage(birthDate, now)
     const guardianName = args.guardianName?.trim()
     const guardianEmail = args.guardianEmail?.trim().toLowerCase()
 
-    if (isMinor) {
-      if (!guardianName) throw new Error('Escribe el nombre de tu padre, madre o tutor.')
-      if (!guardianEmail || !isValidEmail(guardianEmail)) {
-        throw new Error('Escribe un correo válido para tu padre, madre o tutor.')
-      }
-    }
+    // `user.email` is the account's verified address, which is what finally
+    // enables the same-email check here: a minor naming themselves as their
+    // own guardian is rejected on the server, not just in the browser.
+    const problems = validateBirthDateDeclaration(
+      { birthDate, guardianName, guardianEmail, ownEmail: user.email },
+      now,
+    )
+    if (problems.length > 0) fail(problems[0].code)
+
+    const isMinor = isUnderage(birthDate, now)
 
     await ctx.db.patch(user._id, {
       birthDate,
