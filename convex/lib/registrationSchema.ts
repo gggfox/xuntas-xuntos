@@ -1,4 +1,10 @@
-import * as m from '../paraglide/messages.js'
+/**
+ * Shape of a registration, and the two transforms that go with it.
+ *
+ * It lives in `convex/lib/` and is re-exported by `src/lib/` for the same
+ * reason `cycle.ts` is: the client and the server must not be able to
+ * disagree about what a registration is.
+ */
 
 export const LETTER_LIMIT = 3000
 
@@ -70,40 +76,6 @@ export function emptyRegistration(seed?: Partial<RegistrationData['personal']>):
     motivationLetter: '',
     confirmations: { rules: false, scholarshipUnderstood: false, privacy: false },
   }
-}
-
-/**
- * Client-side validation. It mirrors the server's (`convex/registrations.ts`)
- * to give quick feedback — the server's is the one in charge.
- */
-export function validateRegistration(d: RegistrationData): string[] {
-  const e: string[] = []
-
-  if (!d.personal.name.trim()) e.push(m.reg_name_error())
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.personal.email)) e.push(m.reg_email_error())
-  if (!d.personal.whatsapp.trim()) e.push(m.reg_whatsapp_error())
-  if (!d.personal.birthDate) e.push(m.gate_date_error())
-  if (d.personal.branch !== 'womens' && d.personal.branch !== 'mens') e.push(m.reg_branch_error())
-  if (!d.personal.cityState.trim()) e.push(m.reg_city_error())
-
-  if (!d.academic.school.trim()) e.push(m.reg_school_error())
-  if (!d.academic.grade.trim()) e.push(m.reg_grade_error())
-
-  if (!d.athletic.club.trim()) e.push(m.reg_club_error())
-  if (!d.athletic.coach.trim()) e.push(m.reg_coach_error())
-  if (!d.athletic.ghin.trim()) e.push(m.reg_ghin_error())
-
-  if (!d.results.some((r) => r.tournament.trim() && r.result.trim())) {
-    e.push(m.reg_results_error())
-  }
-
-  if (!d.motivationLetter.trim()) e.push(m.reg_letter_error())
-
-  if (!d.confirmations.rules) e.push(m.reg_ck_rules())
-  if (!d.confirmations.scholarshipUnderstood) e.push(m.reg_ck_scholarship())
-  if (!d.confirmations.privacy) e.push(m.reg_ck_privacy())
-
-  return e
 }
 
 /** Removes empty rows and normalizes before sending to the server. */

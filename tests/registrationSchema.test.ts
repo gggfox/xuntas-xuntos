@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyRegistration, prepareForSubmit } from '../src/lib/form'
+import { emptyRegistration, prepareForSubmit } from '../convex/lib/registrationSchema'
 
 describe('prepareForSubmit', () => {
   it('normalizes the email', () => {

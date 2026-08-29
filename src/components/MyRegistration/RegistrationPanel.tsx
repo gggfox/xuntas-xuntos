@@ -9,7 +9,7 @@ import BirthDateStep from './BirthDateStep'
 import GuardianNotice from './GuardianNotice'
 import LoadingFrame from './LoadingFrame'
 import SyncingFrame from './SyncingFrame'
-import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../../lib/form'
+import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../../lib/registrationSchema'
 
 /**
  * Everything behind the sign-in wall: the form itself, plus the screens that

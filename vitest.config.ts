@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
 
 /**
  * A config separate from `vite.config.ts` on purpose.
@@ -27,7 +26,13 @@ export default defineConfig({
         },
       },
       {
-        plugins: [react()],
+        /**
+         * No `@vitejs/plugin-react` here. Vitest bundles its own Vite, so the
+         * plugin's types clash with the rolldown-based Vite 8 the app builds
+         * with — and it is not needed: esbuild reads `jsx: react-jsx` from
+         * tsconfig and transforms the JSX on its own. The plugin's real job,
+         * Fast Refresh, means nothing to a test run.
+         */
         test: {
           name: 'components',
           include: ['tests/components/**/*.test.tsx'],

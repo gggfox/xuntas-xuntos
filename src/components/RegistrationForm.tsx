@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as m from '../paraglide/messages.js'
 import DateField from './DateField'
-import type { RegistrationData, Row } from '../lib/form'
+import type { RegistrationData, Row } from '../lib/registrationSchema'
 import {
   LETTER_LIMIT,
   FIXED_RANKINGS,
   emptyRow,
   emptyRegistration,
   validateRegistration,
-} from '../lib/form'
+} from '../lib/registrationSchema'
 import { DOCUMENTS } from '../lib/documents'
 
 type Props = {
