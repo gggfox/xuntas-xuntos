@@ -1,0 +1,210 @@
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as m from '../../src/paraglide/messages.js'
+import RegistrationForm from '../../src/components/RegistrationForm'
+import { emptyRegistration } from '../../convex/lib/registrationSchema'
+import type { RegistrationData } from '../../convex/lib/registrationSchema'
+import type { RegistrationError } from '../../src/lib/registrationRules'
+
+/**
+ * Labels are matched through the message functions rather than as literals.
+ *
+ * Paraglide resolves the locale from the URL, and this jsdom harness has no
+ * locale prefix, so it renders English while the node tests render Spanish.
+ * Hardcoding either would make the suite depend on which harness it ran in.
+ */
+function label(text: string) {
+  return new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i')
+}
+
+function complete(): RegistrationData {
+  const d = emptyRegistration({
+    name: 'Ana Gómez',
+    email: 'ana@example.com',
+    whatsapp: '5512345678',
+    birthDate: '2008-04-11',
+    branch: 'womens',
+    cityState: 'Monterrey, NL',
+  })
+  d.academic = { school: 'ITESM', grade: '11', graduationYear: '2027', interest: '' }
+  d.athletic = { club: 'Campestre', coach: 'L. Ruiz', ghin: '4.2', amateurStatus: true }
+  d.results = [{ tournament: 'CNIJ', result: '2º' }]
+  d.motivationLetter = 'Quiero jugar.'
+  d.confirmations = { rules: true, scholarshipUnderstood: true, privacy: true }
+  return d
+}
+
+function renderForm(overrides: Partial<Parameters<typeof RegistrationForm>[0]> = {}) {
+  const onSubmit = vi.fn<(d: RegistrationData) => Promise<RegistrationError[]>>(async () => [])
+  const onSaveDraft = vi.fn()
+  const initial = overrides.initial ?? emptyRegistration()
+  render(
+    <RegistrationForm
+      initial={initial}
+      editable
+      alreadySubmitted={false}
+      onSaveDraft={onSaveDraft}
+      onSubmit={onSubmit}
+      {...overrides}
+    />,
+  )
+  return { onSubmit, onSaveDraft }
+}
+
+describe('RegistrationForm validation', () => {
+  it('marks nothing as wrong before the reader has touched it', () => {
+    renderForm()
+    expect(screen.getByLabelText(label(m.reg_name()))).toHaveAttribute('aria-invalid', 'false')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  /**
+   * Blur, not change: telling someone their name is invalid after one
+   * keystroke is the behaviour this replaced.
+   */
+  it('reports a field as wrong when it is left, not while it is typed', () => {
+    renderForm()
+    const email = screen.getByLabelText(label(m.reg_email()))
+
+    fireEvent.change(email, { target: { value: 'nope' } })
+    expect(email).toHaveAttribute('aria-invalid', 'false')
+
+    fireEvent.blur(email)
+    expect(email).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText(m.reg_email_error())).toBeInTheDocument()
+  })
+
+  it('wires the message to the input with aria-describedby', () => {
+    renderForm()
+    const email = screen.getByLabelText(label(m.reg_email()))
+    fireEvent.change(email, { target: { value: 'nope' } })
+    fireEvent.blur(email)
+
+    const describedBy = email.getAttribute('aria-describedby')
+    expect(describedBy).toBeTruthy()
+    expect(document.getElementById(describedBy!)).toHaveTextContent(m.reg_email_error())
+  })
+
+  it('clears a field error once it is fixed', () => {
+    renderForm()
+    const email = screen.getByLabelText(label(m.reg_email()))
+    fireEvent.change(email, { target: { value: 'nope' } })
+    fireEvent.blur(email)
+    expect(email).toHaveAttribute('aria-invalid', 'true')
+
+    fireEvent.change(email, { target: { value: 'ana@example.com' } })
+    fireEvent.blur(email)
+    expect(email).toHaveAttribute('aria-invalid', 'false')
+  })
+
+  it('summarises the problems at the top when an empty form is submitted', async () => {
+    const { onSubmit } = renderForm()
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+
+    const summary = await screen.findByRole('alert')
+    expect(summary).toHaveTextContent(m.reg_errors_title())
+    expect(summary).toHaveTextContent(m.reg_name_error())
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  /**
+   * The old form pushed the checkbox LABEL as the error text, so the summary
+   * read as a list of statements ("I accept the terms…") rather than problems.
+   */
+  it('states what is wrong with a confirmation rather than repeating its label', async () => {
+    renderForm()
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+    const summary = await screen.findByRole('alert')
+    expect(summary).toHaveTextContent(m.reg_ck_rules_error())
+    // The label itself is the statement, not the problem.
+    expect(summary).not.toHaveTextContent(m.reg_ck_rules())
+  })
+
+  it('submits a complete form and passes the values on', async () => {
+    const { onSubmit } = renderForm({ initial: complete() })
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].personal.email).toBe('ana@example.com')
+  })
+
+  it('shows what the server rejected', async () => {
+    const onSubmit = vi.fn(async (): Promise<RegistrationError[]> => [
+      { field: 'form', code: 'window_closed' },
+    ])
+    render(
+      <RegistrationForm
+        initial={complete()}
+        editable
+        alreadySubmitted={false}
+        onSaveDraft={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    )
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent(m.reg_closed())
+  })
+})
+
+describe('RegistrationForm autosave', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('saves the draft after the typing stops', () => {
+    const onSaveDraft = vi.fn()
+    render(
+      <RegistrationForm
+        initial={emptyRegistration()}
+        editable
+        alreadySubmitted={false}
+        onSaveDraft={onSaveDraft}
+        onSubmit={async () => []}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText(label(m.reg_name())), { target: { value: 'Ana' } })
+    expect(onSaveDraft).not.toHaveBeenCalled()
+
+    act(() => void vi.advanceTimersByTime(1500))
+    expect(onSaveDraft).toHaveBeenCalledTimes(1)
+    expect(onSaveDraft.mock.calls[0][0].personal.name).toBe('Ana')
+  })
+
+  it('saves nothing when the form is opened and left alone', () => {
+    const onSaveDraft = vi.fn()
+    render(
+      <RegistrationForm
+        initial={complete()}
+        editable
+        alreadySubmitted={false}
+        onSaveDraft={onSaveDraft}
+        onSubmit={async () => []}
+      />,
+    )
+    act(() => void vi.advanceTimersByTime(10000))
+    expect(onSaveDraft).not.toHaveBeenCalled()
+  })
+
+  it('saves nothing once the window has closed', () => {
+    const onSaveDraft = vi.fn()
+    render(
+      <RegistrationForm
+        initial={emptyRegistration()}
+        editable={false}
+        alreadySubmitted
+        onSaveDraft={onSaveDraft}
+        onSubmit={async () => []}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText(label(m.reg_name())), { target: { value: 'Ana' } })
+    act(() => void vi.advanceTimersByTime(10000))
+    expect(onSaveDraft).not.toHaveBeenCalled()
+  })
+})
