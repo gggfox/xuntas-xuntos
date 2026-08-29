@@ -17,8 +17,9 @@ export type { Row, RegistrationData } from '../../convex/lib/registrationSchema'
 import type { RegistrationData as RegistrationDataType } from '../../convex/lib/registrationSchema'
 
 /**
- * Stopgap. Replaced by `src/lib/registrationRules.ts`, which returns codes
- * instead of prose. It keeps the tree typechecking while the shape moves.
+ * Stopgap. `src/lib/registrationRules.ts` holds the real rules, which return
+ * codes instead of prose. This keeps the tree typechecking until the form
+ * and the server have both moved onto them; it is deleted then.
  */
 export function validateRegistration(_d: RegistrationDataType): string[] {
   return []
