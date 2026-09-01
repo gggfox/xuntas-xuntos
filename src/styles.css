@@ -128,6 +128,14 @@ button {
     background: rgba(17, 17, 17, 0.045);
   }
 
+  /* One step down the scale, for repeat actions that sit under the thing they
+     add to ("add another row"). 13.5 → 11.5 px, with the padding kept in the
+     base button's proportion so the shape does not change, only the weight. */
+  .btn-sm {
+    font-size: 11.5px;
+    padding: 7px 13px;
+  }
+
   .card {
     background: var(--color-card);
     border: 1px solid var(--color-line);
