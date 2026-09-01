@@ -6,6 +6,7 @@ import { convex } from '../lib/convex'
 import { getLocale } from '../paraglide/runtime.js'
 import * as m from '../paraglide/messages.js'
 import AppBar from '../components/AppBar'
+import ThemeProvider from '../components/ThemeProvider'
 
 import appCss from '../styles.css?url'
 
@@ -92,26 +93,28 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-dvh flex-col bg-paper text-ink font-body antialiased">
-        <ClerkProvider localization={esMX}>
-          <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-            <AppBar />
-            {children}
-            {/*
-              mt-auto, not a fixed margin: on a page shorter than the window the
-              footer lands on the bottom edge instead of floating with a band of
-              paper underneath it. On a long page the margin collapses to nothing
-              and the page's own bottom padding does the spacing.
-            */}
-            <footer className="relative mt-auto border-t border-line">
-              <div className="band py-[15px]">
-                <p className="eyebrow">
-                  {m.brand_cycle()} · {m.reg_closing()}
-                </p>
-              </div>
-            </footer>
-            <Scripts />
-          </ConvexProviderWithClerk>
-        </ClerkProvider>
+        <ThemeProvider>
+          <ClerkProvider localization={esMX}>
+            <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+              <AppBar />
+              {children}
+              {/*
+                mt-auto, not a fixed margin: on a page shorter than the window the
+                footer lands on the bottom edge instead of floating with a band of
+                paper underneath it. On a long page the margin collapses to nothing
+                and the page's own bottom padding does the spacing.
+              */}
+              <footer className="relative mt-auto border-t border-line">
+                <div className="band py-[15px]">
+                  <p className="eyebrow">
+                    {m.brand_cycle()} · {m.reg_closing()}
+                  </p>
+                </div>
+              </footer>
+              <Scripts />
+            </ConvexProviderWithClerk>
+          </ClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
