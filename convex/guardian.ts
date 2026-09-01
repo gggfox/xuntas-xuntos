@@ -1,9 +1,20 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { CURRENT_CYCLE, CLOSES_AT_MS } from './lib/cycle'
 import { requireUser, newToken } from './users'
 import { isValidEmail } from './lib/html'
+import type { AppErrorCode } from './lib/errorCodes'
+
+/**
+ * Errors cross the wire as codes so the browser can say them in the reader's
+ * language. A plain `Error` message arrives wrapped in Convex's own framing
+ * and is whatever language the server happened to be written in.
+ */
+function fail(code: AppErrorCode): never {
+  throw new ConvexError({ code })
+}
+
 
 /** Minimum wait between resends, so we do not burn the domain's reputation. */
 const RESEND_WAIT_MS = 5 * 60 * 1000
@@ -80,7 +91,7 @@ export const resend = mutation({
       .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
       .unique()
 
-    if (!auth) throw new Error('Esta cuenta no requiere autorización de tutor.')
+    if (!auth) fail('guardian_not_required')
     if (auth.confirmedAt !== undefined) return { ok: true as const, reason: 'already_confirmed' as const }
 
     const now = Date.now()
@@ -128,17 +139,17 @@ export const correctEmail = mutation({
     const guardianName = args.guardianName.trim()
     const guardianEmail = args.guardianEmail.trim().toLowerCase()
 
-    if (!guardianName) throw new Error('Escribe el nombre de tu tutor.')
-    if (guardianName.length > NAME_LIMIT) throw new Error('El nombre es demasiado largo.')
-    if (!isValidEmail(guardianEmail)) throw new Error('Escribe un correo válido para tu tutor.')
+    if (!guardianName) fail('guardian_name_required')
+    if (guardianName.length > NAME_LIMIT) fail('guardian_name_too_long')
+    if (!isValidEmail(guardianEmail)) fail('guardian_email_invalid')
 
     const auth = await ctx.db
       .query('guardianAuth')
       .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
       .unique()
 
-    if (!auth) throw new Error('Esta cuenta no requiere autorización de tutor.')
-    if (auth.confirmedAt !== undefined) throw new Error('La autorización ya fue confirmada.')
+    if (!auth) fail('guardian_not_required')
+    if (auth.confirmedAt !== undefined) fail('guardian_already_confirmed')
 
     const now = Date.now()
     const unchanged = auth.guardianEmail === guardianEmail && auth.guardianName === guardianName

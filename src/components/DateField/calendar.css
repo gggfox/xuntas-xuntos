@@ -1,0 +1,276 @@
+/* ===========================================================================
+   Calendar — the stylesheet for src/components/DateField.
+
+   Loaded by an `@import` at the top of `src/styles.css`, not by the component:
+   `styles.css` reaches the page as a plain `<link>` (see `__root.tsx`), so a
+   `import './calendar.css'` from the TSX would land in a separate bundle with
+   no say in where its `@layer components` sits relative to Tailwind's. The
+   import keeps one stylesheet and one cascade.
+
+   The browser's own date picker cannot be styled — it is drawn outside the
+   page — so the field draws its own. Every value here comes from the `@theme`
+   block in `styles.css`: no hex code is invented, no shadow is used, and the
+   one solid yellow on the screen stays the primary button. The selected day
+   is filled with ink instead.
+   =========================================================================== */
+
+@layer components {
+  /*
+   * The panel opens by animating a grid row from 0fr to 1fr. `height: auto`
+   * is not animatable and a fixed max-height would either clip February or
+   * leave a gap under December.
+   */
+  .cal-reveal {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .cal-reveal > * {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .cal-reveal[data-open="true"] {
+    grid-template-rows: 1fr;
+  }
+
+  /*
+   * The other way the panel arrives: over the page rather than in it.
+   *
+   * The month field lives in a row that repeats, so the `0fr → 1fr` unfold
+   * above is no use — every row under it would move. This one is taken out of
+   * flow instead, and since a box that is not in flow has no height to
+   * animate, its entrance is the fade the unfold could not be.
+   *
+   * Right-aligned because the column it sits in is narrower than the grid; it
+   * overflows toward the middle of the form, never past the edge of the page.
+   */
+  .cal-pop {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    width: 244px;
+    animation: cal-pop-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .cal-pop .cal-panel {
+    margin-top: 0;
+  }
+
+  @keyframes cal-pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  .cal-panel {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xt);
+    padding: 13px 13px 11px;
+    margin-top: 7px;
+  }
+
+  /* Month stepper and the title that drills down into months and years. */
+  .cal-nav {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--color-line-2);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--color-ink);
+    transition:
+      background-color 0.14s,
+      border-color 0.14s,
+      transform 0.14s;
+  }
+  /* All three hovers were .05, .05 and .055; they are one `--color-wash` at
+     .045 now. That is a real, if imperceptible, change to LIGHT mode, and it
+     is recorded in the spec rather than smuggled in. */
+  .cal-nav:hover:not(:disabled) {
+    background: var(--color-wash);
+    border-color: var(--color-ink);
+  }
+  .cal-nav:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+  .cal-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .cal-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+    transition:
+      background-color 0.14s,
+      border-color 0.14s;
+  }
+  .cal-title:hover {
+    background: var(--color-wash);
+    border-color: var(--color-line-2);
+  }
+  .cal-title svg {
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .cal-title[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  /* Weekday header. Mono, small caps, the "system" voice of the product. */
+  .cal-wd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-soft);
+    text-align: center;
+    padding-bottom: 5px;
+  }
+
+  /*
+   * The grid slides in from the side time moved towards, so paging months
+   * reads as travel rather than as a redraw. The direction comes from the
+   * data-dir the component sets when it steps.
+   */
+  .cal-page {
+    animation: cal-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .cal-page[data-dir="back"] {
+    animation-name: cal-in-back;
+  }
+  @keyframes cal-in {
+    from {
+      opacity: 0;
+      transform: translateX(9px);
+    }
+  }
+  @keyframes cal-in-back {
+    from {
+      opacity: 0;
+      transform: translateX(-9px);
+    }
+  }
+
+  .cal-day,
+  .cal-cell {
+    position: relative;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--radius-ctl);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--color-ink-2);
+    transition:
+      background-color 0.13s,
+      color 0.13s,
+      border-color 0.13s;
+  }
+  .cal-day {
+    height: 34px;
+  }
+  .cal-cell {
+    height: 34px;
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  /* The selection is excluded by hand: `:hover:not(:disabled)` outranks an
+     attribute selector, so without this the ink fill vanishes under the
+     pointer that just put it there. */
+  .cal-day:not([aria-pressed="true"]):hover:not(:disabled),
+  .cal-cell:not([aria-pressed="true"]):hover:not(:disabled) {
+    background: var(--color-wash);
+  }
+  .cal-day:disabled,
+  .cal-cell:disabled {
+    color: var(--color-faint);
+    cursor: not-allowed;
+  }
+
+  /* Selected: ink, not yellow. Yellow is spent on the button that submits. */
+  .cal-day[aria-pressed="true"],
+  .cal-cell[aria-pressed="true"] {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-weight: 500;
+    animation: cal-pick 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+  }
+  .cal-day[aria-pressed="true"]:hover,
+  .cal-cell[aria-pressed="true"]:hover {
+    background: var(--color-ink-3);
+  }
+  @keyframes cal-pick {
+    from {
+      transform: scale(0.82);
+    }
+  }
+
+  /* Today, when it is not the selection: an ochre dot. Ochre is the yellow
+     that survives on a light background. */
+  .cal-day[data-today="true"]:not([aria-pressed="true"])::after {
+    content: "";
+    position: absolute;
+    bottom: 5px;
+    width: 3px;
+    height: 3px;
+    border-radius: 99px;
+    background: var(--color-ochre);
+  }
+
+  /* On a phone the grid is the target, not a decoration beside a field, and
+     34 px is under what a thumb can hit. */
+  @media (max-width: 640px) {
+    .cal-day,
+    .cal-cell {
+      height: 44px;
+      font-size: 13.5px;
+    }
+  }
+
+  /*
+   * What the date means for this form. The field exists to find out whether
+   * an authorization is needed, so the field says so as soon as it can.
+   */
+  .cal-read {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-soft);
+    animation: cal-read-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes cal-read-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+  }
+  .cal-read b {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+}

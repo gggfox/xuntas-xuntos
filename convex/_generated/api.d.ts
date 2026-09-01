@@ -10,13 +10,19 @@
 
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
+import type * as guardian from "../guardian.js";
 import type * as http from "../http.js";
 import type * as lib_cycle from "../lib/cycle.js";
+import type * as lib_errorCodes from "../lib/errorCodes.js";
+import type * as lib_guardianRules from "../lib/guardianRules.js";
 import type * as lib_html from "../lib/html.js";
+import type * as lib_mexicanStates from "../lib/mexicanStates.js";
+import type * as lib_registrationLimits from "../lib/registrationLimits.js";
+import type * as lib_registrationRules from "../lib/registrationRules.js";
+import type * as lib_registrationSchema from "../lib/registrationSchema.js";
 import type * as lib_tokens from "../lib/tokens.js";
 import type * as preSignups from "../preSignups.js";
 import type * as registrations from "../registrations.js";
-import type * as guardian from "../guardian.js";
 import type * as users from "../users.js";
 
 import type {
@@ -28,13 +34,19 @@ import type {
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   emails: typeof emails;
+  guardian: typeof guardian;
   http: typeof http;
   "lib/cycle": typeof lib_cycle;
+  "lib/errorCodes": typeof lib_errorCodes;
+  "lib/guardianRules": typeof lib_guardianRules;
   "lib/html": typeof lib_html;
+  "lib/mexicanStates": typeof lib_mexicanStates;
+  "lib/registrationLimits": typeof lib_registrationLimits;
+  "lib/registrationRules": typeof lib_registrationRules;
+  "lib/registrationSchema": typeof lib_registrationSchema;
   "lib/tokens": typeof lib_tokens;
   preSignups: typeof preSignups;
   registrations: typeof registrations;
-  guardian: typeof guardian;
   users: typeof users;
 }>;
 

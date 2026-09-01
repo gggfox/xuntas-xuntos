@@ -25,6 +25,17 @@ export const vRegistrationStatus = v.union(
   v.literal('rejected'),
 )
 
+/**
+ * The reader's theme. Absent means never chosen, which behaves as `system`.
+ * Stored rather than inferred so the choice follows the person to a borrowed
+ * laptop — which is the whole point of remembering it.
+ */
+export const vThemePreference = v.union(
+  v.literal('system'),
+  v.literal('light'),
+  v.literal('dark'),
+)
+
 const vResult = v.object({
   tournament: v.string(),
   result: v.string(),
@@ -71,8 +82,14 @@ export default defineSchema({
     .index('by_expires', ['expiresAt']),
 
   /**
-   * Mirror of the Clerk account. Written by the webhook (user.created /
-   * user.updated / user.deleted), never by the client.
+   * Mirror of the Clerk account. The MIRRORED fields (email, name, role,
+   * emailVerified) are written by the webhook and never by the client.
+   *
+   * Two fields are not mirrored and are written by the person themselves
+   * through a mutation: `birthDate` (once, via `declareBirthDate`) and
+   * `themePreference` (freely, via `setThemePreference`). Neither is
+   * security-relevant to Clerk, and neither is ever overwritten by
+   * `users.update`.
    *
    * State axis 1: the ACCOUNT. `emailVerified` comes from Clerk.
    */
@@ -93,6 +110,7 @@ export default defineSchema({
     birthDate: v.optional(v.string()), // ISO yyyy-mm-dd
     /** Derived from birthDate at signup time. Never recomputed. */
     wasMinorAtSignup: v.optional(v.boolean()),
+    themePreference: v.optional(vThemePreference),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -147,7 +165,8 @@ export default defineSchema({
       whatsapp: v.string(),
       birthDate: v.string(),
       branch: vBranch,
-      cityState: v.string(),
+      state: v.string(),
+      city: v.string(),
     }),
 
     academic: v.object({

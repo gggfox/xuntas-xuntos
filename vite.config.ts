@@ -6,6 +6,7 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { paraglideVitePlugin } from '@inlang/paraglide-js'
+import { paraglideOptions } from './paraglide.config.mjs'
 
 /**
  * Vite embeds the VITE_* variables into the client bundle during the build,
@@ -39,28 +40,10 @@ const config = defineConfig(({ command }) => {
       devtools(),
       tailwindcss(),
       // Compiles the messages into typed functions before the bundle. Runs
-      // before TanStack Start so the routes already see src/paraglide.
-      paraglideVitePlugin({
-        project: './project.inlang',
-        outdir: './src/paraglide',
-        // `url` first: the path prefix wins over the cookie, so a shared link
-        // always opens in the language it was shared in.
-        //
-        // NOTE: `preferredLanguage` is NOT on the list on purpose. `en` exists
-        // but is empty; with that strategy, a Mexican family with their
-        // browser in English lands on /en/ and sees the interface in Spanish
-        // with English URLs. It gets added the day en.json has translations.
-        strategy: ['url', 'cookie', 'baseLocale'],
-        urlPatterns: [
-          {
-            pattern: '/:path(.*)?',
-            localized: [
-              ['es', '/es/:path(.*)?'],
-              ['en', '/en/:path(.*)?'],
-            ],
-          },
-        ],
-      }),
+      // before TanStack Start so the routes already see src/paraglide. The
+      // options live in paraglide.config.mjs because `npm run paraglide`
+      // compiles the same project without Vite and has to agree with this.
+      paraglideVitePlugin(paraglideOptions),
       tanstackStart(),
       viteReact(),
     ],

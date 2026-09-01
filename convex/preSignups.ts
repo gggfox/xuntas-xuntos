@@ -1,8 +1,18 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { internalMutation, mutation } from './_generated/server'
-import { isUnderage, isValidBirthDate } from './lib/cycle'
-import { isValidEmail } from './lib/html'
+import { isUnderage } from './lib/cycle'
+import { validateBirthDateDeclaration } from './lib/guardianRules'
+import type { AppErrorCode } from './lib/errorCodes'
 import { newToken } from './lib/tokens'
+
+/**
+ * Errors cross the wire as codes so the browser can say them in the reader's
+ * language. A plain `Error` message arrives wrapped in Convex's own framing
+ * and is whatever language the server happened to be written in.
+ */
+function fail(code: AppErrorCode): never {
+  throw new ConvexError({ code })
+}
 
 /**
  * Age gate, resolved on the server before the account exists.
@@ -21,8 +31,6 @@ import { newToken } from './lib/tokens'
  */
 const TTL_MS = 2 * 60 * 60 * 1000
 
-const NAME_LIMIT = 120
-
 export const create = mutation({
   args: {
     birthDate: v.string(),
@@ -33,23 +41,19 @@ export const create = mutation({
     const now = Date.now()
     const birthDate = args.birthDate.trim()
 
-    if (!isValidBirthDate(birthDate, now)) {
-      throw new Error('Revisa tu fecha de nacimiento.')
-    }
-
-    // THE decision. It is made here and nowhere else.
-    const isMinor = isUnderage(birthDate, now)
-
     const guardianName = args.guardianName?.trim()
     const guardianEmail = args.guardianEmail?.trim().toLowerCase()
 
-    if (isMinor) {
-      if (!guardianName) throw new Error('Escribe el nombre de tu padre, madre o tutor.')
-      if (guardianName.length > NAME_LIMIT) throw new Error('El nombre es demasiado largo.')
-      if (!guardianEmail || !isValidEmail(guardianEmail)) {
-        throw new Error('Escribe un correo válido para tu padre, madre o tutor.')
-      }
-    }
+    // No account exists yet, so there is no own-email to compare against and
+    // that part of the rule simply does not apply on this path.
+    const problems = validateBirthDateDeclaration(
+      { birthDate, guardianName, guardianEmail },
+      now,
+    )
+    if (problems.length > 0) fail(problems[0].code)
+
+    // THE decision. It is made here and nowhere else.
+    const isMinor = isUnderage(birthDate, now)
 
     const token = newToken()
     await ctx.db.insert('preSignups', {

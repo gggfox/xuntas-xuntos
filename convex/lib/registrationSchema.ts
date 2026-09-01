@@ -1,11 +1,15 @@
-import * as m from '../paraglide/messages.js'
+/**
+ * Shape of a registration, and the two transforms that go with it.
+ *
+ * It lives in `convex/lib/` and is re-exported by `src/lib/` for the same
+ * reason `cycle.ts` is: the client and the server must not be able to
+ * disagree about what a registration is.
+ */
 
 export const LETTER_LIMIT = 3000
 
 /** The four rankings XUNTAS follows. The fifth row is free-form. */
 export const FIXED_RANKINGS = ['CNIJ', 'AJGA', 'Junior Scoreboard', 'WAGR'] as const
-
-export type Row = { a: string; b: string }
 
 export type RegistrationData = {
   personal: {
@@ -14,7 +18,8 @@ export type RegistrationData = {
     whatsapp: string
     birthDate: string
     branch: 'womens' | 'mens'
-    cityState: string
+    state: string
+    city: string
   }
   academic: {
     school: string
@@ -39,11 +44,15 @@ export type RegistrationData = {
   }
 }
 
-export function emptyRow(): Row {
-  return { a: '', b: '' }
-}
-
-/** Starts with three results and two events visible, like the prototype. */
+/**
+ * Starts with four results and two events visible.
+ *
+ * Four because that is `RESULTS_MIN` in `registrationRules.ts`: the number of
+ * blank rows is how the form says how many it wants, and a reader who fills
+ * in what is in front of them has done enough. The count is not imported —
+ * that would be a cycle, since the rules import this file — so a test in
+ * `tests/registrationSchema.test.ts` holds the two together instead.
+ */
 export function emptyRegistration(seed?: Partial<RegistrationData['personal']>): RegistrationData {
   return {
     personal: {
@@ -52,12 +61,14 @@ export function emptyRegistration(seed?: Partial<RegistrationData['personal']>):
       whatsapp: '',
       birthDate: '',
       branch: '' as 'womens' | 'mens',
-      cityState: '',
+      state: '',
+      city: '',
       ...seed,
     },
     academic: { school: '', grade: '', graduationYear: '', interest: '' },
     athletic: { club: '', coach: '', ghin: '', amateurStatus: false },
     results: [
+      { tournament: '', result: '' },
       { tournament: '', result: '' },
       { tournament: '', result: '' },
       { tournament: '', result: '' },
@@ -70,40 +81,6 @@ export function emptyRegistration(seed?: Partial<RegistrationData['personal']>):
     motivationLetter: '',
     confirmations: { rules: false, scholarshipUnderstood: false, privacy: false },
   }
-}
-
-/**
- * Client-side validation. It mirrors the server's (`convex/registrations.ts`)
- * to give quick feedback — the server's is the one in charge.
- */
-export function validateRegistration(d: RegistrationData): string[] {
-  const e: string[] = []
-
-  if (!d.personal.name.trim()) e.push(m.reg_name_error())
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.personal.email)) e.push(m.reg_email_error())
-  if (!d.personal.whatsapp.trim()) e.push(m.reg_whatsapp_error())
-  if (!d.personal.birthDate) e.push(m.gate_date_error())
-  if (d.personal.branch !== 'womens' && d.personal.branch !== 'mens') e.push(m.reg_branch_error())
-  if (!d.personal.cityState.trim()) e.push(m.reg_city_error())
-
-  if (!d.academic.school.trim()) e.push(m.reg_school_error())
-  if (!d.academic.grade.trim()) e.push(m.reg_grade_error())
-
-  if (!d.athletic.club.trim()) e.push(m.reg_club_error())
-  if (!d.athletic.coach.trim()) e.push(m.reg_coach_error())
-  if (!d.athletic.ghin.trim()) e.push(m.reg_ghin_error())
-
-  if (!d.results.some((r) => r.tournament.trim() && r.result.trim())) {
-    e.push(m.reg_results_error())
-  }
-
-  if (!d.motivationLetter.trim()) e.push(m.reg_letter_error())
-
-  if (!d.confirmations.rules) e.push(m.reg_ck_rules())
-  if (!d.confirmations.scholarshipUnderstood) e.push(m.reg_ck_scholarship())
-  if (!d.confirmations.privacy) e.push(m.reg_ck_privacy())
-
-  return e
 }
 
 /** Removes empty rows and normalizes before sending to the server. */

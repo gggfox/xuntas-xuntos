@@ -1,5 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap");
 @import "tailwindcss";
+/* The calendar lives with its component; see the header of that file. */
+@import "./components/DateField/calendar.css";
 
 /* ===========================================================================
    XUNTAS+XUNTOS design system
@@ -8,26 +10,71 @@
    =========================================================================== */
 
 @theme {
-  /* Ink. Black is never #000: it is #111 and it breathes differently. */
-  --color-ink: #111111;
-  --color-ink-2: #1f1f1f;
-  --color-ink-3: #2e2e2e;
-  --color-soft: rgba(17, 17, 17, 0.58);
+  /* Ink. Black is never #000: it is the guideline's #161615, a warm black
+     that breathes differently. See documentation/B&P_XUNTAS_GUIDELINE_2025.pdf,
+     page 13 — it is one of the two primarios. */
+  --color-ink: #161615;
+  --color-ink-2: #242423;
+  --color-ink-3: #333332;
+  --color-soft: rgba(22, 22, 21, 0.58);
 
   /* Paper. The background is bone, not white; cards, however, are white. */
   --color-paper: #fafaf8;
   --color-card: #ffffff;
 
-  /* Yellow. It is the brand color and it is used sparingly. */
-  --color-yel: #edf45f;
-  --color-yel-line: #c9d42b;
-  --color-yel-d: #d2db3a;
-  --color-yel-s: #f8fbd4;
+  /* Yellow. It is the brand color and it is used sparingly. #ebf437 is the
+     other primario on page 13 of the guideline. The three supporting tones
+     are not in the guideline — they are derived from it, holding the same
+     hue/saturation/lightness steps the approved prototype used. */
+  --color-yel: #ebf437;
+  --color-yel-line: #acb522;
+  --color-yel-d: #c2cb22;
+  --color-yel-s: #f8fcd3;
   --color-ochre: #5a6300;
 
   /* Lines. Always translucent ink, never solid gray. */
-  --color-line: rgba(17, 17, 17, 0.11);
-  --color-line-2: rgba(17, 17, 17, 0.22);
+  --color-line: rgba(22, 22, 21, 0.11);
+  --color-line-2: rgba(22, 22, 21, 0.22);
+
+  /*
+   * Pinned. These two name a role relative to a colour that does NOT move
+   * between themes — the yellow, and the header band — so they must not
+   * invert with the page. Painting them with `--color-ink` instead would
+   * give dark mode a near-white border on a yellow button and a bone header.
+   * See docs/BRAND.md.
+   */
+  --color-on-yel: #161615;
+  --color-chrome: #161615;
+
+  /*
+   * The meteor head. Split out of `--color-yel-line` because that token has
+   * two jobs: a border on the soft-yellow `.nota` panel, and this. The first
+   * does not move between themes; this one must, because #acb522 is a yellow
+   * darkened to survive on BONE PAPER, which is the one thing a near-black
+   * page does not need.
+   */
+  --color-meteor: #acb522;
+
+  /*
+   * Washes, hairlines and tints that used to be written as literals. They are
+   * tokens now for one reason: a literal cannot invert, and `rgba(31,122,69,.4)`
+   * beside a `--color-ok` that has moved gives a light-green chip a dark-green
+   * border.
+   */
+  --color-wash: rgba(22, 22, 21, 0.045);
+  --color-faint: rgba(22, 22, 21, 0.2);
+  --color-yel-ring: rgba(235, 244, 55, 0.4);
+  --color-ok-line: rgba(31, 122, 69, 0.4);
+  --color-ok-wash: rgba(31, 122, 69, 0.07);
+  --color-warn-line: rgba(178, 107, 0, 0.4);
+  --color-warn-wash: rgba(178, 107, 0, 0.08);
+  --color-bad-line: rgba(179, 38, 30, 0.4);
+  --color-bad-wash: rgba(179, 38, 30, 0.07);
+  /* Separate from `--color-bad-wash`: the invalid field is tinted at .03 and
+     the chip at .07. Collapsing them would darken every invalid field in
+     light mode, and an error state is the last place to accept an
+     unrequested visual change. */
+  --color-bad-tint: rgba(179, 38, 30, 0.03);
 
   /* Semantic. For state only, never decorative. */
   --color-ok: #1f7a45;
@@ -43,9 +90,76 @@
   --radius-ctl: 8px;
 }
 
-/* No dark mode: the brand is light paper. Declared, not accidental. */
 :root {
-  color-scheme: light only;
+  color-scheme: light;
+}
+
+/*
+ * Dark mode.
+ *
+ * Tailwind v4 emits every `@theme` entry as a real custom property on
+ * `:root`, and each utility compiles to `var(--color-…)` rather than to a
+ * baked hex. Overriding the same properties here therefore re-colours the
+ * whole app — opacity modifiers included, since `text-ink/50` compiles to a
+ * `color-mix()` over this same variable.
+ *
+ * There is deliberately no `prefers-color-scheme` copy of this block. The
+ * script in `__root.tsx` resolves `system` down to a concrete value before
+ * first paint, so `data-theme` is always present. Duplicating the palette to
+ * serve a no-JS visitor would serve a case that cannot arise: the
+ * registration form does not function without JavaScript.
+ *
+ * `--color-yel`, `--color-yel-line`, `--color-yel-d`, `--color-on-yel` and
+ * `--color-chrome` are absent on purpose. They do not move.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* The page drops BELOW the header's #161615 so the ink band still reads as
+     a band — the same half-tone separation as bone-page against white-card,
+     inverted. It is why the header needs no border and no shadow. */
+  --color-paper: #0f0f0e;
+  --color-card: #1c1c1b;
+
+  --color-ink: #fafaf8;
+  /* The weights step AWAY from the text colour, toward the page — the same
+     direction of travel as #161615 to #333332 in light. */
+  --color-ink-2: #e4e4e0;
+  --color-ink-3: #cfcfca;
+  --color-soft: rgba(250, 250, 248, 0.6);
+
+  /* Nudged up from .11/.22. Light-on-dark loses more perceived contrast at a
+     given alpha than dark-on-light; holding the number reads as washed out. */
+  --color-line: rgba(250, 250, 248, 0.13);
+  --color-line-2: rgba(250, 250, 248, 0.24);
+
+  /* Both exist BECAUSE the page is light: ochre is the answer to "yellow does
+     not contrast on paper", and yel-s is a near-white panel. Their reasons
+     invert with the background, so they invert too. */
+  --color-yel-s: #24260f;
+  --color-ochre: #d4dd6a;
+
+  /* The brand yellow, finally legible. This does not contradict "the yellow
+     does not move": #ebf437 is unchanged — the meteor is changing WHICH of the
+     pinned yellows it draws with. */
+  --color-meteor: #ebf437;
+
+  /* Re-derived at the same hue. The light values fail contrast on a dark
+     card, and docs/BRAND.md calls accessibility non-negotiable. */
+  --color-ok: #4ade80;
+  --color-warn: #e0a33a;
+  --color-bad: #f87171;
+
+  --color-wash: rgba(250, 250, 248, 0.07);
+  --color-faint: rgba(250, 250, 248, 0.26);
+  --color-yel-ring: rgba(235, 244, 55, 0.3);
+  --color-ok-line: rgba(74, 222, 128, 0.4);
+  --color-ok-wash: rgba(74, 222, 128, 0.1);
+  --color-warn-line: rgba(224, 163, 58, 0.4);
+  --color-warn-wash: rgba(224, 163, 58, 0.1);
+  --color-bad-line: rgba(248, 113, 113, 0.4);
+  --color-bad-wash: rgba(248, 113, 113, 0.1);
+  --color-bad-tint: rgba(248, 113, 113, 0.06);
 }
 
 html {
@@ -63,9 +177,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button {
-  font: inherit;
-  cursor: pointer;
+/*
+ * Undoes the browser's own button font so a button reads like the page.
+ *
+ * It has to sit in `@layer base`. Unlayered rules outrank every layered one
+ * whatever the specificity, so while this was loose in the file it beat
+ * `.btn`, `.cal-day` and anything else in `@layer components` that sets a
+ * font: every button on the site rendered at the inherited 15 px / 400
+ * instead of the size and weight its own class asked for.
+ */
+@layer base {
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
 }
 
 /* Visible, thick focus: many of these people fill out the form with the
@@ -85,6 +210,36 @@ button {
 }
 
 @layer components {
+  /*
+   * The reading column. 900 px is the default from BRAND.md — forms and
+   * reading; a page whose content is narrower says so and stops parking
+   * itself left of centre with a third of the column empty.
+   *
+   * The header and the footer deliberately do NOT use this: they are chrome
+   * and run the full width of the window.
+   */
+  .col {
+    width: 100%;
+    max-width: 900px;
+    margin-inline: auto;
+    padding-inline: 22px;
+  }
+  .col-560 {
+    max-width: 560px;
+  }
+  .col-720 {
+    max-width: 720px;
+  }
+
+  /*
+   * The chrome band. Full width, so the mark sits in the top-left corner of
+   * the window and the sign-in link in the top-right, whatever the page
+   * underneath is measured at. The gutter is the same 22 px as the column.
+   */
+  .band {
+    padding-inline: 22px;
+  }
+
   /* Eyebrow in mono and small caps. Marks hierarchy without using size. */
   .eyebrow {
     font-family: var(--font-mono);
@@ -103,12 +258,14 @@ button {
 
   .btn {
     background: var(--color-yel);
-    color: var(--color-ink);
+    color: var(--color-on-yel);
     font-weight: 600;
     font-size: 13.5px;
     padding: 9px 17px;
     border-radius: 7px;
-    border: 1px solid var(--color-ink);
+    /* on-yel, not ink: BRAND.md requires yellow to always carry an INK
+       border, and `--color-ink` is bone in dark mode. */
+    border: 1px solid var(--color-on-yel);
     transition: background-color 0.15s;
   }
   .btn:hover:not(:disabled) {
@@ -121,11 +278,14 @@ button {
 
   .btn-ghost {
     background: transparent;
+    /* Explicit because `.btn` above is pinned to on-yel for the yellow it no
+       longer has. A ghost button sits on the page, so it takes the page's ink. */
+    color: var(--color-ink);
     border-color: var(--color-line-2);
     font-weight: 500;
   }
   .btn-ghost:hover:not(:disabled) {
-    background: rgba(17, 17, 17, 0.045);
+    background: var(--color-wash);
   }
 
   /* One step down the scale, for repeat actions that sit under the thing they
@@ -156,11 +316,20 @@ button {
   .fld-input:focus {
     outline: 0;
     border-color: var(--color-ink);
-    box-shadow: 0 0 0 3px rgba(237, 244, 95, 0.4);
+    box-shadow: 0 0 0 3px var(--color-yel-ring);
   }
   .fld-input[aria-invalid="true"] {
     border-color: var(--color-bad);
-    background: rgba(179, 38, 30, 0.03);
+    background: var(--color-bad-tint);
+  }
+  /* Matches a field inside a disabled fieldset too, which is how the closed
+     window locks a whole step. Without this the field looks editable and
+     simply swallows every click. */
+  .fld-input:disabled {
+    background: var(--color-wash);
+    color: var(--color-soft);
+    border-color: var(--color-line);
+    cursor: not-allowed;
   }
 
   .chip {
@@ -177,24 +346,24 @@ button {
   }
   .chip-y {
     background: var(--color-yel);
-    border-color: var(--color-ink);
-    color: var(--color-ink);
+    border-color: var(--color-on-yel);
+    color: var(--color-on-yel);
     font-weight: 600;
   }
   .chip-ok {
     color: var(--color-ok);
-    border-color: rgba(31, 122, 69, 0.4);
-    background: rgba(31, 122, 69, 0.07);
+    border-color: var(--color-ok-line);
+    background: var(--color-ok-wash);
   }
   .chip-warn {
     color: var(--color-warn);
-    border-color: rgba(178, 107, 0, 0.4);
-    background: rgba(178, 107, 0, 0.08);
+    border-color: var(--color-warn-line);
+    background: var(--color-warn-wash);
   }
   .chip-bad {
     color: var(--color-bad);
-    border-color: rgba(179, 38, 30, 0.4);
-    background: rgba(179, 38, 30, 0.07);
+    border-color: var(--color-bad-line);
+    background: var(--color-bad-wash);
   }
 
   /* Notice in soft yellow. For the important-but-not-an-error. */
@@ -203,5 +372,119 @@ button {
     border: 1px solid var(--color-yel-line);
     border-radius: 9px;
     padding: 16px 19px;
+  }
+
+  /* -------------------------------------------------------------------------
+     Meteors. The one decorative layer on the site; the reasoning for its
+     existence, and for how far it now reaches, is in the header of
+     `components/Meteors.tsx`.
+     ------------------------------------------------------------------------- */
+
+  /*
+   * The layer. Fixed to the viewport, so it fills the window and keeps
+   * filling it as the reader scrolls rather than scrolling away.
+   *
+   * `z-index: -1` is what puts it behind everything the page is actually
+   * for, and what lets the cards, the progress bar and the stepper eat the
+   * streaks that pass under them — something moving behind a solid object
+   * should disappear behind it, and that is the only cue that the layer has
+   * depth at all. It requires `isolate` on the containing element: with no
+   * stacking context of its own to sit in, a negative index falls all the
+   * way behind the body's background and the layer renders as nothing.
+   *
+   * That same stacking context is why the header carries `relative z-10`.
+   * The layer is fixed, but it still paints with the `main` it lives in, and
+   * `main` comes after the header — without the header lifting itself out of
+   * the way, streaks would cross the black band at the top of every page.
+   */
+  .meteors {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /*
+   * One streak: a 2 px head, with the tail drawn behind it by `::before`.
+   *
+   * The head is the brand's yellow for the theme in play — muted on bone,
+   * full strength on black — and the tail is ink at the same 22 % the rest
+   * of the site draws its lines at, which inverts on its own. The glow below
+   * is dark-only, and the reason is the same one that rules it out on paper.
+   *
+   * The rotation lives in the keyframe, not here — a `transform` on the
+   * element is replaced wholesale by the animated one, not composed with it.
+   */
+  .meteor {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--color-meteor);
+    animation-name: meteor;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  .meteor::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 70px;
+    height: 1px;
+    transform: translateY(-50%);
+    background: linear-gradient(to right, var(--color-line-2), transparent);
+  }
+
+  /*
+   * The glow is dark-only, and the comment above explains why without meaning
+   * to: a shadow is light spilling into darkness. On bone paper that spill is
+   * a yellow-green smudge and reads as a printing fault, which is why the head
+   * stays flat in light. On a near-black page it is simply what a fast, hot
+   * thing looks like.
+   */
+  :root[data-theme='dark'] .meteor {
+    box-shadow: 0 0 6px 1px rgba(235, 244, 55, 0.45);
+  }
+}
+
+/*
+ * 215deg sends the streak down and to the right, 35deg below the horizontal,
+ * and leaves the tail pointing up and to the left — behind the head, which is
+ * the arrangement that reads as speed rather than as a stripe.
+ *
+ * 1450px along that axis is roughly 1190 across and 830 down: enough that a
+ * streak entering at the top left is still travelling when it reaches the
+ * far corner of a laptop screen, instead of stopping in the middle of it.
+ */
+@keyframes meteor {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(215deg) translateX(-1450px);
+    opacity: 0;
+  }
+}
+
+/*
+ * Hidden outright, not stopped.
+ *
+ * The global reduced-motion rule near the top of this file sets
+ * `animation: none` for everybody, which on its own would leave nine
+ * diagonal hairlines frozen over the heading for the rest of the visit —
+ * indistinguishable from a page that failed to finish drawing. Someone who
+ * asks for less motion is asking for less of this, not for a still of it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .meteors {
+    display: none;
   }
 }

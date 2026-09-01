@@ -1,14 +1,20 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { CURRENT_CYCLE, CLOSES_AT_MS, isWindowOpen } from './lib/cycle'
+import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
+import { LETTER_LIMIT } from './lib/registrationSchema'
+import { validateRegistration } from './lib/registrationRules'
+import type { ActionErrorCode } from './lib/errorCodes'
 import { requireAdmin, requireUser, currentUser } from './users'
 import type { Doc } from './_generated/dataModel'
 import { vBranch } from './schema'
 
 /**
- * Form payload. Same fields as registro_xuntas.html — XUNTAS already approved
- * that shape and we do not change it.
+ * Form payload. The fields of registro_xuntas.html, with one departure:
+ * its single "ciudad y estado" box is `state` and `city` here, because a
+ * state picked from the 32 is a field we can group and count by and a typed
+ * "Monterrey, NL" is not.
  */
 const vRegistrationData = v.object({
   personal: v.object({
@@ -17,7 +23,8 @@ const vRegistrationData = v.object({
     whatsapp: v.string(),
     birthDate: v.string(),
     branch: vBranch,
-    cityState: v.string(),
+    state: v.string(),
+    city: v.string(),
   }),
   academic: v.object({
     school: v.string(),
@@ -41,12 +48,6 @@ const vRegistrationData = v.object({
     privacy: v.boolean(),
   }),
 })
-
-const LETTER_LIMIT = 3000
-
-/** Draft caps. Generous: they exist to bound, not to validate. */
-const FIELD_LIMIT = 500
-const ROW_LIMIT = 60
 
 /**
  * The registration fields that are actually data, without the metadata
@@ -74,20 +75,29 @@ function isUnchanged(
 }
 
 /**
+ * Errors cross the wire as codes so the browser can say them in the reader's
+ * language. A plain `Error` message cannot: it arrives wrapped in Convex's
+ * own framing and is whatever language the server happened to be written in.
+ */
+function fail(code: ActionErrorCode): never {
+  throw new ConvexError({ code })
+}
+
+/**
  * A draft does not go through `validate`, so without this an arbitrarily large
  * document could be saved until hitting Convex's 1 MB limit — and the error
  * would surface as an opaque failure halfway through filling the form.
  */
 function requireReasonableSizes(data: typeof vRegistrationData.type) {
   if (data.motivationLetter.length > LETTER_LIMIT) {
-    throw new Error(`La carta excede el máximo de ${LETTER_LIMIT} caracteres.`)
+    fail('letter_too_long')
   }
   if (
     data.results.length > ROW_LIMIT ||
     data.rankings.length > ROW_LIMIT ||
     data.calendar.length > ROW_LIMIT
   ) {
-    throw new Error(`No se pueden registrar más de ${ROW_LIMIT} renglones por sección.`)
+    fail('too_many_rows')
   }
 
   const texts = [
@@ -100,7 +110,7 @@ function requireReasonableSizes(data: typeof vRegistrationData.type) {
   ]
   for (const t of texts) {
     if (typeof t === 'string' && t.length > FIELD_LIMIT) {
-      throw new Error(`Hay un campo con más de ${FIELD_LIMIT} caracteres.`)
+      fail('field_too_long')
     }
   }
 }
@@ -108,42 +118,8 @@ function requireReasonableSizes(data: typeof vRegistrationData.type) {
 /** Frozen after the window closes. Applies to draft and to submitted alike. */
 function requireWindowOpen() {
   if (!isWindowOpen()) {
-    throw new Error('El periodo de registro está cerrado. Cerró el 18 de septiembre de 2026.')
+    fail('window_closed')
   }
-}
-
-/** Server-side validation. The client validates too, but it is not trusted. */
-function validate(data: typeof vRegistrationData.type): string[] {
-  const errors: string[] = []
-  const { personal, academic, athletic, results, motivationLetter, confirmations } = data
-
-  if (!personal.name.trim()) errors.push('Escribe tu nombre completo.')
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(personal.email)) errors.push('Escribe un correo válido.')
-  if (!personal.whatsapp.trim()) errors.push('Escribe un número de contacto.')
-  if (!personal.birthDate) errors.push('Indica tu fecha de nacimiento.')
-  if (!personal.cityState.trim()) errors.push('Indica dónde resides.')
-
-  if (!academic.school.trim()) errors.push('Indica dónde estudias.')
-  if (!academic.grade.trim()) errors.push('Indica tu grado.')
-
-  if (!athletic.club.trim()) errors.push('Indica tu club o academia.')
-  if (!athletic.coach.trim()) errors.push('Indica quién es tu coach.')
-  if (!athletic.ghin.trim()) errors.push('Indica tu índice GHIN vigente o equivalente.')
-
-  if (!results.some((r) => r.tournament.trim() && r.result.trim())) {
-    errors.push('Registra al menos un resultado.')
-  }
-
-  if (!motivationLetter.trim()) errors.push('Escribe tu carta de motivos.')
-  if (motivationLetter.length > LETTER_LIMIT) {
-    errors.push(`La carta excede el máximo de ${LETTER_LIMIT.toLocaleString('es-MX')} caracteres.`)
-  }
-
-  if (!confirmations.rules) errors.push('Debes aceptar las bases de la convocatoria.')
-  if (!confirmations.scholarshipUnderstood) errors.push('Debes confirmar que entiendes cómo se otorga la beca.')
-  if (!confirmations.privacy) errors.push('Debes aceptar el aviso de privacidad.')
-
-  return errors
 }
 
 /** The signed-in user's registration, with the window and the lock resolved. */
@@ -187,7 +163,7 @@ export const saveDraft = mutation({
 
     if (existing) {
       if (existing.status === 'validated' || existing.status === 'rejected') {
-        throw new Error('Tu registro ya fue revisado y no se puede editar.')
+        fail('already_reviewed')
       }
 
       // No changes, no write.
@@ -238,11 +214,11 @@ export const submit = mutation({
     if (user.birthDate === undefined) {
       return {
         ok: false as const,
-        errors: ['Antes de enviar tu registro necesitamos tu fecha de nacimiento.'],
+        errors: [{ field: 'personal.birthDate' as const, code: 'birth_date_missing' as const }],
       }
     }
 
-    const errors = validate(args.data)
+    const errors = validateRegistration(args.data)
     if (errors.length > 0) return { ok: false as const, errors }
 
     const existing = await ctx.db
@@ -251,7 +227,7 @@ export const submit = mutation({
       .unique()
 
     if (existing && (existing.status === 'validated' || existing.status === 'rejected')) {
-      throw new Error('Tu registro ya fue revisado y no se puede editar.')
+      fail('already_reviewed')
     }
 
     const now = Date.now()
@@ -287,7 +263,7 @@ export const submit = mutation({
       })
     }
 
-    return { ok: true as const, errors: [] as string[] }
+    return { ok: true as const, errors: [] }
   },
 })
 

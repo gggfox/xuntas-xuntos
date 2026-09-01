@@ -36,15 +36,24 @@ schema.
 In the Clerk dashboard:
 
 1. **API keys → copy the _Frontend API URL_.** That is the value of
-   `CLERK_JWT_ISSUER_DOMAIN`. There is no Convex JWT template anymore, nor an
-   integration to turn on: it is simply that URL.
+   `CLERK_JWT_ISSUER_DOMAIN`.
    Dev: `https://<slug>.clerk.accounts.dev` · Prod: `https://clerk.xuntas.org`.
    Trick: the host is base64-encoded inside the publishable key itself, after
    the `pk_test_` / `pk_live_` prefix.
-2. **User & authentication → Email**: leave *Email verification code* on and
+2. **Integrations → turn on Convex.** This is not optional, and the issuer URL
+   above does not stand in for it. The integration is what adds `aud: "convex"`
+   to the session token, which is the claim `applicationID: 'convex'` in
+   [`convex/auth.config.ts`](convex/auth.config.ts) checks.
+   With it off, `ConvexProviderWithClerk` falls back to asking for a JWT
+   template named `convex`; when that does not exist either, it swallows the
+   error and every query runs unauthenticated — `mi-registro` then sits on
+   "preparing your account" forever, for an account that already exists.
+   (The old Convex *JWT template* is the alternative to this, not a second
+   thing to set up. One or the other, and the integration is the current one.)
+3. **User & authentication → Email**: leave *Email verification code* on and
    turn off *Email verification link*. In the **Password** tab, turn passwords
    off. Under **SSO connections**, enable Google.
-3. **Webhooks → new endpoint** pointing to
+4. **Webhooks → new endpoint** pointing to
    `https://<your-deployment>.convex.site/clerk-webhook`, with the events
    `user.created`, `user.updated` and `user.deleted`. Copy the *Signing Secret*.
 

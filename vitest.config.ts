@@ -9,13 +9,38 @@ import { defineConfig } from 'vitest/config'
  */
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts'],
-    environment: 'node',
     /**
      * The development escape hatch opens the registration window no matter
      * what. If someone has it set in their shell, the `isWindowOpen` tests
      * would fail because of the environment and not because of the code.
      */
     env: { WINDOW_ALWAYS_OPEN: '' },
+    projects: [
+      {
+        // Pure logic. No DOM, so it stays fast.
+        test: {
+          name: 'unit',
+          include: ['tests/**/*.test.ts'],
+          environment: 'node',
+          env: { WINDOW_ALWAYS_OPEN: '' },
+        },
+      },
+      {
+        /**
+         * No `@vitejs/plugin-react` here. Vitest bundles its own Vite, so the
+         * plugin's types clash with the rolldown-based Vite 8 the app builds
+         * with — and it is not needed: esbuild reads `jsx: react-jsx` from
+         * tsconfig and transforms the JSX on its own. The plugin's real job,
+         * Fast Refresh, means nothing to a test run.
+         */
+        test: {
+          name: 'components',
+          include: ['tests/components/**/*.test.tsx'],
+          environment: 'jsdom',
+          setupFiles: ['./tests/setup.ts'],
+          env: { WINDOW_ALWAYS_OPEN: '' },
+        },
+      },
+    ],
   },
 })

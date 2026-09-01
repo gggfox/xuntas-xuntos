@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Portal XUNTAS–XUNTOS · Modelo de partida</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light only;
+  --ink:#111111;
+  --ink-2:#1F1F1F;
+  --ink-3:#2E2E2E;
+  --soft:rgba(17,17,17,.58);
+  --paper:#FAFAF8;
+  --card:#FFFFFF;
+  --yel:#EDF45F; --yel-line:#C9D42B;
+  --yel-d:#D2DB3A;
+  --yel-s:#F8FBD4;
+  --line:rgba(17,17,17,.11);
+  --line-2:rgba(17,17,17,.22);
+  --ok:#1F7A45;
+  --warn:#B26B00;
+  --bad:#B3261E;
+  --r:10px;
+  --disp:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--yel-d);outline-offset:2px}
+
+/* ============ BARRA DE PROTOTIPO ============ */
+.proto{position:sticky;top:0;z-index:60;background:var(--ink);color:#fff;border-bottom:3px solid var(--yel-line)}
+.proto-in{max-width:1240px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.proto-lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);white-space:nowrap}
+.roles{display:flex;gap:6px;flex-wrap:wrap}
+.role{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;padding:6px 12px;border-radius:99px;color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.2);transition:.15s}
+.role:hover{color:#fff;border-color:rgba(255,255,255,.5)}
+.role[aria-selected="true"]{background:var(--yel);color:var(--ink);border-color:var(--yel-line);font-weight:600}
+
+/* ============ CABECERA DE APP ============ */
+.appbar{background:var(--ink);color:#fff}
+.appbar-in{max-width:1240px;margin:0 auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.mark{width:34px;height:34px;border-radius:50%;background:var(--yel);color:var(--ink);display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:18px;flex:none}
+.brand b{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:-.01em;display:block;line-height:1.15}
+.brand span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.who{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.72)}
+.who .dot{width:29px;height:29px;border-radius:50%;background:var(--ink-3);border:1.5px solid rgba(255,255,255,.28);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:#fff}
+
+.nav{background:var(--ink-2);border-top:1px solid rgba(255,255,255,.08)}
+.nav-in{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.nav-in::-webkit-scrollbar{display:none}
+.nav button{padding:12px 15px;font-size:13.5px;color:rgba(255,255,255,.62);border-bottom:3px solid transparent;white-space:nowrap;transition:.15s}
+.nav button:hover{color:#fff}
+.nav button[aria-selected="true"]{color:#fff;border-bottom-color:var(--yel);font-weight:600}
+
+/* ============ ESTRUCTURA ============ */
+.wrap{max-width:1240px;margin:0 auto;padding:26px 20px 70px}
+.view{display:none}
+.view.on{display:block;animation:fade .25s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+h1.page{font-family:var(--disp);font-weight:800;font-size:clamp(25px,4vw,36px);letter-spacing:-.022em;margin:6px 0 0}
+.page-sub{color:var(--soft);margin:7px 0 0;max-width:62ch;font-weight:300}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin:32px 0 13px;flex-wrap:wrap}
+.sec-head h2{font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:-.01em;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.pad{padding:19px 21px}
+
+.btn{background:var(--yel);color:var(--ink);font-weight:600;font-size:13.5px;padding:9px 17px;border-radius:7px;border:1px solid var(--ink);transition:.15s}
+.btn:hover{background:var(--yel-d)}
+.btn.ghost{background:transparent;border-color:var(--line-2);font-weight:500}
+.btn.ghost:hover{background:rgba(17,17,17,.045)}
+.btn.sm{padding:6px 12px;font-size:12.5px}
+
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid var(--line-2);color:var(--soft);white-space:nowrap}
+.chip.y{background:var(--yel);border-color:var(--ink);color:var(--ink);font-weight:600}
+.chip.k{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.ok{color:var(--ok);border-color:rgba(31,122,69,.4);background:rgba(31,122,69,.07)}
+.chip.warn{color:var(--warn);border-color:rgba(178,107,0,.4);background:rgba(178,107,0,.08)}
+.chip.bad{color:var(--bad);border-color:rgba(179,38,30,.4);background:rgba(179,38,30,.07)}
+
+/* ============ PÚBLICO ============ */
+.hero{background:var(--ink);color:#fff;border-radius:var(--r);padding:44px 38px;position:relative;overflow:hidden;margin-bottom:30px}
+.hero::after{content:"";position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;background:var(--yel);opacity:.14}
+.hero h1{font-family:var(--disp);font-weight:800;font-size:clamp(29px,5vw,50px);line-height:1.02;letter-spacing:-.028em;margin:0;max-width:16ch;position:relative}
+.hero h1 em{font-style:normal;color:var(--yel)}
+.hero p{margin:16px 0 0;max-width:52ch;color:rgba(255,255,255,.7);font-weight:300;position:relative}
+.hero .bar{display:flex;gap:32px;margin-top:28px;flex-wrap:wrap;position:relative}
+.hero .bar div span{display:block;font-family:var(--disp);font-size:27px;font-weight:800;color:var(--yel)}
+.hero .bar div small{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+.filters button{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;padding:7px 13px;border-radius:99px;border:1px solid var(--line-2);color:var(--soft);transition:.15s}
+.filters button:hover{border-color:var(--ink);color:var(--ink)}
+.filters button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:500}
+
+.deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:17px}
+.flip{background:none;border:0;padding:0;perspective:1300px;aspect-ratio:3/4.55;width:100%;text-align:left}
+.flip-in{position:relative;width:100%;height:100%;transition:transform .58s cubic-bezier(.4,.15,.2,1);transform-style:preserve-3d}
+.flip:hover .flip-in,.flip.flipped .flip-in,.flip:focus-visible .flip-in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--r);overflow:hidden;border:1px solid var(--line)}
+
+/* cara frontal */
+.f-front{background:var(--card);display:flex;flex-direction:column}
+.mono-photo{flex:1;background:
+  repeating-linear-gradient(135deg,rgba(17,17,17,.028) 0 9px,transparent 9px 18px),
+  linear-gradient(170deg,var(--yel-s),#F1EFE9);
+  display:grid;place-items:center;position:relative}
+.mono-photo b{font-family:var(--disp);font-size:48px;font-weight:800;color:rgba(17,17,17,.30);letter-spacing:-.03em}
+.f-front .cap{padding:11px 13px;border-top:1px solid var(--line);background:var(--card)}
+.f-front .cap strong{display:block;font-family:var(--disp);font-size:14.5px;font-weight:700;line-height:1.2;letter-spacing:-.01em}
+.f-front .cap span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--soft);margin-top:4px}
+.rama{position:absolute;top:9px;left:9px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;padding:3px 7px;border-radius:99px;background:var(--ink);color:#fff}
+.turnkey{position:absolute;bottom:9px;right:9px;font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;color:rgba(17,17,17,.34)}
+
+/* cara trasera */
+.f-back{background:var(--ink);color:#fff;transform:rotateY(180deg);padding:14px 14px 13px;display:flex;flex-direction:column;overflow:hidden}
+.f-back h4{font-family:var(--disp);font-size:14.5px;font-weight:700;margin:0 0 2px;letter-spacing:-.01em}
+.f-back .grp{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--yel)}
+.f-back dl{margin:10px 0 0;display:grid;gap:6px;flex:1;align-content:start}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.14);border-radius:6px;overflow:hidden;margin-top:11px}
+.mini>div{background:var(--ink);padding:6px 8px}
+.mini i{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.42);font-style:normal}
+.mini b{display:block;font-size:12.5px;font-weight:600;margin-top:2px}
+.mini b.rk{font-family:var(--mono);color:var(--yel)}
+.best{margin-top:9px;padding:7px 9px;background:var(--yel);border-radius:6px}
+.best i{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:rgba(17,17,17,.6);font-style:normal}
+.best b{display:block;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink);margin-top:2px;line-height:1.3}
+.f-back dl>div{display:flex;justify-content:space-between;gap:9px;align-items:baseline;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px}
+.f-back dt{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);flex:none}
+.f-back dd{margin:0;font-size:11.5px;text-align:right;font-weight:500;line-height:1.3}
+.f-back .rk{font-family:var(--mono);color:var(--yel);font-weight:600}
+
+/* ============ PERFIL DE JUGADOR ============ */
+.phead{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+.pavatar{width:82px;height:82px;border-radius:50%;background:var(--yel);display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:32px;border:2px solid var(--ink);flex:none}
+.phead h1{font-family:var(--disp);font-weight:800;font-size:clamp(23px,3.6vw,31px);margin:0;letter-spacing:-.022em}
+.pmeta{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+
+.cols{display:grid;grid-template-columns:1fr 320px;gap:22px;margin-top:24px;align-items:start}
+.stack{display:grid;gap:16px}
+.dl-clean{display:grid;gap:0;margin:0}
+.dl-clean>div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.dl-clean>div:last-child{border-bottom:0;padding-bottom:0}
+.dl-clean dt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);flex:none}
+.dl-clean dd{margin:0;text-align:right;font-size:13.5px;font-weight:500}
+
+.rank-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.rank-row:last-child{border-bottom:0}
+.rank-row .n{font-family:var(--mono);font-size:16px;font-weight:600}
+.rank-row .n i{font-style:normal;color:var(--soft);font-size:11px}
+.trend{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:4px;margin-left:7px}
+.trend.up{background:rgba(31,122,69,.1);color:var(--ok)}
+.trend.dn{background:rgba(179,38,30,.09);color:var(--bad)}
+
+.cal li{display:grid;grid-template-columns:52px 1fr;gap:13px;padding:11px 0;border-bottom:1px solid var(--line);align-items:start}
+.cal{list-style:none;margin:0;padding:0}
+.cal li:last-child{border-bottom:0;padding-bottom:0}
+.cal .d{font-family:var(--mono);font-size:11px;text-align:center;background:var(--yel-s);border:1px solid var(--line);border-radius:6px;padding:5px 3px;line-height:1.25}
+.cal .d b{display:block;font-size:15px;font-weight:600}
+.cal strong{display:block;font-size:13.5px;font-weight:600}
+.cal span{display:block;font-size:12px;color:var(--soft);margin-top:2px}
+
+/* bitácora */
+.entry{border-left:3px solid var(--yel-line);padding:2px 0 2px 15px;margin-bottom:19px}
+.entry .top{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px}
+.entry .top strong{font-family:var(--disp);font-size:15px;font-weight:700}
+.entry .top time{font-family:var(--mono);font-size:10.5px;color:var(--soft)}
+.entry .score{font-family:var(--mono);font-size:11px;background:var(--ink);color:#fff;padding:2px 7px;border-radius:4px}
+.entry p{margin:0;font-size:14px;color:#2A2A2A;font-weight:300;line-height:1.62}
+.entry .tags{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap}
+
+.composer textarea{width:100%;min-height:96px;border:1px solid var(--line-2);border-radius:8px;padding:12px;font:inherit;font-size:14px;resize:vertical;background:var(--paper)}
+.composer textarea:focus{outline:0;border-color:var(--ink);background:#fff}
+.composer .row{display:flex;gap:9px;margin-bottom:10px;flex-wrap:wrap}
+.composer input{border:1px solid var(--line-2);border-radius:8px;padding:9px 11px;font:inherit;font-size:13.5px;background:var(--paper);min-width:0}
+.composer input:focus{outline:0;border-color:var(--ink);background:#fff}
+.composer .f1{flex:1 1 210px}
+.composer .f2{flex:0 1 108px}
+.composer .foot{display:flex;justify-content:space-between;align-items:center;margin-top:11px;gap:12px;flex-wrap:wrap}
+.hint{font-size:11.5px;color:var(--soft)}
+.vis{display:inline-flex;border:1px solid var(--line-2);border-radius:99px;padding:3px;gap:2px;background:var(--paper)}
+.vis button{font-size:12px;padding:6px 13px;border-radius:99px;color:var(--soft);transition:.15s;white-space:nowrap}
+.vis button:hover{color:var(--ink)}
+.vis button[aria-checked="true"]{background:var(--ink);color:#fff;font-weight:500}
+.lock{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--warn);background:rgba(178,107,0,.09);border:1px solid rgba(178,107,0,.3);padding:2px 8px;border-radius:99px}
+.entry.privada{border-left-color:var(--line-2);border-left-style:dashed}
+.money{display:grid;gap:0;margin:0}
+.money>div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.money>div:last-child{border-bottom:0;border-top:2px solid var(--ink);margin-top:4px;padding-top:11px}
+.money dt{font-size:13px;color:var(--soft);font-weight:300}
+.money>div:last-child dt{color:var(--ink);font-weight:600}
+.money dd{margin:0;font-family:var(--mono);font-size:13px;font-weight:500;text-align:right}
+.money>div:last-child dd{font-size:16px;font-weight:600}
+
+.note{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.note:last-child{border-bottom:0;padding-bottom:0}
+.note .av{width:31px;height:31px;border-radius:50%;background:var(--ink);color:var(--yel);display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;flex:none}
+.note b{font-size:13px;display:block}
+.note .role-lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft)}
+.note p{margin:6px 0 0;font-size:13.5px;font-weight:300;line-height:1.55;color:#2A2A2A}
+
+/* ============ TABLAS ============ */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:660px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+thead th{background:var(--yel);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;border-bottom:2px solid var(--ink);position:sticky;top:0}
+tbody tr{cursor:pointer;transition:background .12s}
+tbody tr:hover{background:var(--yel-s)}
+tbody tr:last-child td{border-bottom:0}
+td.name{font-weight:600}
+td.mono{font-family:var(--mono);font-size:12.5px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:17px 19px}
+.kpi.dark{background:var(--ink);border-color:var(--ink)}
+.kpi b{display:block;font-family:var(--disp);font-size:33px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.kpi.dark b{color:var(--yel)}
+.kpi span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--soft);margin-top:8px}
+.kpi.dark span{color:rgba(255,255,255,.55)}
+.kpi small{display:block;font-size:11.5px;color:var(--soft);margin-top:5px}
+.kpi.dark small{color:rgba(255,255,255,.45)}
+
+.alert{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.alert:last-child{border-bottom:0;padding-bottom:0}
+.alert .ic{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;flex:none}
+.alert .ic.warn{background:rgba(178,107,0,.13);color:var(--warn)}
+.alert .ic.bad{background:rgba(179,38,30,.11);color:var(--bad)}
+.alert b{font-size:13.5px;display:block}
+.alert p{margin:3px 0 0;font-size:12.5px;color:var(--soft)}
+
+/* barra de progreso de captura */
+.meter{height:7px;border-radius:99px;background:rgba(17,17,17,.1);overflow:hidden;margin-top:10px}
+.meter i{display:block;height:100%;background:var(--yel);border-radius:99px}
+
+/* panel lateral */
+.scrim{position:fixed;inset:0;background:rgba(17,17,17,.42);z-index:80;opacity:0;pointer-events:none;transition:.2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(430px,100%);background:var(--paper);z-index:90;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,.15,.2,1);overflow-y:auto;box-shadow:-14px 0 40px rgba(0,0,0,.14)}
+.panel.on{transform:none}
+.panel-h{background:var(--ink);color:#fff;padding:20px 22px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;position:sticky;top:0}
+.panel-h h3{font-family:var(--disp);font-size:19px;font-weight:700;margin:0}
+.panel-h .x{font-size:22px;line-height:1;color:rgba(255,255,255,.6);padding:0 3px}
+.panel-h .x:hover{color:#fff}
+.panel-b{padding:20px 22px}
+
+.video{background:var(--ink);border-radius:var(--r);padding:0;margin-bottom:22px;display:grid;grid-template-columns:186px 1fr;overflow:hidden}
+.video .thumb{background:linear-gradient(150deg,var(--yel),var(--yel-d));display:grid;place-items:center;min-height:118px;position:relative}
+.video .thumb .play{width:44px;height:44px;border-radius:50%;background:var(--ink);display:grid;place-items:center}
+.video .thumb .play::after{content:"";border-left:13px solid var(--yel-line);border-top:8px solid transparent;border-bottom:8px solid transparent;margin-left:4px}
+.video .thumb span{position:absolute;bottom:8px;right:9px;font-family:var(--mono);font-size:9.5px;background:rgba(17,17,17,.82);color:#fff;padding:2px 6px;border-radius:4px}
+.video .vb{padding:17px 21px;color:#fff}
+.video .vk{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--yel)}
+.video h3{font-family:var(--disp);font-size:18px;font-weight:700;margin:5px 0 0;letter-spacing:-.012em}
+.video p{margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.65);font-weight:300;max-width:60ch}
+.video .vm{margin-top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:rgba(255,255,255,.42)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stats>div{background:var(--card);padding:12px 13px}
+.stats i{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--soft);font-style:normal}
+.stats b{display:block;font-family:var(--mono);font-size:17px;font-weight:600;margin-top:5px;letter-spacing:-.01em}
+.stats small{display:block;font-size:11px;color:var(--soft);margin-top:3px;font-weight:300}
+.stats>div.wide{grid-column:1/-1}
+.stats>div.wide b{font-size:14px}
+.drop{display:block;border:2px dashed var(--line-2);border-radius:10px;padding:26px 20px;text-align:center;cursor:pointer;transition:.15s;background:var(--paper)}
+.drop:hover,.drop.over{border-color:var(--ink);background:var(--yel-s)}
+.drop b{display:block;font-family:var(--disp);font-size:15px;font-weight:700}
+.drop span{display:block;font-size:12.5px;color:var(--soft);margin-top:6px;font-weight:300}
+.drop .formats{font-family:var(--mono);font-size:10px;letter-spacing:.08em;margin-top:10px;color:var(--soft)}
+.file{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--line)}
+.file:last-child{border-bottom:0;padding-bottom:0}
+.file .ft{width:38px;height:38px;border-radius:7px;display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.04em;flex:none}
+.file .ft.v{background:var(--ink);color:var(--yel)}
+.file .ft.d{background:var(--yel-s);color:var(--ochre,#5A6300);border:1px solid var(--line)}
+.file .fi{flex:1;min-width:0}
+.file b{display:block;font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file span{display:block;font-family:var(--mono);font-size:10.5px;color:var(--soft);margin-top:3px}
+.form{max-width:760px}
+.step{display:flex;align-items:center;gap:10px;margin-bottom:26px;flex-wrap:wrap}
+.step .s{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft)}
+.step .s b{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-2);display:grid;place-items:center;font-size:10px}
+.step .s.on{color:var(--ink);font-weight:600}
+.step .s.on b{background:var(--yel);border-color:var(--ink);color:var(--ink)}
+.step .s.done b{background:var(--ink);border-color:var(--ink);color:var(--yel)}
+.step .ln{flex:1;min-width:14px;height:1px;background:var(--line-2)}
+fieldset{border:0;padding:0;margin:0 0 26px}
+legend{font-family:var(--disp);font-weight:700;font-size:17px;padding:0;margin-bottom:3px}
+.leg-sub{font-size:13px;color:var(--soft);margin:0 0 16px;font-weight:300}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.fld.full{grid-column:1/-1}
+.fld label{font-size:12.5px;font-weight:500}
+.fld label i{font-style:normal;color:var(--soft);font-weight:400}
+.fld .req{color:#B3261E}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line-2);border-radius:8px;padding:10px 12px;font:inherit;font-size:14px;background:var(--card);width:100%}
+.fld textarea{min-height:150px;resize:vertical;line-height:1.6}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:0;border-color:var(--ink);box-shadow:0 0 0 3px rgba(237,244,95,.35)}
+.fld .help{font-size:11.5px;color:var(--soft)}
+.fld.bad input,.fld.bad textarea,.fld.bad select{border-color:#B3261E;background:rgba(179,38,30,.03)}
+.err{font-size:11.5px;color:#B3261E;display:none}
+.fld.bad .err{display:block}
+.rank-grid{display:grid;grid-template-columns:1fr 118px;gap:10px;margin-bottom:9px}
+.rank-grid input:first-child{background:var(--paper)}
+.counter{font-family:var(--mono);font-size:11px;color:var(--soft);text-align:right;margin-top:5px}
+.counter.over{color:#B3261E;font-weight:600}
+.tor{display:grid;grid-template-columns:1fr 128px auto;gap:9px;margin-bottom:9px;align-items:center}
+.tor input{margin:0}
+.rm{font-size:19px;line-height:1;color:var(--soft);padding:0 8px}
+.rm:hover{color:#B3261E}
+.check{display:flex;gap:11px;align-items:flex-start;padding:14px 16px;border:1px solid var(--line-2);border-radius:9px;margin-bottom:12px;cursor:pointer;transition:.15s}
+.check:hover{border-color:var(--ink)}
+.check input{margin:2px 0 0;width:17px;height:17px;flex:none;accent-color:var(--ink)}
+.check span{font-size:13px;line-height:1.55}
+.check b{display:block;font-size:13.5px;margin-bottom:2px}
+.check.bad{border-color:#B3261E;background:rgba(179,38,30,.03)}
+.nores{background:var(--yel-s);border:1px solid var(--yel-line);border-radius:9px;padding:16px 19px;margin-bottom:26px}
+.nores b{font-family:var(--disp);font-size:14.5px;display:block;margin-bottom:5px}
+.nores p{margin:0;font-size:13px;color:#3A3A3A;font-weight:300;line-height:1.6}
+.done-box{text-align:center;padding:56px 24px;max-width:560px;margin:0 auto}
+.done-box .tick{width:66px;height:66px;border-radius:50%;background:var(--yel);border:2px solid var(--ink);display:grid;place-items:center;margin:0 auto 22px;font-size:30px}
+.done-box h2{font-family:var(--disp);font-size:27px;font-weight:800;margin:0 0 10px;letter-spacing:-.02em}
+.done-box p{color:var(--soft);font-weight:300;margin:0 auto 8px;max-width:46ch}
+.done-box .rec{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:18px;margin-top:26px;text-align:left}
+.pip-head{background:var(--ink);color:#fff;border-radius:var(--r);padding:26px 28px;margin-bottom:18px;display:grid;grid-template-columns:1fr 210px;gap:28px;align-items:center}
+.pip-head h2{font-family:var(--disp);font-size:clamp(21px,3vw,29px);font-weight:800;margin:7px 0 0;letter-spacing:-.022em}
+.pip-head p{margin:9px 0 0;font-size:14px;color:rgba(255,255,255,.68);font-weight:300;max-width:58ch}
+.pip-prog{text-align:right}
+.pip-prog b{display:block;font-family:var(--disp);font-size:34px;font-weight:800;color:var(--yel);line-height:1}
+.pip-prog span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:5px}
+.pip-prog .meter{background:rgba(255,255,255,.16)}
+.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:22px}
+.wk{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.wk.act{border-color:var(--ink);border-width:2px;background:var(--yel-s)}
+.wk.ok{background:var(--card)}
+.wk i{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-style:normal}
+.wk b{display:block;font-size:13.5px;font-weight:600;margin-top:4px;line-height:1.25}
+.wk .st{display:inline-block;margin-top:8px;font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:99px;border:1px solid var(--line-2);color:var(--soft)}
+.wk.act .st{background:var(--yel);border-color:var(--ink);color:var(--ink);font-weight:600}
+.wk.ok .st{background:rgba(31,122,69,.1);border-color:rgba(31,122,69,.35);color:var(--ok)}
+.pv{border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:16px}
+.pv:last-child{margin-bottom:0}
+.pv-top{display:grid;grid-template-columns:132px 1fr;gap:0}
+.pv-th{background:linear-gradient(150deg,var(--yel),var(--yel-d));display:grid;place-items:center;min-height:106px;position:relative;cursor:pointer}
+.pv-th .play{width:38px;height:38px;border-radius:50%;background:var(--ink);display:grid;place-items:center}
+.pv-th .play::after{content:"";border-left:11px solid var(--yel);border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px}
+.pv-th span{position:absolute;bottom:7px;right:8px;font-family:var(--mono);font-size:9px;background:rgba(17,17,17,.82);color:#fff;padding:2px 6px;border-radius:4px}
+.pv-b{padding:14px 17px}
+.pv-b .n{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft)}
+.pv-b h4{font-family:var(--disp);font-size:16px;font-weight:700;margin:4px 0 0;letter-spacing:-.012em}
+.pv-b p{margin:6px 0 0;font-size:13px;color:var(--soft);font-weight:300;line-height:1.55}
+.pv-b .who2{margin-top:9px;font-family:var(--mono);font-size:10px;color:var(--soft)}
+.pv-c{border-top:1px solid var(--line);padding:14px 17px;background:var(--paper)}
+.pv-c textarea{width:100%;min-height:74px;border:1px solid var(--line-2);border-radius:7px;padding:10px 12px;font:inherit;font-size:13.5px;resize:vertical;background:var(--card)}
+.pv-c textarea:focus{outline:0;border-color:var(--ink)}
+.pv-c .row2{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+.saved{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--yel-line);border-radius:0 7px 7px 0;padding:12px 14px;font-size:13.5px;font-weight:300;line-height:1.6;color:#2A2A2A}
+.oh{display:grid;grid-template-columns:1fr;gap:9px}
+.ohr{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:13px 16px}
+.ohr.mine{border-color:var(--ink);border-width:2px;background:var(--yel-s)}
+.ohr b{display:block;font-size:13.5px;font-weight:600}
+.ohr span{display:block;font-family:var(--mono);font-size:11px;color:var(--soft);margin-top:3px}
+.ohr .mio{display:inline-block;margin-left:8px;font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;background:var(--ink);color:var(--yel);padding:2px 7px;border-radius:99px;vertical-align:middle}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:16px}
+.day{aspect-ratio:1;border:1.5px solid var(--line-2);border-radius:8px;display:grid;place-content:center;text-align:center;transition:.15s;background:var(--card)}
+.day:hover{border-color:var(--ink)}
+.day i{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-style:normal}
+.day b{display:block;font-family:var(--disp);font-size:17px;font-weight:700;margin-top:2px}
+.day.on{background:var(--yel);border-color:var(--ink)}
+.day.on i{color:rgba(17,17,17,.6)}
+.pip-h{background:var(--ink);color:#fff;border-radius:var(--r);padding:26px 30px;margin-bottom:24px;position:relative;overflow:hidden}
+.pip-h::after{content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;border-radius:50%;background:var(--yel);opacity:.12}
+.pip-h .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--yel);position:relative}
+.pip-h h2{font-family:var(--disp);font-size:clamp(22px,3.4vw,30px);font-weight:800;margin:6px 0 0;letter-spacing:-.022em;position:relative}
+.pip-h p{margin:10px 0 0;color:rgba(255,255,255,.68);font-weight:300;max-width:58ch;font-size:14px;position:relative}
+.weeks{display:flex;gap:0;margin-top:20px;position:relative;flex-wrap:wrap}
+.wk{flex:1;min-width:104px;padding:9px 12px;border-left:2px solid rgba(255,255,255,.18)}
+.wk.on{border-left-color:var(--yel);background:rgba(237,244,95,.09)}
+.wk i{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.42);font-style:normal}
+.wk b{display:block;font-size:12.5px;font-weight:500;margin-top:3px}
+.wk.on b{color:var(--yel)}
+
+.pip-sec{margin-bottom:26px}
+.pip-lab{display:flex;align-items:center;gap:11px;margin-bottom:13px;flex-wrap:wrap}
+.pip-lab .num{width:26px;height:26px;border-radius:50%;background:var(--yel);border:1.5px solid var(--ink);display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:600;flex:none}
+.pip-lab h3{font-family:var(--disp);font-size:17px;font-weight:700;margin:0;letter-spacing:-.012em}
+.pip-lab .when{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+
+.vid2{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.vcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.vcard .th{background:linear-gradient(150deg,var(--yel),var(--yel-d));height:104px;display:grid;place-items:center;position:relative;cursor:pointer}
+.vcard .th .play{width:40px;height:40px;border-radius:50%;background:var(--ink);display:grid;place-items:center}
+.vcard .th .play::after{content:"";border-left:12px solid var(--yel);border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:4px}
+.vcard .th span{position:absolute;bottom:7px;right:8px;font-family:var(--mono);font-size:9.5px;background:rgba(17,17,17,.82);color:#fff;padding:2px 6px;border-radius:4px}
+.vcard .th.seen{background:var(--ink)}
+.vcard .th.seen .play{background:var(--yel)}
+.vcard .th.seen .play::after{border-left-color:var(--ink)}
+.vcard .vc{padding:15px 17px;flex:1;display:flex;flex-direction:column}
+.vcard h4{font-family:var(--disp);font-size:15.5px;font-weight:700;margin:0;letter-spacing:-.01em}
+.vcard .au{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;color:var(--soft);margin-top:4px}
+.vcard .de{font-size:12.5px;color:var(--soft);font-weight:300;margin:8px 0 12px;flex:1;line-height:1.5}
+.vcard textarea{width:100%;min-height:74px;border:1px solid var(--line-2);border-radius:7px;padding:10px;font:inherit;font-size:13px;resize:vertical;background:var(--paper)}
+.vcard textarea:focus{outline:0;border-color:var(--ink);background:#fff}
+.vcard .vfoot{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:9px;flex-wrap:wrap}
+
+.zoom{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;background:var(--yel-s);border:1px solid var(--yel-line);border-radius:var(--r);padding:19px 22px}
+.zoom .zk{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ochre,#5A6300)}
+.zoom h4{font-family:var(--disp);font-size:17px;font-weight:700;margin:5px 0 0}
+.zoom .zd{font-size:13px;color:#3A3A3A;margin-top:5px}
+.others{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin-top:12px}
+.others div{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--card)}
+.others i{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);font-style:normal}
+.others b{display:block;font-size:12.5px;font-weight:500;margin-top:3px}
+.others span{display:block;font-size:11.5px;color:var(--soft);margin-top:2px}
+
+.reto textarea{width:100%;min-height:64px;border:1px solid var(--line-2);border-radius:8px;padding:11px;font:inherit;font-size:14px;resize:vertical;background:var(--paper)}
+.reto textarea:focus{outline:0;border-color:var(--ink);background:#fff}
+.ideas{display:flex;gap:7px;flex-wrap:wrap;margin:11px 0 0}
+.ideas button{font-size:12px;padding:6px 12px;border-radius:99px;border:1px dashed var(--line-2);color:var(--soft);transition:.15s}
+.ideas button:hover{border-style:solid;border-color:var(--ink);color:var(--ink);background:var(--yel-s)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:15px}
+.days button{aspect-ratio:1;border:1.5px solid var(--line-2);border-radius:9px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;color:var(--soft);transition:.15s;padding:0}
+.days button:hover{border-color:var(--ink)}
+.days button[aria-pressed="true"]{background:var(--yel);border-color:var(--ink);color:var(--ink);font-weight:600}
+.days button i{font-style:normal;display:block;font-size:9px;letter-spacing:.05em;opacity:.6}
+.streak{font-family:var(--mono);font-size:11.5px;color:var(--soft);margin-top:11px}
+
+.jp{border-left:3px dashed var(--line-2);padding:2px 0 2px 15px;margin-bottom:17px}
+.jp .top{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px}
+.jp time{font-family:var(--mono);font-size:10.5px;color:var(--soft)}
+.jp p{margin:0;font-size:14px;color:#2A2A2A;font-weight:300;line-height:1.62;white-space:pre-wrap}
+.vrow{display:grid;grid-template-columns:158px 1fr;gap:17px;padding:18px 0;border-bottom:1px solid var(--line)}
+.vrow:first-child{padding-top:0}
+.vrow:last-child{border-bottom:0;padding-bottom:0}
+.vrow .th{border:0;padding:0;border-radius:9px;background:linear-gradient(150deg,var(--yel),var(--yel-d));height:100px;display:grid;place-items:center;position:relative;cursor:pointer;overflow:hidden}
+.vrow .th .play{width:38px;height:38px;border-radius:50%;background:var(--ink);display:grid;place-items:center}
+.vrow .th .play::after{content:"";border-left:12px solid var(--yel);border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:4px}
+.vrow .th .dur{position:absolute;bottom:7px;right:8px;font-family:var(--mono);font-size:9.5px;background:rgba(17,17,17,.82);color:#fff;padding:2px 6px;border-radius:4px}
+.vrow .th.seen{background:var(--ink)}
+.vrow .th.seen .play{background:var(--yel)}
+.vrow .th.seen .play::after{border-left-color:var(--ink)}
+.vrow h4{font-family:var(--disp);font-size:15.5px;font-weight:700;margin:0;letter-spacing:-.012em}
+.vrow .au{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;color:var(--soft);margin-top:4px}
+.vrow p{font-size:13px;color:var(--soft);font-weight:300;margin:8px 0 12px;line-height:1.55}
+.vrow label{display:block;font-size:12px;font-weight:500;margin-bottom:6px}
+.vrow textarea{width:100%;min-height:70px;border:1px solid var(--line-2);border-radius:7px;padding:10px;font:inherit;font-size:13px;resize:vertical;background:var(--paper)}
+.vrow textarea:focus{outline:0;border-color:var(--ink);background:#fff}
+.vrow .vf{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:9px;flex-wrap:wrap}
+.wk u{display:block;text-decoration:none;font-family:var(--mono);font-size:10px;color:var(--soft);margin-top:4px}
+.wk.on u{color:var(--ink);font-weight:600}
+.wk.ok u{color:var(--ok)}
+@media (max-width:640px){ .vrow{grid-template-columns:1fr} .vrow .th{height:88px} }
+.empty{text-align:center;padding:40px 20px;color:var(--soft)}
+.empty b{display:block;font-family:var(--disp);font-size:16px;color:var(--ink);margin-bottom:5px}
+
+footer.f{border-top:1px solid var(--line);margin-top:52px;padding-top:18px;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--soft)}
+
+@media (max-width:900px){
+  .cols{grid-template-columns:1fr}
+  .hero{padding:32px 24px}
+}
+@media (hover:none){
+  .flip:hover .flip-in{transform:none}
+  .flip.flipped .flip-in{transform:rotateY(180deg)}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== barra de prototipo ===== -->
+<div class="proto">
+  <div class="proto-in">
+    <span class="proto-lab">Modelo de partida · cambia de acceso</span>
+    <div class="roles" role="tablist" id="roles">
+      <button class="role" role="tab" data-role="publico" aria-selected="true">Público</button>
+      <button class="role" role="tab" data-role="registro" aria-selected="false">Registro</button>
+      <button class="role" role="tab" data-role="jugador" aria-selected="false">Jugador</button>
+      <button class="role" role="tab" data-role="coach" aria-selected="false">Coach</button>
+      <button class="role" role="tab" data-role="admin" aria-selected="false">Administración</button>
+      <button class="role" role="tab" data-role="direccion" aria-selected="false">Alto Rendimiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== cabecera ===== -->
+<header class="appbar">
+  <div class="appbar-in">
+    <div class="brand">
+      <div class="mark">X</div>
+      <div><b>XUNTAS–XUNTOS</b><span id="ctxLabel">Portal público</span></div>
+    </div>
+    <div class="who" id="whoBox"></div>
+  </div>
+</header>
+<nav class="nav" id="navBar" hidden><div class="nav-in" id="navIn" role="tablist"></div></nav>
+
+<main class="wrap">
+
+<!-- ============================== PÚBLICO ============================== -->
+<section class="view on" id="v-publico">
+  <div class="hero">
+    <h1>El talento mexicano del golf, <em>en una sola página</em>.</h1>
+    <p>Perfiles de las y los atletas del Programa de Desarrollo. Pensado para coaches universitarios, aliados y quienes apoyan el modelo. Pasa el cursor sobre una tarjeta para ver los datos.</p>
+    <div class="bar">
+      <div><span id="hCount">8</span><small>Atletas activos</small></div>
+      <div><span>3</span><small>Grupos del modelo</small></div>
+      <div><span>17</span><small>Años formando</small></div>
+    </div>
+  </div>
+
+  <div class="filters" id="pubFilters">
+    <button aria-pressed="true" data-f="todos">Todos</button>
+    <button aria-pressed="false" data-f="Talento Junior">Talento Junior</button>
+    <button aria-pressed="false" data-f="Xunt@s U">Xunt@s U</button>
+    <button aria-pressed="false" data-f="Xunt@s Pro">Xunt@s Pro</button>
+    <button aria-pressed="false" data-f="Programa de Desarrollo">Programa de Desarrollo</button>
+    <button aria-pressed="false" data-f="XUNTAS">Rama femenil</button>
+    <button aria-pressed="false" data-f="XUNTOS">Rama varonil</button>
+  </div>
+
+  <div class="deck" id="deck"></div>
+
+  <footer class="f">Los datos mostrados son públicos y los actualiza cada atleta. Rankings al corte semanal.</footer>
+</section>
+
+
+<!-- ============================== REGISTRO ============================== -->
+<section class="view" id="v-registro">
+  <div id="regForm">
+    <span class="eyebrow">Convocatoria General 2026–2027</span>
+    <h1 class="page">Registro al Programa de Desarrollo</h1>
+    <p class="page-sub">Una sola puerta. No se solicita una beca: se solicita pertenecer. Toda persona registrada queda automáticamente considerada por el Consejo Técnico.</p>
+
+    <div class="form">
+      <div class="step" style="margin-top:26px">
+        <span class="s on"><b>1</b>Tus datos</span><span class="ln"></span>
+        <span class="s"><b>2</b>Deportivo</span><span class="ln"></span>
+        <span class="s"><b>3</b>Motivos</span>
+      </div>
+
+      <div class="nores">
+        <b>El registro es breve</b>
+        <p>No se pide en esta etapa video de swing, certificado médico, cartas del coach, documentación académica ni actas o identificaciones. A quienes resulten preseleccionados para beca se les solicitará después el expediente completo.</p>
+      </div>
+
+      <fieldset>
+        <legend>1 · Datos personales y de contacto</legend>
+        <p class="leg-sub">Con esto sabemos a quién dirigirnos.</p>
+        <div class="grid2">
+          <div class="fld"><label for="rNom">Nombre completo <span class="req">*</span></label><input id="rNom" data-req placeholder="Como aparece en tu acta"><span class="err">Escribe tu nombre completo.</span></div>
+          <div class="fld"><label for="rMail">Correo electrónico <span class="req">*</span></label><input id="rMail" type="email" data-req data-mail placeholder="tucorreo@ejemplo.com"><span class="err">Escribe un correo válido.</span></div>
+          <div class="fld"><label for="rTel">WhatsApp <span class="req">*</span></label><input id="rTel" data-req placeholder="81 1234 5678"><span class="err">Escribe un número de contacto.</span></div>
+          <div class="fld"><label for="rNac">Fecha de nacimiento <span class="req">*</span></label><input id="rNac" type="date" data-req><span class="err">Indica tu fecha de nacimiento.</span></div>
+          <div class="fld"><label for="rRama">Rama <span class="req">*</span></label><select id="rRama" data-req><option value="">Selecciona</option><option>XUNTAS · femenil</option><option>XUNTOS · varonil</option></select><span class="err">Selecciona una opción.</span></div>
+          <div class="fld"><label for="rCiudad">Ciudad y estado <span class="req">*</span></label><input id="rCiudad" data-req placeholder="Monterrey, Nuevo León"><span class="err">Indica dónde resides.</span></div>
+        </div>
+        <div id="rTutorBox" hidden>
+          <div class="nores" style="background:#fff;border-color:var(--line-2)">
+            <b>Eres menor de edad</b>
+            <p>Tu padre, madre o tutor debe autorizar la creación de la cuenta. No hay documento que cargar: basta con sus datos y su confirmación al final del formulario.</p>
+          </div>
+          <div class="grid2">
+            <div class="fld"><label for="rTutorNom">Nombre del padre, madre o tutor <span class="req">*</span></label><input id="rTutorNom" placeholder="Nombre completo"><span class="err">Requerido para menores de edad.</span></div>
+            <div class="fld"><label for="rTutorMail">Correo del tutor <span class="req">*</span></label><input id="rTutorMail" type="email" placeholder="correo@ejemplo.com"><span class="err">Escribe un correo válido.</span></div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2 · Situación escolar o universitaria</legend>
+        <p class="leg-sub">Si estás en proceso de colocación universitaria, indícalo en el campo de grado.</p>
+        <div class="grid2">
+          <div class="fld"><label for="rEsc">Escuela o universidad <span class="req">*</span></label><input id="rEsc" data-req placeholder="Colegio Cumbres · University of Arkansas"><span class="err">Indica dónde estudias.</span></div>
+          <div class="fld"><label for="rGrado">Grado actual <span class="req">*</span></label><input id="rGrado" data-req placeholder="4.º de preparatoria · Junior"><span class="err">Indica tu grado.</span></div>
+          <div class="fld"><label for="rGrad">Año de graduación <i>· clase</i></label><input id="rGrad" placeholder="2028"></div>
+          <div class="fld"><label for="rInteres">Interés académico</label><input id="rInteres" placeholder="Medicina del deporte"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>3 · Club, academia y equipo de trabajo</legend>
+        <div class="grid2">
+          <div class="fld"><label for="rClub">Club o academia <span class="req">*</span></label><input id="rClub" data-req placeholder="Club Campestre Monterrey"><span class="err">Indica tu club o academia.</span></div>
+          <div class="fld"><label for="rCoach">Coach actual <span class="req">*</span></label><input id="rCoach" data-req placeholder="Nombre de tu coach de swing"><span class="err">Indica quién es tu coach.</span></div>
+          <div class="fld"><label for="rEstatus">Estatus <span class="req">*</span></label><select id="rEstatus" data-req><option value="">Selecciona</option><option>Amateur</option><option>Profesional · aspiro a Xunt@s Pro</option></select><span class="err">Selecciona una opción.</span><span class="help">El estatus amateur se rige por el IGF Nationality Policy y las Reglas del USGA y The R&amp;A. No aplica a Xunt@s Pro.</span></div>
+          <div class="fld"><label for="rGhin">Índice GHIN vigente <span class="req">*</span></label><input id="rGhin" data-req placeholder="+1.4 · 8.6"><span class="err">Indica tu índice vigente o equivalente.</span></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>4 · Resultados de los últimos 12 meses</legend>
+        <p class="leg-sub">Los torneos más representativos. Agrega los que quieras; con tres es suficiente para empezar.</p>
+        <div id="rResList"></div>
+        <button class="btn ghost sm" id="rAddRes">Agregar torneo</button>
+        <span class="err" id="rResErr" style="margin-top:8px">Registra al menos un resultado.</span>
+      </fieldset>
+
+      <fieldset>
+        <legend>5 · Rankings</legend>
+        <p class="leg-sub">Solo los que apliquen a tu caso. Deja en blanco los que no.</p>
+        <div class="rank-grid"><input value="CNIJ" readonly><input id="rk0" placeholder="Posición"></div>
+        <div class="rank-grid"><input value="AJGA" readonly><input id="rk1" placeholder="Posición"></div>
+        <div class="rank-grid"><input value="Junior Scoreboard" readonly><input id="rk2" placeholder="Posición"></div>
+        <div class="rank-grid"><input value="WAGR" readonly><input id="rk3" placeholder="Posición"></div>
+        <div class="rank-grid"><input value="OWGR" readonly><input id="rk4" placeholder="Posición"></div>
+        <div class="rank-grid"><input id="rkOtroN" placeholder="Otro ranking"><input id="rkOtroV" placeholder="Posición"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>6 · Calendario competitivo previsto</legend>
+        <p class="leg-sub">Los torneos que planeas jugar en los próximos meses.</p>
+        <div class="fld full"><textarea id="rCal" style="min-height:96px" placeholder="Copa Nuevo León — 22 de agosto&#10;Nacional Juvenil, Guadalajara — 5 de septiembre"></textarea></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>7 · Carta de exposición de motivos</legend>
+        <p class="leg-sub">Máximo una cuartilla, escrita por ti. No la escriba tu coach ni tu familia: queremos leerte a ti.</p>
+        <div class="fld full">
+          <textarea id="rCarta" data-req placeholder="¿Por qué quieres formar parte de XUNTAS–XUNTOS? ¿Dónde estás hoy en tu proceso y a dónde quieres llegar? ¿Qué te falta para lograrlo?"></textarea>
+          <div class="counter" id="rCount">0 / 3,000 caracteres</div>
+          <span class="err">Escribe tu carta de motivos.</span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>8 · Confirmaciones</legend>
+        <label class="check" id="ck1w"><input type="checkbox" id="ck1"><span><b>Acepto las bases de la convocatoria</b>Entiendo que el registro no garantiza la admisión ni la obtención de una beca, y que las resoluciones del Consejo Técnico son definitivas.</span></label>
+        <label class="check" id="ck2w"><input type="checkbox" id="ck2"><span><b>Entiendo que la beca no se solicita, se otorga</b>Al registrarme quedo automáticamente considerado. No hay un formato de solicitud de beca aparte.</span></label>
+        <label class="check" id="ck3w"><input type="checkbox" id="ck3"><span><b>Acepto el aviso de privacidad</b>Mis datos se usan para la evaluación, el seguimiento y el reporte del programa.</span></label>
+        <label class="check" id="ck4w" hidden><input type="checkbox" id="ck4"><span><b>Autorización del padre, madre o tutor</b>Como tutor, autorizo la creación de la cuenta y el tratamiento de datos de la persona menor de edad que se registra.</span></label>
+      </fieldset>
+
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn" id="rSend">Enviar registro</button>
+        <span class="hint" id="rState">El periodo de registro cierra el 18 de septiembre de 2026.</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="regDone" hidden>
+    <div class="done-box">
+      <div class="tick">✓</div>
+      <h2>Registro recibido</h2>
+      <p>Gracias, <b id="dNom">—</b>. Tu registro quedó guardado y tu cuenta se activó.</p>
+      <p>Enviamos la confirmación a <b id="dMail">—</b>. Si no la ves en unos minutos, revisa tu carpeta de correo no deseado.</p>
+      <div class="rec">
+        <div class="sec-head" style="margin:0 0 12px"><h2>Qué sigue</h2></div>
+        <ul class="cal">
+          <li><span class="d"><b>23</b>SEP</span><span><strong>Revisión de registros</strong><span>Verificamos elegibilidad y documentación.</span></span></li>
+          <li><span class="d"><b>25</b>SEP</span><span><strong>Admisión al Programa de Desarrollo</strong><span>Te avisamos si formas parte de la Familia este ciclo.</span></span></li>
+          <li><span class="d"><b>10</b>OCT</span><span><strong>Publicación de becas otorgadas</strong><span>Solo si fuiste preseleccionado te pediremos expediente completo.</span></span></li>
+          <li><span class="d"><b>15</b>OCT</span><span><strong>Inicio del programa</strong><span>Arranca el ciclo 2026–2027.</span></span></li>
+        </ul>
+      </div>
+      <button class="btn ghost" id="rAgain" style="margin-top:24px">Registrar a otra persona</button>
+    </div>
+  </div>
+
+  <footer class="f">Convocatoria General 2026–2027 · Registro del 1 al 18 de septiembre de 2026</footer>
+</section>
+
+<!-- ============================== JUGADOR ============================== -->
+<section class="view" id="v-jugador">
+  <div class="card pad">
+    <div class="phead">
+      <div class="pavatar" id="jAv">RO</div>
+      <div>
+        <span class="eyebrow" id="jGroup">Talento Junior</span>
+        <h1 id="jName">Regina Ontiveros</h1>
+        <div class="pmeta" id="jChips"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="jTabPerfil">
+    <div class="video" id="jVideo"></div>
+    <div class="cols">
+      <div class="stack">
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 12px"><h2>Datos generales</h2><span class="chip">Lo actualiza el atleta</span></div>
+          <dl class="dl-clean" id="jData"></dl>
+        </div>
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 12px"><h2>Datos de juego</h2><span class="chip">Medición del programa</span></div>
+          <div class="stats" id="jStats"></div>
+        </div>
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 6px"><h2>Equipo de trabajo</h2><button class="btn ghost sm">Editar</button></div>
+          <dl class="dl-clean" id="jTeam"></dl>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 4px"><h2>Rankings</h2><span class="chip">Corte semanal</span></div>
+          <div id="jRanks"></div>
+        </div>
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 8px"><h2>Tallas actuales</h2><button class="btn ghost sm">Editar</button></div>
+          <dl class="dl-clean" id="jTallas"></dl>
+          <p class="hint" style="margin-top:11px">Se usan para el kit de identidad y el material del ciclo.</p>
+        </div>
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 8px"><h2>Captura del mes</h2></div>
+          <p style="margin:0;font-size:13px;color:var(--soft)">Llevas 3 de 4 registros al día. El próximo vence el 22 de agosto.</p>
+          <div class="meter"><i style="width:75%"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="jTabBitacora" hidden>
+    <div class="cols">
+      <div class="stack">
+        <div class="card pad composer">
+          <div class="sec-head" style="margin:0 0 12px"><h2>Nueva entrada</h2><span class="chip warn">Vence 7 días tras el torneo</span></div>
+          <div class="row">
+            <input class="f1" id="cTour" placeholder="Torneo o sesión" value="">
+            <input class="f2" id="cScore" placeholder="Score" value="">
+          </div>
+          <textarea id="cText" placeholder="¿Qué funcionó? ¿Qué te costó? ¿Cómo te sentiste antes de salir al primer tee? Escribe para ti: en seis meses vas a volver a leer esto."></textarea>
+          <div class="foot">
+            <div class="vis" role="radiogroup" aria-label="Quién puede leer esta entrada">
+              <button role="radio" aria-checked="true" data-priv="0">Compartida con mi equipo</button>
+              <button role="radio" aria-checked="false" data-priv="1">Solo para mí</button>
+            </div>
+            <button class="btn" id="cSave">Guardar entrada</button>
+          </div>
+          <p class="hint" id="visHint" style="margin:9px 0 0">Tu coach y la Dirección de Alto Rendimiento podrán leerla y comentarla.</p>
+        </div>
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 16px"><h2>Tus entradas</h2><span class="chip" id="jEntryCount"></span></div>
+          <div id="jEntries"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 6px"><h2>Comentarios del equipo</h2></div>
+          <div id="jNotes"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="jTabPIP" hidden>
+    <div class="pip-head">
+      <div>
+        <span class="vk">Programa Integral de Performance · <span id="pipMes"></span></span>
+        <h2 id="pipTema"></h2>
+        <p id="pipIntro"></p>
+      </div>
+      <div class="pip-prog"><b id="pipPct">0%</b><span>del mes completado</span><div class="meter" style="margin-top:9px"><i id="pipBar" style="width:0%"></i></div></div>
+    </div>
+
+    <div class="weeks" id="pipWeeks"></div>
+
+    <div class="cols">
+      <div class="stack">
+
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 4px"><h2>Semana 1 · Los dos videos del mes</h2><span class="chip warn" id="pipVidChip">Ver antes del 7 de agosto</span></div>
+          <p class="hint" style="margin:0 0 18px">Después de cada video, escribe qué aprendiste o qué te hizo pensar. Tu comentario lo lee la encargada del programa.</p>
+          <div id="pipVideos"></div>
+        </div>
+
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 4px"><h2>Semanas 2 y 3 · Office hours</h2><span class="chip k" id="pipGrupo">—</span></div>
+          <p class="hint" style="margin:0 0 16px">Sesión en vivo para platicar los videos y cómo aplicarlos en tu día a día y en el golf. Cada grupo tiene su propio horario.</p>
+          <div id="pipOffice"></div>
+        </div>
+
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 4px"><h2>Semana 4 · Reto de 7 días</h2><span class="chip" id="pipRetoFechas">—</span></div>
+          <p class="hint" style="margin:0 0 16px">Un solo cambio, concreto y pequeño, que se conecte con los videos de este mes. Lo practicas siete días seguidos.</p>
+          <div id="pipReto"></div>
+        </div>
+
+      </div>
+
+      <div class="stack">
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 6px"><h2>Journal personal</h2><span class="lock">Privado</span></div>
+          <p class="hint" style="margin:0 0 14px">Solo tú puedes leer esto. Ni tu coach, ni la encargada del PIP, ni la asociación.</p>
+          <div class="composer">
+            <textarea id="pipJText" style="min-height:110px" placeholder="Sin filtro. Lo que estés pensando hoy."></textarea>
+            <div class="foot" style="margin-top:9px"><span class="hint">Nadie más lo ve.</span><button class="btn sm" id="pipJSave">Guardar</button></div>
+          </div>
+          <div id="pipJournal" style="margin-top:20px"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="f">Programa Integral de Performance · Los videos se publican el primer día de cada mes.</footer>
+  </div>
+
+
+  <div id="jTabCalendario" hidden>
+    <div class="cols">
+      <div class="card pad">
+        <div class="sec-head" style="margin:0 0 8px"><h2>Próximos torneos</h2><button class="btn ghost sm">Agregar torneo</button></div>
+        <ul class="cal" id="jCal"></ul>
+      </div>
+      <div class="card pad">
+        <div class="sec-head" style="margin:0 0 8px"><h2>Estado físico</h2></div>
+        <dl class="dl-clean">
+          <div><dt>Disponibilidad</dt><dd><span class="chip ok">Completa</span></dd></div>
+          <div><dt>Última lesión</dt><dd>Muñeca izquierda · mar 2026</dd></div>
+          <div><dt>Alta médica</dt><dd>18 abr 2026</dd></div>
+        </dl>
+        <button class="btn ghost sm" style="margin-top:14px">Reportar molestia o lesión</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="jTabArchivos" hidden>
+    <div class="cols">
+      <div class="stack">
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 14px"><h2>Subir archivo</h2><span class="chip">Máx. 200 MB por archivo</span></div>
+          <label class="drop" for="fileInput">
+            <b>Arrastra aquí tus archivos o toca para elegirlos</b>
+            <span>Videos de swing, reportes de evaluación, planes de entrenamiento, documentos académicos.</span>
+            <span class="formats">MP4 · MOV · PDF · JPG · PNG · DOCX · XLSX</span>
+          </label>
+          <input type="file" id="fileInput" multiple hidden>
+        </div>
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 4px"><h2>Tus archivos</h2><span class="chip" id="jFileCount"></span></div>
+          <div id="jFiles"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 8px"><h2>Quién los ve</h2></div>
+          <p style="margin:0;font-size:13.5px;color:var(--soft);font-weight:300">Tus archivos son visibles para ti, tu equipo de trabajo y la Dirección de Alto Rendimiento. No aparecen en tu perfil público.</p>
+        </div>
+        <div class="card pad">
+          <div class="sec-head" style="margin:0 0 8px"><h2>Sugerencias</h2></div>
+          <ul style="margin:0;padding-left:17px;font-size:13.5px;color:var(--soft);font-weight:300;line-height:1.7">
+            <li>Sube tu swing de cara y de perfil cada 3 meses</li>
+            <li>Mismo ángulo y distancia, para poder comparar</li>
+            <li>Nombra los archivos con fecha: <span class="mono" style="font-size:12px">swing_cara_ago26</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="f">Última actualización: hoy · Los cambios se reflejan de inmediato en el panel de Administración.</footer>
+</section>
+
+<!-- ============================== COACH ============================== -->
+<section class="view" id="v-coach">
+  <span class="eyebrow">Equipo de trabajo</span>
+  <h1 class="page">Tus atletas</h1>
+  <p class="page-sub">Ves el proceso de quienes entrenas y puedes dejar comentarios que el atleta y la asociación leen. No ves montos de beca ni información de otros atletas.</p>
+
+  <div class="sec-head"><h2>Asignados a ti</h2><span class="chip k">3 atletas</span></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Atleta</th><th>Grupo</th><th>Próximo torneo</th><th>Última bitácora</th><th>Estado</th></tr></thead>
+      <tbody id="coachRows"></tbody>
+    </table>
+  </div>
+
+  <div class="sec-head"><h2>Tus comentarios recientes</h2></div>
+  <div class="card pad" id="coachNotes"></div>
+
+  <footer class="f">Solo se muestran atletas donde figuras como coach responsable. Para cambios de asignación, contacta a Programas Deportivos.</footer>
+</section>
+
+<!-- ============================== ADMIN ============================== -->
+<section class="view" id="v-admin">
+  <span class="eyebrow">Programas Deportivos</span>
+  <h1 class="page">Panel del programa</h1>
+  <p class="page-sub">Ciclo 2026–2027 · corte al 14 de agosto. Vista de operación: cupos, becas, cumplimiento y alertas. El seguimiento individual vive en Dirección de Alto Rendimiento.</p>
+
+  <div class="kpis" style="margin-top:22px">
+    <div class="kpi dark"><b>8</b><span>Miembros activos</span><small>de 45 lugares</small></div>
+    <div class="kpi"><b>5</b><span>Con beca</span><small>Junior, College y Pro</small></div>
+    <div class="kpi"><b>75%</b><span>Captura al día</span><small>2 atletas atrasados</small></div>
+    <div class="kpi"><b>3</b><span>Alertas abiertas</span><small>1 lesión, 2 de captura</small></div>
+  </div>
+
+  <div class="sec-head"><h2>Aportación económica del ciclo</h2><span class="chip">Ejercido al 14 de agosto</span></div>
+  <div class="kpis">
+    <div class="kpi dark"><b id="kEjer">—</b><span>Ejercido a la fecha</span><small id="kEjerSub">—</small></div>
+    <div class="kpi"><b id="kComp">—</b><span>Comprometido del ciclo</span><small>Topes autorizados por el Consejo</small></div>
+    <div class="kpi"><b id="kDisp">—</b><span>Disponible</span><small>No ejercido aún</small></div>
+    <div class="kpi"><b id="kProm">—</b><span>Promedio por becado</span><small id="kPromSub">—</small></div>
+  </div>
+  <div class="tw" style="margin-top:16px">
+    <table>
+      <thead><tr><th>Atleta</th><th>Grupo</th><th>Equipo de trabajo</th><th>Material</th><th>Otros</th><th>Ejercido</th><th>Tope</th><th>Avance</th></tr></thead>
+      <tbody id="moneyRows"></tbody>
+    </table>
+  </div>
+
+  <div class="cols" style="grid-template-columns:1fr 340px">
+    <div>
+      <div class="sec-head"><h2>Todos los atletas</h2><span class="chip">Toca una fila para ver el detalle</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Atleta</th><th>Grupo</th><th>Rama</th><th>Ranking</th><th>Última captura</th><th>Estado</th></tr></thead>
+          <tbody id="adminRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="stack" style="margin-top:24px">
+      <div class="card pad">
+        <div class="sec-head" style="margin:0 0 6px"><h2>Alertas</h2></div>
+        <div class="alert"><div class="ic bad">!</div><div><b>Lesión reportada</b><p>Emiliano Cázares · molestia lumbar, 11 de agosto. Sin alta médica.</p></div></div>
+        <div class="alert"><div class="ic warn">7</div><div><b>Captura vencida</b><p>Marifer Quintana · 34 días sin registrar. Segundo aviso pendiente.</p></div></div>
+        <div class="alert"><div class="ic warn">7</div><div><b>Captura vencida</b><p>Rodrigo Villarreal · 21 días sin registrar tras el Abierto de Cancún.</p></div></div>
+      </div>
+      <div class="card pad">
+        <div class="sec-head" style="margin:0 0 10px"><h2>Cumplimiento de visibilidad</h2></div>
+        <dl class="dl-clean">
+          <div><dt>Publicaciones del mes</dt><dd>14 de 21</dd></div>
+          <div><dt>Al corriente</dt><dd><span class="chip ok">5 atletas</span></dd></div>
+          <div><dt>Pendientes</dt><dd><span class="chip warn">3 atletas</span></dd></div>
+        </dl>
+        <div class="meter"><i style="width:67%"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="f">Vista de operación. El seguimiento individual y la bitácora corresponden a Dirección de Alto Rendimiento.</footer>
+</section>
+
+<!-- ============================== ALTO RENDIMIENTO ============================== -->
+<section class="view" id="v-direccion">
+  <span class="eyebrow">Dirección de Alto Rendimiento</span>
+  <h1 class="page">Seguimiento individual</h1>
+  <p class="page-sub">Diseñas los programas y acompañas a cada integrante. Es el único acceso que combina el panel completo con la bitácora y el plan de trabajo de todos los atletas.</p>
+
+  <div class="sec-head"><h2>Atención esta semana</h2><span class="chip warn">4 pendientes</span></div>
+  <div class="card pad" id="dirQueue"></div>
+
+  <div class="sec-head"><h2>Planes de trabajo activos</h2><span class="chip k" id="dirPlanCount"></span></div>
+  <div id="dirPlans" class="stack"></div>
+
+  <div class="sec-head"><h2>Todos los atletas</h2><span class="chip">Toca una fila para abrir el expediente completo</span></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Atleta</th><th>Grupo</th><th>Plan activo</th><th>Última bitácora</th><th>Próximo torneo</th><th>Estado</th></tr></thead>
+      <tbody id="dirRows"></tbody>
+    </table>
+  </div>
+
+  <footer class="f">Acceso restringido. Incluye bitácora, comentarios del equipo de trabajo y planes individuales.</footer>
+</section>
+
+</main>
+
+<!-- panel lateral -->
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="panel-h"><h3 id="pTitle">Atleta</h3><button class="x" id="pClose" aria-label="Cerrar">&times;</button></div>
+  <div class="panel-b" id="pBody"></div>
+</aside>
+
+<script>
+const PIP = {
+  mes:'Agosto 2026',
+  tema:'Manejo de la frustración',
+  intro:'Este mes trabajamos qué hacemos con el error: cómo lo interpretamos, cuánto tiempo lo cargamos y cómo volvemos al presente.',
+  videos:[
+    { t:'El error no es el problema, la interpretación sí', a:'Mtra. Renata Fuentes', dur:'18 min',
+      d:'Por qué dos atletas con el mismo doble bogey terminan la ronda de forma distinta. La diferencia no está en el golpe: está en la historia que se cuentan después.' },
+    { t:'Volver al presente en 30 segundos', a:'Mtra. Renata Fuentes', dur:'12 min',
+      d:'Una herramienta concreta para usar entre el hoyo que salió mal y el siguiente tee. Se practica, no se improvisa.' }
+  ],
+  office:{
+    fecha:'Jueves 20 de agosto de 2026',
+    grupos:[
+      { k:'XUNTAS-menor', lab:'Niñas · menores de 19 años', hora:'17:00 h (CDMX)', link:'https://zoom.us/j/000000001' },
+      { k:'XUNTOS-menor', lab:'Niños · menores de 19 años', hora:'18:15 h (CDMX)', link:'https://zoom.us/j/000000002' },
+      { k:'XUNTAS-mayor', lab:'Mujeres · 19 años o más',    hora:'19:30 h (CDMX)', link:'https://zoom.us/j/000000003' },
+      { k:'XUNTOS-mayor', lab:'Hombres · 19 años o más',    hora:'20:45 h (CDMX)', link:'https://zoom.us/j/000000004' }
+    ]
+  },
+  reto:{ inicio:'Lunes 24 de agosto', fin:'Domingo 30 de agosto' }
+};
+
+const VIDEO_SEMANA = {
+  titulo:'Rutina pre-tiro bajo presión',
+  autor:'Dra. Renata Fuentes · Psicología del deporte',
+  dur:'14 min',
+  desc:'Cómo sostener la misma rutina en el hoyo 18 que en el 1. Incluye ejercicio práctico para la semana.',
+  semana:'Semana del 17 al 23 de agosto'
+};
+
+function cohorte(p){
+  const may = p.edad >= 19;
+  const fem = p.rama === 'XUNTAS';
+  return may ? (fem ? 'f19' : 'm19') : (fem ? 'f18' : 'm18');
+}
+
+const PLAYERS = [
+  { id:'ro', grad:'Clase 2028', interes:'Medicina del deporte', mano:'Diestra', estatura:'1.68 m', mejor:'67 (−5) · Club Campestre MTY, may 2026', ball:'218 km/h', swing:'148 km/h', avg:'73.8', tallas:{playera:'S', pants:'26', gorra:'Ajustable', calzado:'24.5 MX'}, apoyo:{equipo:178500, material:62400, conc:18000, total:258900, tope:258500}, nom:'Regina Ontiveros', ini:'RO', edad:16, rama:'XUNTAS', grupo:'Talento Junior', beca:true,
+    escuela:'Colegio Cumbres, Monterrey', grado:'4.º de preparatoria', ciudad:'Monterrey, N.L.',
+    swing:'Alejandro Garza · Club Valle Alto', fisico:'Paulina Rojas · fuerza y movilidad, 4 sesiones/semana',
+    mental:'Dra. Renata Fuentes · quincenal', hcp:'+1.4',
+    ranks:[['CNIJ','3','up'],['Junior Scoreboard','118','up'],['WAGR','1,240','dn']],
+    cal:[['22','AGO','Copa Nuevo León','Club Campestre Monterrey · 54 hoyos'],
+         ['05','SEP','Nacional Juvenil','Guadalajara · clasificatorio'],
+         ['19','SEP','AJGA Invitational','San Antonio, TX']],
+    entries:[
+      {priv:false, t:'Copa Regional del Norte', f:'2 de agosto de 2026', s:'71-74-70', txt:'Salí muy acelerada el primer día y aun así firmé 71. El segundo día se me fue el driver a la derecha en cuatro hoyos seguidos y me frustré más de la cuenta. Lo que sí funcionó: volver a la rutina de respiración antes de cada tiro largo. El domingo lo apliqué desde el hoyo 1 y se sintió distinto.', tags:['Driver','Manejo de frustración']},
+      {priv:true, t:'Sesión de juego corto', f:'24 de julio de 2026', s:'—', txt:'Tres horas solo de bunker. Alejandro me cambió la posición de la cara y al principio odié el cambio. Hacia el final ya salían más suaves. Nota para mí: dar tiempo antes de decidir que algo no sirve.', tags:['Bunker','Técnica']}
+    ],
+    plan:[['Tempo de driver','Bajar a 80% de velocidad en los próximos dos torneos','En curso'],
+          ['Rutina pre-tiro','Consolidar respiración antes de cada tiro largo','En curso'],
+          ['Bunker','Nueva posición de cara — dar 6 semanas antes de evaluar','Nuevo']],
+    pip:{ seen:[true,false],
+          comments:['Lo que más me pegó fue que el doble bogey dura lo que yo decida. En el Regional cargué el hoyo 7 hasta el 12. Cinco hoyos perdidos por algo que ya había pasado.',''],
+          reto:'', dias:[false,false,false,false,false,false,false],
+          journal:[{f:'8 de agosto de 2026', txt:'Hoy me di cuenta de que cuando algo sale mal empiezo a jugar para no fallar en vez de jugar para pegarle bien. Son cosas distintas y se sienten distintas en el cuerpo.'}] },
+    files:[{n:'Swing_cara_driver_ago26.mp4', k:'Video', s:'48.2 MB', f:'2 ago 2026'},
+           {n:'Swing_perfil_hierro7_ago26.mp4', k:'Video', s:'41.7 MB', f:'2 ago 2026'},
+           {n:'Reporte_TPI_marzo2026.pdf', k:'Documento', s:'1.8 MB', f:'14 mar 2026'},
+           {n:'Plan_fisico_Q3.pdf', k:'Documento', s:'620 KB', f:'1 jul 2026'}],
+    notes:[{a:'Alejandro Garza', r:'Coach de swing', txt:'Regina viene mejorando la secuencia de cadera. El problema del driver es de tempo, no de plano. Sugiero bajar a 80% de velocidad en los próximos dos torneos.'},
+           {a:'Paulina Rojas', r:'Preparadora física', txt:'Ganó 4 km/h de velocidad de palo desde marzo. Cuidar carga en semana de torneo.'}]
+  },
+  { id:'db', grad:'Clase 2027', interes:'Administración de empresas', mano:'Diestro', estatura:'1.81 m', mejor:'65 (−7) · Bosques del Valle, abr 2026', ball:'255 km/h', swing:'172 km/h', avg:'71.6', tallas:{playera:'M', pants:'32', gorra:'L/XL', calzado:'28 MX'}, apoyo:{equipo:178500, material:80000, conc:18000, total:276500, tope:276500}, nom:'Diego Barragán', ini:'DB', edad:17, rama:'XUNTOS', grupo:'Talento Junior', beca:true,
+    escuela:'Instituto Irlandés, Monterrey', grado:'5.º de preparatoria', ciudad:'Monterrey, N.L.',
+    swing:'Ramiro Sepúlveda', fisico:'Centro Alto Rendimiento MTY', mental:'Dra. Renata Fuentes · mensual', hcp:'+2.1',
+    ranks:[['AJGA','88','up'],['Junior Scoreboard','45','up'],['CNIJ','6','—']],
+    cal:[['22','AGO','Copa Nuevo León','Club Campestre Monterrey'],['12','SEP','AJGA Junior All-Star','Phoenix, AZ']],
+    entries:[{priv:false, t:'AJGA Preview', f:'28 de julio de 2026', s:'73-69', txt:'Primera vez jugando en bermuda tan rápida. El putt largo se me fue corto todo el primer día. Me ajusté leyendo más grano y el segundo día bajé a 69.', tags:['Putt','Adaptación']}],
+    plan:[['Decisión en par 5','Criterio de cuándo ir a green en dos','En curso'],
+          ['Putt largo','Lectura de grano en bermuda','Nuevo']],
+    files:[{n:'Swing_AJGA_preview.mp4', k:'Video', s:'52.1 MB', f:'28 jul 2026'},
+           {n:'Transcript_2025-2026.pdf', k:'Documento', s:'340 KB', f:'12 jun 2026'}],
+    notes:[{a:'Ramiro Sepúlveda', r:'Coach de swing', txt:'Diego está listo para competir fuera. Su juego largo aguanta; hay que trabajar decisión en par 5.'}]
+  },
+  { id:'xt', grad:'Clase 2028 · universidad', interes:'Kinesiología', mano:'Diestra', estatura:'1.70 m', mejor:'66 (−6) · Blessings GC, oct 2025', ball:'228 km/h', swing:'154 km/h', avg:'72.4', tallas:{playera:'S', pants:'27', gorra:'Ajustable', calzado:'25 MX'}, apoyo:{equipo:126000, material:71200, conc:0, total:197200, tope:290000}, nom:'Ximena Treviño', ini:'XT', edad:20, rama:'XUNTAS', grupo:'Xunt@s U', beca:true,
+    escuela:'University of Arkansas', grado:'Junior · Kinesiología', ciudad:'Fayetteville, AR',
+    swing:'Staff Arkansas + Alejandro Garza en verano', fisico:'Programa universitario', mental:'Servicio deportivo universitario', hcp:'+3.0',
+    ranks:[['WAGR','310','up'],['Golfstat','74','up'],['Scoring average','72.4','up']],
+    cal:[['04','SEP','Cougar Classic','Charleston, SC'],['25','SEP','Blessings Collegiate','Fayetteville, AR']],
+    entries:[{priv:false, t:'NCAA Regional', f:'14 de mayo de 2026', s:'74-71-73', txt:'Cerré el año con la mejor vuelta del equipo el domingo. Lo que más me sirvió fue no ver el marcador hasta el hoyo 15.', tags:['Competencia','Foco']}],
+    files:[{n:'Swing_cara_pretemporada.mp4', k:'Video', s:'44.9 MB', f:'12 ago 2026'},
+           {n:'Transcript_Arkansas_S26.pdf', k:'Documento', s:'410 KB', f:'2 jun 2026'},
+           {n:'Declaracion_apoyos_2026.pdf', k:'Documento', s:'285 KB', f:'18 jul 2026'}],
+    notes:[{a:'Coach Shauna Estes', r:'Coach universitario', txt:'Ximena aporta consistencia al equipo. Buen candidato para apoyo en preparación de verano.'}]
+  },
+  { id:'ec', grad:'Clase 2027 · universidad', interes:'Administración', mano:'Zurdo', estatura:'1.85 m', mejor:'64 (−8) · Rawls Course, mar 2026', ball:'262 km/h', swing:'176 km/h', avg:'71.9', tallas:{playera:'L', pants:'34', gorra:'L/XL', calzado:'29 MX'}, apoyo:{equipo:94500, material:80000, conc:0, total:174500, tope:290000}, nom:'Emiliano Cázares', ini:'EC', edad:21, rama:'XUNTOS', grupo:'Xunt@s U', beca:true,
+    escuela:'Texas Tech University', grado:'Senior · Administración', ciudad:'Lubbock, TX',
+    swing:'Staff Texas Tech', fisico:'Programa universitario', mental:'—', hcp:'+3.4',
+    ranks:[['WAGR','470','dn'],['Golfstat','62','—'],['Scoring average','71.9','up']],
+    cal:[['18','SEP','Frisco Invitational','Frisco, TX']],
+    entries:[{priv:false, t:'Fin de temporada', f:'2 de junio de 2026', s:'—', txt:'Molestia lumbar desde el último torneo. Dos semanas de descanso indicadas.', tags:['Lesión']}],
+    files:[{n:'Resonancia_lumbar_ago26.pdf', k:'Documento', s:'3.4 MB', f:'12 ago 2026'},
+           {n:'Transcript_TexasTech_S26.pdf', k:'Documento', s:'395 KB', f:'5 jun 2026'}],
+    notes:[{a:'Programas Deportivos', r:'XUNTAS–XUNTOS', txt:'Seguimiento de la molestia lumbar. Pendiente alta médica antes del arranque de temporada.'}]
+  },
+  { id:'am', grad:'Clase 2030', interes:'Aún por definir', mano:'Diestra', estatura:'1.58 m', mejor:'76 (+4) · Valle Alto, jun 2026', ball:'182 km/h', swing:'124 km/h', avg:'79.2', tallas:{playera:'XS', pants:'24', gorra:'Ajustable', calzado:'23 MX'}, nom:'Ana Sofía Meléndez', ini:'AM', edad:14, rama:'XUNTAS', grupo:'Programa de Desarrollo', beca:false,
+    escuela:'Colegio Americano, Monterrey', grado:'2.º de secundaria', ciudad:'Monterrey, N.L.',
+    swing:'Luis Cantú · Academia La Herradura', fisico:'Iniciación · 2 sesiones/semana', mental:'—', hcp:'4.2',
+    ranks:[['CNIJ','12','up'],['Junior Scoreboard','—','—']],
+    cal:[['30','AGO','Zonal Norte Juvenil','Saltillo, Coah.']],
+    entries:[{priv:false, t:'Zonal de verano', f:'19 de julio de 2026', s:'78-81', txt:'Mi primer torneo de dos días. El segundo día me cansé mucho en los últimos seis hoyos.', tags:['Resistencia','Primera vez']}],
+    plan:[['Resistencia','Condición física para aguantar 36 hoyos','Prioridad']],
+    files:[{n:'Swing_primer_registro.mp4', k:'Video', s:'38.2 MB', f:'20 jul 2026'}],
+    notes:[{a:'Luis Cantú', r:'Coach de swing', txt:'Ana Sofía tiene muy buena base. Prioridad: condición física para aguantar 36 hoyos.'}]
+  },
+  { id:'rv', grad:'Egresado 2024', interes:'—', mano:'Diestro', estatura:'1.79 m', mejor:'63 (−9) · Cancún CC, jul 2026', ball:'268 km/h', swing:'179 km/h', avg:'70.4', tallas:{playera:'M', pants:'32', gorra:'L/XL', calzado:'28.5 MX'}, apoyo:{equipo:0, material:0, conc:0, total:375000, tope:500000, semanas:15}, nom:'Rodrigo Villarreal', ini:'RV', edad:24, rama:'XUNTOS', grupo:'Xunt@s Pro', beca:true,
+    escuela:'Profesional · egresado de Oklahoma State', grado:'—', ciudad:'Monterrey, N.L.',
+    swing:'Ramiro Sepúlveda', fisico:'Independiente', mental:'Dr. Iván Puente · semanal', hcp:'+4.1',
+    ranks:[['OWGR','1,850','up'],['Gira Mexicana','9','up']],
+    cal:[['24','AGO','Abierto de Querétaro','Querétaro, Qro.'],['07','SEP','Q-School primera etapa','Florida']],
+    entries:[{priv:false, t:'Abierto de Cancún', f:'24 de julio de 2026', s:'70-68-72-71', txt:'Top 10. La semana funcionó porque simplifiqué: un solo pensamiento por tiro.', tags:['Gira','Estrategia']}],
+    files:[{n:'Swing_perfil_Cancun.mp4', k:'Video', s:'51.3 MB', f:'25 jul 2026'},
+           {n:'Calendario_QSchool.pdf', k:'Documento', s:'180 KB', f:'1 ago 2026'}],
+    notes:[{a:'Dr. Iván Puente', r:'Psicólogo del deporte', txt:'Buen momento competitivo. Preparar rutina específica para Q-School.'}]
+  },
+  { id:'mq', grad:'Clase 2031', interes:'Aún por definir', mano:'Diestra', estatura:'1.54 m', mejor:'81 (+9) · Club Inglés, may 2026', ball:'168 km/h', swing:'116 km/h', avg:'84.5', tallas:{playera:'XS', pants:'24', gorra:'Ajustable', calzado:'22.5 MX'}, nom:'Marifer Quintana', ini:'MQ', edad:13, rama:'XUNTAS', grupo:'Programa de Desarrollo', beca:false,
+    escuela:'Colegio Inglés, Monterrey', grado:'1.º de secundaria', ciudad:'Monterrey, N.L.',
+    swing:'Luis Cantú', fisico:'Iniciación', mental:'—', hcp:'8.6',
+    ranks:[['CNIJ','21','up']],
+    cal:[['30','AGO','Zonal Norte Juvenil','Saltillo, Coah.']],
+    entries:[], notes:[], files:[]
+  },
+  { id:'pe', grad:'Clase 2029 · universidad', interes:'Finanzas', mano:'Diestro', estatura:'1.83 m', mejor:'66 (−6) · Karsten Creek, sep 2025', ball:'258 km/h', swing:'174 km/h', avg:'72.1', tallas:{playera:'M', pants:'33', gorra:'L/XL', calzado:'28.5 MX'}, nom:'Patricio Elizondo', ini:'PE', edad:19, rama:'XUNTOS', grupo:'Xunt@s U', beca:false,
+    escuela:'Oklahoma State University', grado:'Sophomore · Finanzas', ciudad:'Stillwater, OK',
+    swing:'Staff Oklahoma State', fisico:'Programa universitario', mental:'—', hcp:'+2.8',
+    ranks:[['WAGR','290','up'],['Golfstat','88','up']],
+    cal:[['11','SEP','Carmel Cup','Pebble Beach, CA']],
+    entries:[{priv:false, t:'Verano amateur', f:'8 de agosto de 2026', s:'69-70', txt:'Buen cierre de verano antes de volver a Stillwater.', tags:['Verano']}],
+    files:[],
+    notes:[]
+  }
+];
+
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const mx = n => '$' + n.toLocaleString('es-MX');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const NAV = {
+  jugador: [['Perfil','jTabPerfil'],['Bitácora','jTabBitacora'],['PIP','jTabPIP'],['Calendario','jTabCalendario'],['Archivos','jTabArchivos']],
+};
+const CTX = {
+  publico:{ label:'Portal público',  who:null },
+  registro:{label:'Registro al Programa de Desarrollo', who:null },
+  jugador:{ label:'Mi perfil',       who:['RO','Regina Ontiveros'] },
+  coach:{   label:'Equipo de trabajo',who:['AG','Alejandro Garza'] },
+  admin:{   label:'Administración',  who:['AO','Administración y Operación'] },
+  direccion:{label:'Dirección de Alto Rendimiento', who:['AR','Dirección de Alto Rendimiento'] },
+};
+
+let ME = PLAYERS[0];
+
+/* ---------- público ---------- */
+function renderDeck(filter='todos'){
+  const list = PLAYERS.filter(p => filter==='todos' || p.grupo===filter || p.rama===filter);
+  $('#hCount').textContent = list.length;
+  $('#deck').innerHTML = list.length ? list.map(p => `
+    <button class="flip" aria-label="Ver datos de ${esc(p.nom)}">
+      <div class="flip-in">
+        <div class="face f-front">
+          <div class="mono-photo">
+            <span class="rama">${esc(p.rama)}</span>
+            <b>${esc(p.ini)}</b>
+            <span class="turnkey">datos al reverso →</span>
+          </div>
+          <div class="cap"><strong>${esc(p.nom)}</strong><span>${esc(p.grupo)}</span></div>
+        </div>
+        <div class="face f-back">
+          <span class="grp">${esc(p.grupo)}</span>
+          <h4>${esc(p.nom)}</h4>
+          <div class="mini">
+            <div><i>Edad</i><b>${p.edad}</b></div>
+            <div><i>Mano</i><b>${esc(p.mano)}</b></div>
+            <div><i>Estatura</i><b>${esc(p.estatura)}</b></div>
+            <div><i>Hcp</i><b class="rk">${esc(p.hcp)}</b></div>
+          </div>
+          <dl>
+            <div><dt>${p.grupo==='Xunt@s U'?'Universidad':'Escuela'}</dt><dd>${esc(p.escuela.split(',')[0])}</dd></div>
+            ${p.grad ? `<div><dt>Graduación</dt><dd>${esc(p.grad)}</dd></div>` : ''}
+            ${p.interes && p.interes!=='—' ? `<div><dt>Interés académico</dt><dd>${esc(p.interes)}</dd></div>` : ''}
+            <div><dt>${esc(p.ranks[0][0])}</dt><dd class="rk">#${esc(p.ranks[0][1])}</dd></div>
+          </dl>
+          <div class="best"><i>Mejor score en torneo</i><b>${esc(p.mejor)}</b></div>
+        </div>
+      </div>
+    </button>`).join('')
+    : `<div class="empty" style="grid-column:1/-1"><b>Sin atletas en este filtro</b>Prueba con otro grupo o rama.</div>`;
+
+  $$('#deck .flip').forEach(el => el.addEventListener('click', () => el.classList.toggle('flipped')));
+}
+
+/* ---------- jugador ---------- */
+function renderPlayer(p){
+  ME = p;
+  $('#jAv').textContent = p.ini;
+  $('#jName').textContent = p.nom;
+  $('#jGroup').textContent = p.grupo;
+  $('#jChips').innerHTML =
+    `<span class="chip k">${esc(p.rama)}</span>` +
+    (p.beca ? `<span class="chip y">Becado</span>` : `<span class="chip">Sin beca</span>`) +
+    `<span class="chip">${p.edad} años</span><span class="chip">Hcp ${esc(p.hcp)}</span>`;
+
+  $('#jData').innerHTML = [
+    ['Edad', p.edad + ' años'],
+    ['Ciudad', p.ciudad],
+    [p.grupo==='Xunt@s U'?'Universidad':'Escuela', p.escuela],
+    ['Grado', p.grado],
+    ['Grupo', p.grupo],
+    ['Graduación', p.grad],
+    ['Interés académico', p.interes],
+    ['Hándicap', p.hcp],
+  ].map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
+
+  $('#jVideo').innerHTML = `
+    <div class="thumb"><div class="play"></div><span>${esc(VIDEO_SEMANA.dur)}</span></div>
+    <div class="vb">
+      <span class="vk">Video de la semana · Biblioteca de contenidos</span>
+      <h3>${esc(VIDEO_SEMANA.titulo)}</h3>
+      <p>${esc(VIDEO_SEMANA.desc)}</p>
+      <div class="vm">${esc(VIDEO_SEMANA.autor)} &nbsp;·&nbsp; ${esc(VIDEO_SEMANA.semana)} &nbsp;·&nbsp; Asignado por la Dirección de Alto Rendimiento</div>
+    </div>`;
+
+  $('#jStats').innerHTML = `
+    <div><i>Ball speed</i><b>${esc(p.ball)}</b></div>
+    <div><i>Swing speed</i><b>${esc(p.swing)}</b></div>
+    <div><i>Scoring average</i><b>${esc(p.avg)}</b><small>en competencia</small></div>
+    <div><i>Estatura</i><b>${esc(p.estatura)}</b></div>
+    <div><i>Mano</i><b style="font-size:14px">${esc(p.mano)}</b></div>
+    <div class="wide"><i>Mejor score en torneo</i><b>${esc(p.mejor)}</b></div>`;
+
+  $('#jTallas').innerHTML = [
+    ['Playera', p.tallas.playera], ['Pantalón', p.tallas.pants],
+    ['Gorra', p.tallas.gorra], ['Calzado', p.tallas.calzado],
+  ].map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
+
+  renderFiles();
+  renderPIP();
+
+  $('#jTeam').innerHTML = [
+    ['Coach de swing', p.swing],
+    ['Programa físico', p.fisico],
+    ['Psicología', p.mental || '—'],
+  ].map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
+
+  $('#jRanks').innerHTML = p.ranks.map(([n,v,t]) => `
+    <div class="rank-row">
+      <span style="font-size:13px">${esc(n)}</span>
+      <span class="n">${v==='—'?'—':(n.includes('average')?'':'#')+esc(v)}${
+        t==='up'?'<i class="trend up">▲</i>':t==='dn'?'<i class="trend dn">▼</i>':''}</span>
+    </div>`).join('');
+
+  $('#jCal').innerHTML = p.cal.length ? p.cal.map(([d,m,t,s]) => `
+    <li><span class="d"><b>${esc(d)}</b>${esc(m)}</span>
+      <span><strong>${esc(t)}</strong><span>${esc(s)}</span></span></li>`).join('')
+    : `<div class="empty"><b>Sin torneos registrados</b>Agrega tu calendario para que tu equipo lo vea.</div>`;
+
+  renderEntries();
+  $('#jNotes').innerHTML = p.notes.length ? p.notes.map(n => `
+    <div class="note">
+      <span class="av">${esc(n.a.split(' ').map(w=>w[0]).slice(0,2).join(''))}</span>
+      <div><b>${esc(n.a)}</b><span class="role-lab">${esc(n.r)}</span><p>${esc(n.txt)}</p></div>
+    </div>`).join('')
+    : `<div class="empty"><b>Aún sin comentarios</b>Tu equipo de trabajo puede escribir aquí.</div>`;
+}
+
+function renderEntries(){
+  const p = ME;
+  const nPriv = p.entries.filter(e=>e.priv).length;
+  $('#jEntryCount').textContent = p.entries.length + (p.entries.length===1?' entrada':' entradas') + (nPriv?` · ${nPriv} privada${nPriv>1?'s':''}`:'');
+  $('#jEntries').innerHTML = p.entries.length ? p.entries.map((e,i) => `
+    <article class="entry${e.priv?' privada':''}">
+      <div class="top"><strong>${esc(e.t)}</strong><time>${esc(e.f)}</time>
+        ${e.s && e.s!=='—' ? `<span class="score">${esc(e.s)}</span>` : ''}
+        ${e.priv ? '<span class="lock">Solo para mí</span>' : ''}</div>
+      <p>${esc(e.txt)}</p>
+      <div class="tags">
+        ${e.tags && e.tags.length ? e.tags.map(x=>`<span class="chip">${esc(x)}</span>`).join('') : ''}
+        <button class="btn ghost sm" data-toggle="${i}" style="padding:3px 10px;font-size:11.5px">${e.priv?'Compartir con mi equipo':'Hacerla privada'}</button>
+      </div>
+    </article>`).join('')
+    : `<div class="empty"><b>Tu bitácora está vacía</b>Escribe tu primera entrada después del próximo torneo.</div>`;
+  $$('#jEntries [data-toggle]').forEach(b => b.addEventListener('click', () => {
+    p.entries[+b.dataset.toggle].priv = !p.entries[+b.dataset.toggle].priv;
+    renderEntries(); renderDireccion();
+  }));
+}
+
+let entryPriv = false;
+$$('.vis button').forEach(b => b.addEventListener('click', () => {
+  $$('.vis button').forEach(x => x.setAttribute('aria-checked', String(x===b)));
+  entryPriv = b.dataset.priv === '1';
+  $('#visHint').textContent = entryPriv
+    ? 'Nadie más puede leerla. Ni tu coach, ni la asociación. Es tu diario.'
+    : 'Tu coach y la Dirección de Alto Rendimiento podrán leerla y comentarla.';
+}));
+function renderFiles(){
+  const f = ME.files || (ME.files = []);
+  $('#jFileCount').textContent = f.length + (f.length===1?' archivo':' archivos');
+  $('#jFiles').innerHTML = f.length ? f.map((x,i) => `
+    <div class="file">
+      <span class="ft ${x.k==='Video'?'v':'d'}">${x.k==='Video'?'MP4':'DOC'}</span>
+      <span class="fi"><b>${esc(x.n)}</b><span>${esc(x.k)} · ${esc(x.s)} · ${esc(x.f)}</span></span>
+      <button class="btn ghost sm" data-del="${i}" style="padding:4px 10px;font-size:11.5px">Eliminar</button>
+    </div>`).join('')
+    : `<div class="empty"><b>Aún no subes archivos</b>Empieza con un video de swing de cara y de perfil.</div>`;
+  $$('#jFiles [data-del]').forEach(b => b.addEventListener('click', () => {
+    ME.files.splice(+b.dataset.del,1); renderFiles();
+  }));
+}
+function addFiles(list){
+  const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
+  [...list].forEach(f => {
+    const vid = /\.(mp4|mov|avi|m4v|webm)$/i.test(f.name);
+    ME.files.unshift({ n:f.name, k: vid?'Video':'Documento',
+      s: f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(f.size/1024))+' KB', f:hoy });
+  });
+  renderFiles();
+}
+const drop = $('.drop');
+$('#fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value=''; });
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { if(e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+$('#cSave').addEventListener('click', () => {
+  const t = $('#cTour').value.trim(), s = $('#cScore').value.trim(), txt = $('#cText').value.trim();
+  if(!t || !txt){ alert('Escribe al menos el torneo y tu reflexión.'); return; }
+  const f = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  ME.entries.unshift({ priv:entryPriv, t, f, s: s||'—', txt, tags:[] });
+  $('#cTour').value=''; $('#cScore').value=''; $('#cText').value='';
+  renderEntries();
+});
+
+/* ---------- coach ---------- */
+function renderCoach(){
+  const mine = PLAYERS.filter(p => p.swing.includes('Alejandro Garza') || p.id==='db' || p.id==='am');
+  $('#coachRows').innerHTML = mine.map(p => `
+    <tr data-id="${p.id}">
+      <td class="name">${esc(p.nom)}</td>
+      <td>${esc(p.grupo)}</td>
+      <td class="mono">${p.cal[0] ? esc(p.cal[0][0]+' '+p.cal[0][1]) : '—'}</td>
+      <td class="mono">${p.entries[0] ? esc(p.entries[0].f) : 'Sin registro'}</td>
+      <td>${p.entries.length ? '<span class="chip ok">Al día</span>' : '<span class="chip warn">Sin captura</span>'}</td>
+    </tr>`).join('');
+  $$('#coachRows tr').forEach(r => r.addEventListener('click', () => openPanel(r.dataset.id)));
+
+  $('#coachNotes').innerHTML = PLAYERS.flatMap(p =>
+    p.notes.filter(n => n.a==='Alejandro Garza').map(n => `
+      <div class="note">
+        <span class="av">AG</span>
+        <div><b>Sobre ${esc(p.nom)}</b><span class="role-lab">${esc(n.r)} · 6 de agosto</span><p>${esc(n.txt)}</p></div>
+      </div>`)).join('') ||
+    `<div class="empty"><b>Aún no escribes comentarios</b>Abre el perfil de un atleta para comentar su proceso.</div>`;
+}
+
+/* ---------- admin ---------- */
+function renderAdmin(){
+  const estado = p => !p.entries.length ? '<span class="chip bad">Sin captura</span>'
+    : p.id==='ec' ? '<span class="chip warn">Lesión</span>'
+    : p.id==='rv' ? '<span class="chip warn">Atrasado</span>'
+    : '<span class="chip ok">Al día</span>';
+  $('#adminRows').innerHTML = PLAYERS.map(p => `
+    <tr data-id="${p.id}">
+      <td class="name">${esc(p.nom)}${p.beca?' <span class="chip y">Beca</span>':''}</td>
+      <td>${esc(p.grupo)}</td>
+      <td class="mono">${esc(p.rama)}</td>
+      <td class="mono">${esc(p.ranks[0][0])} #${esc(p.ranks[0][1])}</td>
+      <td class="mono">${p.entries[0] ? esc(p.entries[0].f.replace(' de 2026','')) : '—'}</td>
+      <td>${estado(p)}</td>
+    </tr>`).join('');
+  $$('#adminRows tr').forEach(r => r.addEventListener('click', () => openPanel(r.dataset.id,'ops')));
+}
+
+function renderMoney(){
+  const becados = PLAYERS.filter(p => p.apoyo && p.apoyo.total);
+  const ejer = becados.reduce((a,p)=>a+p.apoyo.total,0);
+  const comp = becados.reduce((a,p)=>a+p.apoyo.tope,0);
+  $('#kEjer').textContent = mx(ejer);
+  $('#kEjerSub').textContent = Math.round(ejer/comp*100) + '% de lo comprometido';
+  $('#kComp').textContent = mx(comp);
+  $('#kDisp').textContent = mx(comp-ejer);
+  $('#kProm').textContent = mx(Math.round(ejer/becados.length));
+  $('#kPromSub').textContent = becados.length + ' atletas con beca activa';
+
+  $('#moneyRows').innerHTML = becados.map(p => {
+    const pct = Math.round(p.apoyo.total/p.apoyo.tope*100);
+    const otros = p.apoyo.conc || (p.apoyo.semanas ? p.apoyo.total : 0);
+    return `<tr data-id="${p.id}">
+      <td class="name">${esc(p.nom)}</td>
+      <td>${esc(p.grupo)}</td>
+      <td class="mono">${p.apoyo.equipo ? mx(p.apoyo.equipo) : '—'}</td>
+      <td class="mono">${p.apoyo.material ? mx(p.apoyo.material) : '—'}</td>
+      <td class="mono">${otros ? mx(otros) + (p.apoyo.semanas ? ` <span style="color:var(--soft)">· ${p.apoyo.semanas} sem</span>` : '') : '—'}</td>
+      <td class="mono"><b>${mx(p.apoyo.total)}</b></td>
+      <td class="mono" style="color:var(--soft)">${mx(p.apoyo.tope)}</td>
+      <td><span class="chip ${pct>=95?'bad':pct>=75?'warn':'ok'}">${pct}%</span></td>
+    </tr>`; }).join('');
+  $$('#moneyRows tr').forEach(r => r.addEventListener('click', () => openPanel(r.dataset.id,'ops')));
+}
+
+/* ---------- dirección de alto rendimiento ---------- */
+function renderDireccion(){
+  const cola = [
+    ['bad','!','Emiliano Cázares','Molestia lumbar sin alta médica desde el 11 de agosto. Definir si ajustamos su plan antes del Frisco Invitational.'],
+    ['warn','7','Marifer Quintana','34 días sin capturar. Aún no tiene plan de trabajo asignado.'],
+    ['warn','7','Rodrigo Villarreal','21 días sin capturar tras el Abierto de Cancún. Q-School en 3 semanas.'],
+    ['warn','→','Regina Ontiveros','Copa Nuevo León el 22 de agosto. Primer torneo con el ajuste de tempo de driver.'],
+  ];
+  $('#dirQueue').innerHTML = cola.map(([k,i,n,txt]) => `
+    <div class="alert"><div class="ic ${k}">${i}</div><div><b>${esc(n)}</b><p>${esc(txt)}</p></div></div>`).join('');
+
+  const conPlan = PLAYERS.filter(p => p.plan && p.plan.length);
+  $('#dirPlanCount').textContent = conPlan.length + ' atletas';
+  $('#dirPlans').innerHTML = conPlan.map(p => `
+    <div class="card pad">
+      <div class="sec-head" style="margin:0 0 10px">
+        <h2>${esc(p.nom)} <span class="chip">${esc(p.grupo)}</span></h2>
+        <button class="btn ghost sm" data-open="${p.id}">Abrir expediente</button>
+      </div>
+      <dl class="dl-clean">
+        ${p.plan.map(([f,d,s]) => `<div><dt style="text-transform:none;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:0;color:var(--ink)">${esc(f)}<br><span style="font-weight:300;color:var(--soft);font-size:12.5px">${esc(d)}</span></dt><dd><span class="chip ${s==='Prioridad'?'bad':s==='Nuevo'?'y':'ok'}">${esc(s)}</span></dd></div>`).join('')}
+      </dl>
+    </div>`).join('');
+  $$('#dirPlans [data-open]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.open,'full')));
+
+  const estado = p => !p.entries.length ? '<span class="chip bad">Sin captura</span>'
+    : p.id==='ec' ? '<span class="chip warn">Lesión</span>'
+    : p.id==='rv' ? '<span class="chip warn">Atrasado</span>'
+    : '<span class="chip ok">Al día</span>';
+  $('#dirRows').innerHTML = PLAYERS.map(p => `
+    <tr data-id="${p.id}">
+      <td class="name">${esc(p.nom)}</td>
+      <td>${esc(p.grupo)}</td>
+      <td class="mono">${p.plan && p.plan.length ? p.plan.length+' focos' : '<span style="color:var(--bad)">Sin plan</span>'}</td>
+      <td class="mono">${(() => { const v = p.entries.filter(e=>!e.priv); return v[0] ? esc(v[0].f.replace(' de 2026','')) : '<span style="color:var(--soft)">—</span>'; })()}</td>
+      <td class="mono">${p.cal[0] ? esc(p.cal[0][0]+' '+p.cal[0][1]) : '—'}</td>
+      <td>${estado(p)}</td>
+    </tr>`).join('');
+  $$('#dirRows tr').forEach(r => r.addEventListener('click', () => openPanel(r.dataset.id,'full')));
+}
+
+/* ---------- panel lateral ---------- */
+function openPanel(id, mode='full'){
+  const p = PLAYERS.find(x => x.id===id);
+  $('#pTitle').textContent = p.nom;
+  $('#pBody').innerHTML = `
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px">
+      <span class="chip k">${esc(p.grupo)}</span><span class="chip">${esc(p.rama)}</span>
+      ${p.beca?'<span class="chip y">Becado</span>':''}
+    </div>
+    <dl class="dl-clean" style="margin-bottom:22px">
+      <div><dt>Edad</dt><dd>${p.edad} años</dd></div>
+      <div><dt>${p.grupo==='Xunt@s U'?'Universidad':'Escuela'}</dt><dd>${esc(p.escuela)}</dd></div>
+      <div><dt>Coach de swing</dt><dd>${esc(p.swing)}</dd></div>
+      <div><dt>Graduación</dt><dd>${esc(p.grad)}</dd></div>
+      <div><dt>Interés académico</dt><dd>${esc(p.interes)}</dd></div>
+      <div><dt>Mano</dt><dd>${esc(p.mano)}</dd></div>
+      <div><dt>Estatura</dt><dd>${esc(p.estatura)}</dd></div>
+      <div><dt>Hándicap</dt><dd>${esc(p.hcp)}</dd></div>
+      <div><dt>Ball speed</dt><dd>${esc(p.ball)}</dd></div>
+      <div><dt>Swing speed</dt><dd>${esc(p.swing)}</dd></div>
+      <div><dt>Scoring average</dt><dd>${esc(p.avg)}</dd></div>
+      <div><dt>Mejor score</dt><dd>${esc(p.mejor)}</dd></div>
+      ${p.ranks.map(([n,v]) => `<div><dt>${esc(n)}</dt><dd>${v==='—'?'—':(n.includes('average')?'':'#')+esc(v)}</dd></div>`).join('')}
+    </dl>
+    ${p.apoyo && p.apoyo.total ? `
+      <div class="sec-head" style="margin:0 0 10px"><h2>Aportación del ciclo</h2></div>
+      <dl class="money" style="margin-bottom:22px">
+        ${p.apoyo.equipo ? `<div><dt>Equipo de trabajo</dt><dd>${mx(p.apoyo.equipo)}</dd></div>` : ''}
+        ${p.apoyo.material ? `<div><dt>Material y equipamiento</dt><dd>${mx(p.apoyo.material)}</dd></div>` : ''}
+        ${p.apoyo.conc ? `<div><dt>Concentraciones</dt><dd>${mx(p.apoyo.conc)}</dd></div>` : ''}
+        ${p.apoyo.semanas ? `<div><dt>Apoyo directo · ${p.apoyo.semanas} semanas de torneo</dt><dd>${mx(p.apoyo.total)}</dd></div>` : ''}
+        <div><dt>Ejercido a la fecha</dt><dd>${mx(p.apoyo.total)}</dd></div>
+      </dl>
+      <p style="margin:-14px 0 22px;font-size:12px;color:var(--soft)">Tope autorizado del ciclo: ${mx(p.apoyo.tope)} · ${Math.round(p.apoyo.total/p.apoyo.tope*100)}% ejercido</p>
+      <div class="meter" style="margin:-14px 0 22px"><i style="width:${Math.min(100,Math.round(p.apoyo.total/p.apoyo.tope*100))}%"></i></div>`
+    : `<div class="card pad" style="margin-bottom:22px"><b style="font-family:var(--disp);font-size:14px">Sin beca este ciclo</b><p style="margin:5px 0 0;font-size:13px;color:var(--soft)">Miembro del Programa de Desarrollo. No hay aportación económica asociada.</p></div>`}
+
+    <div class="sec-head" style="margin:0 0 10px"><h2>Próximo torneo</h2></div>
+    <p style="margin:0 0 22px;font-size:13.5px">${p.cal[0] ? esc(p.cal[0][2]+' · '+p.cal[0][0]+' '+p.cal[0][1]) : 'Sin calendario registrado'}</p>
+    ${mode!=='full' ? `
+      <div class="card pad" style="background:var(--yel-s);border-color:var(--yel)">
+        <b style="font-family:var(--disp);font-size:14px">Bitácora y plan de trabajo</b>
+        <p style="margin:6px 0 0;font-size:13px;color:var(--soft)">No visibles desde Administración. El seguimiento individual corresponde a Dirección de Alto Rendimiento y al equipo de trabajo del atleta.</p>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn ghost sm">Enviar recordatorio de captura</button>
+      </div>` : `
+      <div class="sec-head" style="margin:0 0 10px"><h2>Archivos del atleta</h2></div>
+      ${(p.files && p.files.length) ? `<div style="margin-bottom:22px">${p.files.slice(0,4).map(x => `
+        <div class="file"><span class="ft ${x.k==='Video'?'v':'d'}">${x.k==='Video'?'MP4':'DOC'}</span>
+        <span class="fi"><b>${esc(x.n)}</b><span>${esc(x.k)} · ${esc(x.s)} · ${esc(x.f)}</span></span></div>`).join('')}
+        ${p.files.length>4?`<p class="hint" style="margin-top:10px">y ${p.files.length-4} más</p>`:''}</div>`
+        : `<div class="empty" style="margin-bottom:16px"><b>Sin archivos</b>El atleta no ha subido nada.</div>`}
+
+      <div class="sec-head" style="margin:0 0 10px"><h2>Plan de trabajo</h2></div>
+      ${p.plan && p.plan.length ? `<dl class="dl-clean" style="margin-bottom:22px">${p.plan.map(([f,d,s]) => `<div><dt style="text-transform:none;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:0;color:var(--ink)">${esc(f)}<br><span style="font-weight:300;color:var(--soft);font-size:12px">${esc(d)}</span></dt><dd><span class="chip ${s==='Prioridad'?'bad':s==='Nuevo'?'y':'ok'}">${esc(s)}</span></dd></div>`).join('')}</dl>`
+        : `<div class="empty" style="margin-bottom:16px"><b>Sin plan asignado</b>Este atleta aún no tiene focos de trabajo definidos.</div>`}
+      <button class="btn ghost sm" style="margin-bottom:24px">Editar plan de trabajo</button>
+
+      <div class="sec-head" style="margin:0 0 10px"><h2>Bitácora compartida</h2></div>
+      ${(() => { const vis = p.entries.filter(e=>!e.priv); const nP = p.entries.length - vis.length;
+        return (vis[0] ? `<article class="entry"><div class="top"><strong>${esc(vis[0].t)}</strong><time>${esc(vis[0].f)}</time></div><p>${esc(vis[0].txt)}</p></article>`
+          : `<div class="empty"><b>Sin entradas compartidas</b>El atleta no ha compartido ninguna.</div>`)
+        + (nP ? `<p style="margin:12px 0 0;font-size:12px;color:var(--soft)"><span class="lock">${nP} privada${nP>1?'s':''}</span> &nbsp;El atleta las marcó como su diario personal. No son visibles.</p>` : ''); })()}
+
+      <div class="sec-head" style="margin:24px 0 10px"><h2>Comentarios del equipo</h2></div>
+      <div id="pNotes">${p.notes.length ? p.notes.map(n => `
+        <div class="note"><span class="av">${esc(n.a.split(' ').map(w=>w[0]).slice(0,2).join(''))}</span>
+        <div><b>${esc(n.a)}</b><span class="role-lab">${esc(n.r)}</span><p>${esc(n.txt)}</p></div></div>`).join('')
+        : `<div class="empty"><b>Sin comentarios</b>Escribe el primero.</div>`}</div>
+
+      <div class="composer" style="margin-top:16px">
+        <textarea id="pComment" placeholder="Comentario sobre el proceso de ${esc(p.nom.split(' ')[0])}. Lo leen el atleta y su equipo de trabajo."></textarea>
+        <div class="foot"><span class="hint">Se publica a tu nombre.</span><button class="btn sm" id="pSaveNote">Publicar comentario</button></div>
+      </div>`}`;
+
+  if(mode==='full'){
+    const btn = $('#pSaveNote');
+    if(btn) btn.addEventListener('click', () => {
+      const v = $('#pComment').value.trim();
+      if(!v){ $('#pComment').focus(); return; }
+      p.notes.push({ a:'Dirección de Alto Rendimiento', r:'XUNTAS–XUNTOS · hoy', txt:v });
+      openPanel(id,'full');
+      if(ME.id===p.id) renderPlayer(p);
+      renderDireccion();
+    });
+  }
+  $('#panel').classList.add('on'); $('#panel').setAttribute('aria-hidden','false');
+  $('#scrim').classList.add('on');
+}
+function closePanel(){
+  $('#panel').classList.remove('on'); $('#panel').setAttribute('aria-hidden','true');
+  $('#scrim').classList.remove('on');
+}
+$('#pClose').addEventListener('click', closePanel);
+$('#scrim').addEventListener('click', closePanel);
+document.addEventListener('keydown', e => { if(e.key==='Escape') closePanel(); });
+
+
+
+/* ---------- PIP ---------- */
+const DIAS = ['L','M','X','J','V','S','D'];
+function pipState(p){
+  if(!p.pip) p.pip = { seen:[false,false], comments:['',''], reto:'', dias:Array(7).fill(false), journal:[] };
+  return p.pip;
+}
+function pipGrupo(p){ return (p.edad < 19 ? p.rama+'-menor' : p.rama+'-mayor'); }
+
+function renderPIP(){
+  const p = ME, s = pipState(p), g = pipGrupo(p);
+  $('#pipMes').textContent = PIP.mes;
+  $('#pipTema').textContent = PIP.tema;
+  $('#pipIntro').textContent = PIP.intro;
+  $('#pipRetoFechas').textContent = PIP.reto.inicio + ' al ' + PIP.reto.fin;
+
+  const hitos = [s.seen[0], s.seen[1], s.comments[0].trim()!=='', s.comments[1].trim()!=='',
+                 s.reto.trim()!=='', s.dias.filter(Boolean).length>=7];
+  const pct = Math.round(hitos.filter(Boolean).length / hitos.length * 100);
+  $('#pipPct').textContent = pct + '%';
+  $('#pipBar').style.width = pct + '%';
+
+  const vistos = s.seen.filter(Boolean).length;
+  const coments = s.comments.filter(c => c.trim()).length;
+  const dias = s.dias.filter(Boolean).length;
+  const semanas = [
+    ['Semana 1','Ver los 2 videos', vistos+'/2', vistos===2],
+    ['Semana 2','Escribir tus comentarios', coments+'/2', coments===2],
+    ['Semana 3','Office hours en vivo', 'En vivo', false],
+    ['Semana 4','Reto de 7 días', dias+'/7', dias===7],
+  ];
+  let activa = semanas.findIndex(w => !w[3]);
+  if(activa === -1) activa = 3;
+  $('#pipWeeks').innerHTML = semanas.map((w,i) =>
+    `<div class="wk${i===activa?' on':''}${w[3]?' ok':''}"><i>${w[0]}</i><b>${w[1]}</b><u>${esc(w[2])}</u></div>`).join('');
+
+  $('#pipVidChip').textContent = vistos===2 ? 'Los dos vistos' : `${vistos} de 2 vistos`;
+  $('#pipVidChip').className = 'chip ' + (vistos===2 ? 'ok' : 'warn');
+  $('#pipVideos').innerHTML = PIP.videos.map((v,i) => `
+    <div class="vrow">
+      <button class="th${s.seen[i]?' seen':''}" data-v="${i}" aria-pressed="${s.seen[i]}"><span class="play"></span><span class="dur">${esc(v.dur)}</span></button>
+      <div class="vb">
+        <h4>${esc(v.t)}</h4>
+        <div class="au">${esc(v.a)}</div>
+        <p>${esc(v.d)}</p>
+        <label>Qué aprendiste o qué te hizo pensar</label>
+        <textarea data-c="${i}" placeholder="Escríbelo con tus palabras. No hay respuesta correcta.">${esc(s.comments[i])}</textarea>
+        <div class="vf"><span class="chip ${s.seen[i]?'ok':'warn'}">${s.seen[i]?'Visto':'Pendiente de ver'}</span><span class="hint">${s.comments[i].trim()?'Comentario guardado':'Sin comentario'}</span></div>
+      </div>
+    </div>`).join('');
+  $$('#pipVideos .th').forEach(el => el.addEventListener('click', () => { s.seen[+el.dataset.v] = !s.seen[+el.dataset.v]; renderPIP(); }));
+  $$('#pipVideos textarea').forEach(el => {
+    el.addEventListener('input', () => { s.comments[+el.dataset.c] = el.value; });
+    el.addEventListener('blur', renderPIP);
+  });
+
+  const gr = PIP.office.grupos.find(x => x.k === g);
+  const otros = PIP.office.grupos.filter(x => x.k !== g);
+  $('#pipGrupo').textContent = gr.lab;
+  $('#pipOffice').innerHTML = `
+    <div class="zoom">
+      <div><span class="zk">Tu sesión · ${esc(gr.lab)}</span>
+        <h4>${esc(PIP.office.fecha)} · ${esc(gr.hora)}</h4>
+        <div class="zd">Se platican los dos videos del mes y cómo llevarlos a tu día a día y al golf.</div></div>
+      <a class="btn" href="${esc(gr.link)}" target="_blank" rel="noopener">Entrar a Zoom</a>
+    </div>
+    <div class="others">${otros.map(o => `<div><i>${esc(o.lab)}</i><b>${esc(o.hora)}</b></div>`).join('')}</div>
+    <p class="hint" style="margin-top:11px">Las sesiones se dividen por rama y edad. La tuya está resaltada; las demás aparecen solo como referencia.</p>`;
+
+  $('#pipReto').innerHTML = `
+    <textarea id="pipRetoTxt" placeholder="Durante siete días me comprometo a…">${esc(s.reto)}</textarea>
+    <div class="ideas">${['Tres respiraciones antes de cada tiro largo','Anotar un aprendizaje al terminar cada práctica','Guardar el teléfono la hora antes de dormir','Cinco minutos de silencio antes de entrenar'].map(i=>`<button data-i="${esc(i)}">${esc(i)}</button>`).join('')}</div>
+    <div class="days">${s.dias.map((d,i)=>`<button data-d="${i}" aria-pressed="${d}"><i>${DIAS[i]}</i>${i+1}</button>`).join('')}</div>
+    <div class="streak">${!s.reto.trim() ? 'Escribe tu compromiso para poder marcar los días.' : dias===0 ? 'Sin días marcados todavía.' : dias===7 ? 'Siete de siete. Reto completado.' : dias+' de 7 días marcados.'}</div>`;
+  const rt = $('#pipRetoTxt');
+  rt.addEventListener('input', () => { s.reto = rt.value; });
+  rt.addEventListener('blur', renderPIP);
+  $$('#pipReto .ideas button').forEach(b => b.addEventListener('click', () => { s.reto = b.dataset.i; renderPIP(); }));
+  $$('#pipReto .days button').forEach(b => b.addEventListener('click', () => {
+    if(!s.reto.trim()){ $('#pipRetoTxt').focus(); return; }
+    s.dias[+b.dataset.d] = !s.dias[+b.dataset.d]; renderPIP();
+  }));
+
+  $('#pipJournal').innerHTML = s.journal.length ? s.journal.map((e,i) => `
+    <article class="jp"><div class="top"><time>${esc(e.f)}</time><span class="lock">Privado</span>
+      <button class="btn ghost sm" data-jdel="${i}" style="padding:2px 9px;font-size:11px;margin-left:auto">Borrar</button></div>
+      <p>${esc(e.txt)}</p></article>`).join('')
+    : `<div class="empty"><b>Tu journal está vacío</b>Nadie más lo va a leer.</div>`;
+  $$('#pipJournal [data-jdel]').forEach(b => b.addEventListener('click', () => { s.journal.splice(+b.dataset.jdel,1); renderPIP(); }));
+}
+$('#pipJSave').addEventListener('click', () => {
+  const v = $('#pipJText').value.trim();
+  if(!v){ $('#pipJText').focus(); return; }
+  pipState(ME).journal.unshift({ f: new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}), txt:v });
+  $('#pipJText').value=''; renderPIP();
+});
+
+/* ---------- registro ---------- */
+function addRes(){
+  const d = document.createElement('div');
+  d.className = 'tor';
+  d.innerHTML = `<input placeholder="Nombre del torneo"><input placeholder="Score o posición"><button class="rm" aria-label="Quitar">&times;</button>`;
+  d.querySelector('.rm').addEventListener('click', () => { d.remove(); if(!$('#rResList').children.length) addRes(); });
+  $('#rResList').appendChild(d);
+}
+$('#rAddRes').addEventListener('click', addRes);
+addRes(); addRes(); addRes();
+
+$('#rCarta').addEventListener('input', e => {
+  const n = e.target.value.length, c = $('#rCount');
+  c.textContent = n.toLocaleString('es-MX') + ' / 3,000 caracteres';
+  c.classList.toggle('over', n > 3000);
+});
+
+$('#rNac').addEventListener('change', e => {
+  if(!e.target.value) return;
+  const b = new Date(e.target.value), hoy = new Date('2026-10-15');
+  let edad = hoy.getFullYear() - b.getFullYear();
+  const m = hoy.getMonth() - b.getMonth();
+  if(m < 0 || (m === 0 && hoy.getDate() < b.getDate())) edad--;
+  const menor = edad < 18;
+  $('#rTutorBox').hidden = !menor;
+  $('#ck4w').hidden = !menor;
+  $('#rState').textContent = edad < 12
+    ? 'El programa admite desde los 12 años cumplidos al 15 de octubre de 2026.'
+    : `Tendrás ${edad} años al inicio del ciclo. El registro cierra el 18 de septiembre de 2026.`;
+});
+
+function fail(el, bad){
+  const box = el.closest('.fld') || el.closest('.check');
+  if(box) box.classList.toggle('bad', bad);
+  return !bad;
+}
+
+$('#rSend').addEventListener('click', () => {
+  let ok = true, first = null;
+  $$('#regForm [data-req]').forEach(el => {
+    let good = el.value.trim() !== '';
+    if(good && el.dataset.mail !== undefined) good = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(el.value.trim());
+    fail(el, !good);
+    if(!good){ ok = false; first = first || el; }
+  });
+  if(!$('#rTutorBox').hidden){
+    ['#rTutorNom','#rTutorMail'].forEach(id => {
+      const el = $(id);
+      let good = el.value.trim() !== '';
+      if(good && id === '#rTutorMail') good = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(el.value.trim());
+      fail(el, !good);
+      if(!good){ ok = false; first = first || el; }
+    });
+  }
+  const res = [...$('#rResList').querySelectorAll('.tor')].filter(r => r.children[0].value.trim() !== '');
+  $('#rResErr').style.display = res.length ? 'none' : 'block';
+  if(!res.length){ ok = false; first = first || $('#rResList'); }
+  const cks = ['ck1','ck2','ck3'].concat($('#ck4w').hidden ? [] : ['ck4']);
+  cks.forEach(id => {
+    const el = $('#'+id);
+    fail(el, !el.checked);
+    if(!el.checked){ ok = false; first = first || el; }
+  });
+  if($('#rCarta').value.length > 3000){ fail($('#rCarta'), true); ok = false; first = first || $('#rCarta'); }
+  if(!ok){
+    if(first) first.scrollIntoView({behavior:'smooth', block:'center'});
+    $('#rState').textContent = 'Faltan campos por completar. Están marcados en rojo.';
+    return;
+  }
+  $('#dNom').textContent = $('#rNom').value.trim().split(' ')[0];
+  $('#dMail').textContent = $('#rMail').value.trim();
+  $('#regForm').hidden = true; $('#regDone').hidden = false;
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+$('#rAgain').addEventListener('click', () => {
+  $$('#regForm input, #regForm textarea, #regForm select').forEach(el => {
+    if(el.type === 'checkbox') el.checked = false;
+    else if(!el.readOnly) el.value = '';
+  });
+  $$('#regForm .bad').forEach(x => x.classList.remove('bad'));
+  $('#rResList').innerHTML = ''; addRes(); addRes(); addRes();
+  $('#rResErr').style.display = 'none';
+  $('#rTutorBox').hidden = true; $('#ck4w').hidden = true;
+  $('#rCount').textContent = '0 / 3,000 caracteres';
+  $('#rState').textContent = 'El periodo de registro cierra el 18 de septiembre de 2026.';
+  $('#regDone').hidden = true; $('#regForm').hidden = false;
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+/* ---------- navegación de roles ---------- */
+function setRole(role){
+  $$('#roles .role').forEach(b => b.setAttribute('aria-selected', String(b.dataset.role===role)));
+  $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-'+role));
+  $('#ctxLabel').textContent = CTX[role].label;
+  const w = CTX[role].who;
+  $('#whoBox').innerHTML = w ? `<span>${esc(w[1])}</span><span class="dot">${esc(w[0])}</span>` :
+    `<span style="font-family:var(--mono);font-size:11.5px;letter-spacing:.06em">Acceso sin cuenta</span>`;
+
+  const tabs = NAV[role];
+  $('#navBar').hidden = !tabs;
+  if(tabs){
+    $('#navIn').innerHTML = tabs.map((t,i) =>
+      `<button role="tab" data-t="${t[1]}" aria-selected="${i===0}">${t[0]}</button>`).join('');
+    $$('#navIn button').forEach(b => b.addEventListener('click', () => {
+      $$('#navIn button').forEach(x => x.setAttribute('aria-selected', String(x===b)));
+      tabs.forEach(t => $('#'+t[1]).hidden = (t[1] !== b.dataset.t));
+    }));
+    tabs.forEach((t,i) => $('#'+t[1]).hidden = i!==0);
+  }
+  closePanel();
+  window.scrollTo({top:0, behavior:'instant'});
+}
+$$('#roles .role').forEach(b => b.addEventListener('click', () => setRole(b.dataset.role)));
+
+$$('#pubFilters button').forEach(b => b.addEventListener('click', () => {
+  $$('#pubFilters button').forEach(x => x.setAttribute('aria-pressed', String(x===b)));
+  renderDeck(b.dataset.f);
+}));
+
+renderDeck(); renderPlayer(PLAYERS[0]); renderCoach(); renderAdmin(); renderMoney(); renderDireccion(); setRole('publico');
+</script>
+</body>
+</html>
