@@ -315,9 +315,16 @@ export function resolveTheme(pref: ThemePreference, systemPrefersDark: boolean):
 export function nextPreference(pref: ThemePreference): ThemePreference   // system → light → dark → system
 ```
 
-`src/hooks/useTheme.ts` does the impure half: the `matchMedia` subscription
-(live only while the preference is `system`), the `localStorage` write, and the
-`data-theme` application.
+`src/components/ThemeProvider.tsx` does the impure half: the `matchMedia`
+subscription (live only while the preference is `system`), the `localStorage`
+write, and the `data-theme` application.
+
+This design originally split that half into a separate `src/hooks/useTheme.ts`.
+It does not, and should not: the provider is the hook's only possible consumer,
+so the extra file buys a boundary nobody crosses. The provider has one
+responsibility — own the preference and apply it — and that is the unit. The
+pure/impure split that matters is the one already made, between this file and
+`src/lib/theme.ts`, which is testable precisely because it has no second half.
 
 `src/components/AppBar/ThemeToggle.tsx` is one button (D7). Cycling through
 three states by guesswork is a known usability wart, and it is paid down
