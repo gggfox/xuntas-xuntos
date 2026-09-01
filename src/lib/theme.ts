@@ -4,7 +4,7 @@
  * The rules are here on their own so they can be tested as arithmetic — the
  * same reason `registrationRules.ts` and `cycle.ts` exist. Everything that
  * touches `localStorage`, `matchMedia` or the document lives in
- * `src/hooks/useTheme.ts` and imports from here.
+ * `src/components/ThemeProvider.tsx` and imports from here.
  */
 
 /** What the person chose. `system` means "follow the OS", and is the default. */

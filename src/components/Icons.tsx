@@ -154,6 +154,53 @@ function BrandMark(props: IconProps) {
   )
 }
 
-export const Icons = { Chevron, Calendar, Check, Document, Award, Shield, BrandMark }
+/** Sun: the light theme, pinned. */
+function ThemeLight(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <circle cx="10" cy="10" r="3.6" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M10 1.6v2.1M10 16.3v2.1M18.4 10h-2.1M3.7 10H1.6M15.94 4.06l-1.49 1.49M5.55 14.45l-1.49 1.49M15.94 15.94l-1.49-1.49M5.55 5.55L4.06 4.06"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+/** Moon: the dark theme, pinned. */
+function ThemeDark(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/**
+ * Half-filled circle: following the OS.
+ *
+ * A distinct third shape, not a dimmed sun. The whole cost of a cycling
+ * button is that state must be legible without pressing it.
+ */
+function ThemeSystem(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <circle cx="10" cy="10" r="6.6" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M10 3.4a6.6 6.6 0 0 1 0 13.2z" fill="currentColor" />
+    </svg>
+  )
+}
+
+export const Icons = {
+  Chevron, Calendar, Check, Document, Award, Shield, BrandMark,
+  ThemeLight, ThemeDark, ThemeSystem,
+}
 
 export default Icons

@@ -1,6 +1,7 @@
 import { Show, SignOutButton } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 import * as m from '../../paraglide/messages.js'
+import ThemeToggle from './ThemeToggle'
 
 /**
  * The right half of the header: everything that depends on the session.
@@ -13,6 +14,7 @@ import * as m from '../../paraglide/messages.js'
 export default function AccountNav() {
   return (
     <nav className="flex items-center gap-4 text-[13px]">
+      <ThemeToggle />
       <Show when="signed-in">
         <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
           {m.nav_my_registration()}
