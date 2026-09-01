@@ -15,6 +15,22 @@ function renderToggle() {
 
 const button = () => screen.getByRole('button')
 
+/**
+ * Rebuilds the exact string the component builds, from the same message
+ * functions it uses — never an English literal. This is deliberately
+ * order-sensitive: `.toContain()` on the two names alone proves both appear
+ * without proving which one is the current state and which is the next
+ * action, and a transposition of the two in the component would still pass
+ * such a check. `.toBe()` against this template does not.
+ */
+function stopLabel(current: string, next: string) {
+  return `${m.theme_label()}: ${current}. ${m.theme_switch_to({ theme: next })}`
+}
+
+function liveText(current: string) {
+  return `${m.theme_label()}: ${current}`
+}
+
 beforeEach(() => {
   window.localStorage.clear()
   delete document.documentElement.dataset.theme
@@ -49,57 +65,40 @@ describe('ThemeToggle', () => {
     /*
      * Regression guard for a hydration bug: the label and live region are
      * built from `preference`, gated on `mounted` the same way the icon
-     * already was. Without that gate, a restored `dark`/`light` preference
-     * left the aria-label and title permanently stuck on the pre-mount
-     * `system` fallback, because a real SSR pass always renders as if the
+     * already was (via `displayedPreference` in `src/lib/theme.ts`).
+     * Without that gate, a restored `dark`/`light` preference left the
+     * aria-label and title permanently stuck on the pre-mount `system`
+     * fallback, because a real SSR pass always renders as if the
      * preference were `system`, and React does not patch up an attribute
      * mismatch once it has hydrated. This can't reproduce the SSR mismatch
      * itself (this harness renders client-only), but it pins the half that
      * matters here: once mounted with a stored preference, both the button
      * and the live region must lead with the real state, not `system`.
      */
-    const currentState = `${m.theme_label()}: ${m.theme_dark()}`
-    const label = button().getAttribute('aria-label') ?? ''
-    expect(label.startsWith(currentState)).toBe(true)
-
+    expect(button().getAttribute('aria-label')).toBe(
+      stopLabel(m.theme_dark(), m.theme_system()),
+    )
     const live = container.querySelector('[aria-live="polite"]')
-    expect(live?.textContent).toBe(currentState)
+    expect(live?.textContent).toBe(liveText(m.theme_dark()))
   })
 
   /**
    * The one thing a cycling button owes a screen-reader user: the label has
-   * to say where you are AND where the next press goes. Without the second
-   * half the control is a coin flip.
-   *
-   * Labels are matched through the message functions rather than as
-   * literals — see the header comment in RegistrationForm.test.tsx for why.
-   * `theme_system`/`theme_light`/`theme_dark` are also asserted distinct
-   * from one another so "contains both names" can't degenerate into
-   * comparing a value to itself.
+   * to say where you are AND where the next press goes, in that order.
+   * `.toBe()` against the string rebuilt from the message functions is
+   * order-sensitive on purpose — see `stopLabel`'s comment.
    */
   it('names the current state and the next action at every stop', () => {
     renderToggle()
-    const label = () => button().getAttribute('aria-label') ?? ''
-    const system = m.theme_system()
-    const light = m.theme_light()
-    const dark = m.theme_dark()
-    expect(system).not.toBe(light)
-    expect(light).not.toBe(dark)
-    expect(dark).not.toBe(system)
+    const label = () => button().getAttribute('aria-label')
 
-    // system, about to switch to light
-    expect(label()).toContain(system)
-    expect(label()).toContain(light)
+    expect(label()).toBe(stopLabel(m.theme_system(), m.theme_light()))
 
     fireEvent.click(button())
-    // light, about to switch to dark
-    expect(label()).toContain(light)
-    expect(label()).toContain(dark)
+    expect(label()).toBe(stopLabel(m.theme_light(), m.theme_dark()))
 
     fireEvent.click(button())
-    // dark, about to switch to system
-    expect(label()).toContain(dark)
-    expect(label()).toContain(system)
+    expect(label()).toBe(stopLabel(m.theme_dark(), m.theme_system()))
   })
 
   it('announces the change in a live region', () => {
@@ -107,6 +106,6 @@ describe('ThemeToggle', () => {
     const live = container.querySelector('[aria-live="polite"]')
     expect(live).not.toBeNull()
     fireEvent.click(button())
-    expect(live?.textContent ?? '').toContain(m.theme_light())
+    expect(live?.textContent).toBe(liveText(m.theme_light()))
   })
 })

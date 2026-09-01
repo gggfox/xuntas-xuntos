@@ -54,3 +54,17 @@ export function resolveTheme(
 export function nextPreference(pref: ThemePreference): ThemePreference {
   return PREFERENCES[(PREFERENCES.indexOf(pref) + 1) % PREFERENCES.length]
 }
+
+/**
+ * What the toggle should DISPLAY, as opposed to what it will do.
+ *
+ * The theme is unknowable on the server, so before mount the control shows
+ * the neutral `system` face rather than guessing — otherwise the icon and
+ * the label disagree with each other across hydration.
+ */
+export function displayedPreference(
+  preference: ThemePreference,
+  mounted: boolean,
+): ThemePreference {
+  return mounted ? preference : 'system'
+}

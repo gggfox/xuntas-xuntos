@@ -1,5 +1,5 @@
 import { useThemeContext } from '../ThemeProvider'
-import { nextPreference, type ThemePreference } from '../../lib/theme'
+import { displayedPreference, nextPreference, type ThemePreference } from '../../lib/theme'
 import Icons from '../Icons'
 import * as m from '../../paraglide/messages.js'
 
@@ -39,9 +39,13 @@ export default function ThemeToggle() {
    * does not patch up an attribute mismatch once it has hydrated. Rendering
    * nothing pre-mount would collapse the header's layout and shift the nav,
    * so `system` stands in for all of it, the same way the icon already did.
+   *
+   * `displayedPreference` lives in `src/lib/theme.ts`, not here, so this
+   * rule is testable as arithmetic instead of only through a component that
+   * cannot reproduce a real hydration boundary — see `tests/theme.test.ts`.
    */
-  const displayPreference: ThemePreference = mounted ? preference : 'system'
-  const displayUpcoming = mounted ? upcoming : nextPreference('system')
+  const displayPreference = displayedPreference(preference, mounted)
+  const displayUpcoming = nextPreference(displayPreference)
   const Icon = ICON[displayPreference]
   const label = `${m.theme_label()}: ${NAME[displayPreference]()}. ${m.theme_switch_to({ theme: NAME[displayUpcoming]() })}`
 

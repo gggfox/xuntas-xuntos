@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   THEME_STORAGE_KEY,
+  displayedPreference,
   nextPreference,
   readStoredPreference,
   resolveTheme,
@@ -66,5 +67,29 @@ describe('readStoredPreference', () => {
 describe('THEME_STORAGE_KEY', () => {
   it('is namespaced so it cannot collide with another app on localhost', () => {
     expect(THEME_STORAGE_KEY).toBe('xx-theme')
+  })
+})
+
+/**
+ * What `ThemeToggle` shows is not always what `preference` says — before
+ * mount, the server-rendered guess (`system`) has to stay on screen so the
+ * icon and the label do not disagree with each other across hydration. This
+ * used to be inline in the component, where a jsdom-only test harness could
+ * never actually exercise the pre-mount branch (React Testing Library
+ * flushes the mount effect before assertions run, so `mounted` is already
+ * true by the time a test could check it). Moved here so the rule itself —
+ * not just its downstream effect — is pinned as arithmetic.
+ */
+describe('displayedPreference', () => {
+  it('shows the real preference once mounted, for all three values', () => {
+    expect(displayedPreference('system', true)).toBe('system')
+    expect(displayedPreference('light', true)).toBe('light')
+    expect(displayedPreference('dark', true)).toBe('dark')
+  })
+
+  it('shows system before mount, no matter what the real preference is', () => {
+    expect(displayedPreference('system', false)).toBe('system')
+    expect(displayedPreference('light', false)).toBe('system')
+    expect(displayedPreference('dark', false)).toBe('system')
   })
 })
