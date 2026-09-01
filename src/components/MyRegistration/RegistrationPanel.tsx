@@ -3,6 +3,7 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { useCallback } from 'react'
 import { api } from '../../../convex/_generated/api'
 import * as m from '../../paraglide/messages.js'
+import Meteors from '../Meteors'
 import RegistrationForm from '../RegistrationForm'
 import AccountStatus from './AccountStatus'
 import BirthDateStep from './BirthDateStep'
@@ -120,7 +121,8 @@ export default function RegistrationPanel({
     mine.registration?.status === 'submitted' || mine.registration?.status === 'validated'
 
   return (
-    <main className="col pt-[38px] pb-[90px]">
+    <main className="relative isolate col pt-[38px] pb-[90px]">
+      <Meteors />
       <p className="eyebrow">{m.reg_eyebrow()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.reg_title()}</h1>
 

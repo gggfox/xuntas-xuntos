@@ -10,26 +10,31 @@
    =========================================================================== */
 
 @theme {
-  /* Ink. Black is never #000: it is #111 and it breathes differently. */
-  --color-ink: #111111;
-  --color-ink-2: #1f1f1f;
-  --color-ink-3: #2e2e2e;
-  --color-soft: rgba(17, 17, 17, 0.58);
+  /* Ink. Black is never #000: it is the guideline's #161615, a warm black
+     that breathes differently. See documentation/B&P_XUNTAS_GUIDELINE_2025.pdf,
+     page 13 — it is one of the two primarios. */
+  --color-ink: #161615;
+  --color-ink-2: #242423;
+  --color-ink-3: #333332;
+  --color-soft: rgba(22, 22, 21, 0.58);
 
   /* Paper. The background is bone, not white; cards, however, are white. */
   --color-paper: #fafaf8;
   --color-card: #ffffff;
 
-  /* Yellow. It is the brand color and it is used sparingly. */
-  --color-yel: #edf45f;
-  --color-yel-line: #c9d42b;
-  --color-yel-d: #d2db3a;
-  --color-yel-s: #f8fbd4;
+  /* Yellow. It is the brand color and it is used sparingly. #ebf437 is the
+     other primario on page 13 of the guideline. The three supporting tones
+     are not in the guideline — they are derived from it, holding the same
+     hue/saturation/lightness steps the approved prototype used. */
+  --color-yel: #ebf437;
+  --color-yel-line: #acb522;
+  --color-yel-d: #c2cb22;
+  --color-yel-s: #f8fcd3;
   --color-ochre: #5a6300;
 
   /* Lines. Always translucent ink, never solid gray. */
-  --color-line: rgba(17, 17, 17, 0.11);
-  --color-line-2: rgba(17, 17, 17, 0.22);
+  --color-line: rgba(22, 22, 21, 0.11);
+  --color-line-2: rgba(22, 22, 21, 0.22);
 
   /* Semantic. For state only, never decorative. */
   --color-ok: #1f7a45;
@@ -168,7 +173,7 @@ body {
     font-weight: 500;
   }
   .btn-ghost:hover:not(:disabled) {
-    background: rgba(17, 17, 17, 0.045);
+    background: rgba(22, 22, 21, 0.045);
   }
 
   .card {
@@ -191,7 +196,7 @@ body {
   .fld-input:focus {
     outline: 0;
     border-color: var(--color-ink);
-    box-shadow: 0 0 0 3px rgba(237, 244, 95, 0.4);
+    box-shadow: 0 0 0 3px rgba(235, 244, 55, 0.4);
   }
   .fld-input[aria-invalid="true"] {
     border-color: var(--color-bad);
@@ -201,7 +206,7 @@ body {
      window locks a whole step. Without this the field looks editable and
      simply swallows every click. */
   .fld-input:disabled {
-    background: rgba(17, 17, 17, 0.035);
+    background: rgba(22, 22, 21, 0.035);
     color: var(--color-soft);
     border-color: var(--color-line);
     cursor: not-allowed;
@@ -247,5 +252,108 @@ body {
     border: 1px solid var(--color-yel-line);
     border-radius: 9px;
     padding: 16px 19px;
+  }
+
+  /* -------------------------------------------------------------------------
+     Meteors. The one decorative layer on the site; the reasoning for its
+     existence, and for how far it now reaches, is in the header of
+     `components/Meteors.tsx`.
+     ------------------------------------------------------------------------- */
+
+  /*
+   * The layer. Fixed to the viewport, so it fills the window and keeps
+   * filling it as the reader scrolls rather than scrolling away.
+   *
+   * `z-index: -1` is what puts it behind everything the page is actually
+   * for, and what lets the cards, the progress bar and the stepper eat the
+   * streaks that pass under them — something moving behind a solid object
+   * should disappear behind it, and that is the only cue that the layer has
+   * depth at all. It requires `isolate` on the containing element: with no
+   * stacking context of its own to sit in, a negative index falls all the
+   * way behind the body's background and the layer renders as nothing.
+   *
+   * That same stacking context is why the header carries `relative z-10`.
+   * The layer is fixed, but it still paints with the `main` it lives in, and
+   * `main` comes after the header — without the header lifting itself out of
+   * the way, streaks would cross the black band at the top of every page.
+   */
+  .meteors {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /*
+   * One streak: a 2 px head, with the tail drawn behind it by `::before`.
+   *
+   * The head is the brand yellow and the tail is ink, at the same 22 % the
+   * rest of the site draws its lines at. No glow around the head: a shadow
+   * is light spilling into darkness, and on bone paper the same shadow is a
+   * yellow-green smudge that reads as a printing fault.
+   *
+   * The rotation lives in the keyframe, not here — a `transform` on the
+   * element is replaced wholesale by the animated one, not composed with it.
+   */
+  .meteor {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--color-yel-line);
+    animation-name: meteor;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  .meteor::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 70px;
+    height: 1px;
+    transform: translateY(-50%);
+    background: linear-gradient(to right, var(--color-line-2), transparent);
+  }
+}
+
+/*
+ * 215deg sends the streak down and to the right, 35deg below the horizontal,
+ * and leaves the tail pointing up and to the left — behind the head, which is
+ * the arrangement that reads as speed rather than as a stripe.
+ *
+ * 1450px along that axis is roughly 1190 across and 830 down: enough that a
+ * streak entering at the top left is still travelling when it reaches the
+ * far corner of a laptop screen, instead of stopping in the middle of it.
+ */
+@keyframes meteor {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(215deg) translateX(-1450px);
+    opacity: 0;
+  }
+}
+
+/*
+ * Hidden outright, not stopped.
+ *
+ * The global reduced-motion rule near the top of this file sets
+ * `animation: none` for everybody, which on its own would leave nine
+ * diagonal hairlines frozen over the heading for the rest of the visit —
+ * indistinguishable from a page that failed to finish drawing. Someone who
+ * asks for less motion is asking for less of this, not for a still of it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .meteors {
+    display: none;
   }
 }

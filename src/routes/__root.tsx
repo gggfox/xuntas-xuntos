@@ -58,7 +58,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               paper underneath it. On a long page the margin collapses to nothing
               and the page's own bottom padding does the spacing.
             */}
-            <footer className="mt-auto border-t border-line">
+            <footer className="relative mt-auto border-t border-line">
               <div className="band py-[15px]">
                 <p className="eyebrow">
                   {m.brand_cycle()} · {m.reg_closing()}

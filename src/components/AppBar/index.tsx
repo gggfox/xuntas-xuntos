@@ -11,8 +11,10 @@ import BrandLink from './BrandLink'
  * them apart.
  */
 export default function AppBar() {
+  // `relative z-10` keeps the band above the meteors: they are fixed to the
+  // viewport inside `main`, which paints after this header.
   return (
-    <header className="bg-ink text-white">
+    <header className="relative z-10 bg-ink text-white">
       <div className="band flex items-center justify-between gap-4 py-[15px]">
         <BrandLink />
         <AccountNav />

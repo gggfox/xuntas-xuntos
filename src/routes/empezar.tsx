@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
 import DateField from '../components/DateField'
+import Meteors from '../components/Meteors'
 import GuardianFields from '../components/GuardianFields'
 import { isUnderage, savePreSignupToken } from '../lib/preSignup'
 import { describeConvexError } from '../lib/registrationErrors'
@@ -78,7 +79,8 @@ function AgeGate() {
   }
 
   return (
-    <main className="col col-560 pt-[46px] pb-[90px]">
+    <main className="relative isolate col col-560 pt-[46px] pb-[90px]">
+      <Meteors />
       <p className="eyebrow">{m.gate_eyebrow()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.gate_title()}</h1>
       <p className="mt-3 max-w-[52ch] font-light text-soft">{m.gate_lede()}</p>
@@ -89,7 +91,7 @@ function AgeGate() {
             id="dob"
             label={m.gate_date_label()}
             req
-            inline
+            showAge
             value={birthDate}
             onChange={setBirthDate}
             error={errors.birthDate}
