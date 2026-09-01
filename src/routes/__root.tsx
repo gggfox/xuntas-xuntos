@@ -14,9 +14,28 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      // The brand is light paper. Declared so the browser doesn't invent a
-      // dark mode over forms that don't have one.
-      { name: 'color-scheme', content: 'light only' },
+      /*
+       * `light dark`, not `light only`. Left as `light only` this does not
+       * merely go stale, it countermands the CSS: a browser told `light only`
+       * at the document level can refuse the `color-scheme: dark` that the
+       * `[data-theme="dark"]` block asks for, and native controls, scrollbars
+       * and date pickers would stay light inside a dark page.
+       */
+      { name: 'color-scheme', content: 'light dark' },
+      /*
+       * Colours the browser and OS chrome — Safari's address bar on iOS, the
+       * status bar on Android Chrome. Without it that chrome is painted from
+       * the page background and swings from bone to near-black between
+       * themes, clashing with the ink band directly beneath it.
+       *
+       * One static value, and no `media` variants, because the header is
+       * #161615 in BOTH themes. That is a dividend of keeping the header
+       * fixed: the alternative design needed two of these discriminated by a
+       * `media` attribute, and `head().meta` is typed `unknown` in
+       * @tanstack/router-core, so passing a non-standard attribute through it
+       * would have been guesswork.
+       */
+      { name: 'theme-color', content: '#161615' },
       // Translated like everything else. `head` runs per request, so it sees
       // the locale Paraglide resolved for that request — which matters now
       // that the browser's language can pick it.
@@ -41,11 +60,36 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
 })
 
+/**
+ * Resolves the theme before the browser paints anything.
+ *
+ * It is inlined into <head> as a string rather than routed through
+ * `head().scripts` for two reasons: `headScripts` is typed `unknown` in
+ * @tanstack/router-core, and running before first paint is the entire point —
+ * a themed page that paints bone first and corrects on hydration is worse
+ * than no dark mode at all.
+ *
+ * The key and the three valid values are duplicated from `src/lib/theme.ts`
+ * because a string cannot import. `tests/theme.test.ts` pins the constant, so
+ * changing it there fails the suite — which is the tripwire that sends whoever
+ * changed it back to this string. Nothing checks this copy automatically.
+ *
+ * Wrapped in try/catch: Safari throws on `localStorage` under some privacy
+ * settings, and a theme is not worth a blank page.
+ */
+const THEME_SCRIPT = `(function(){try{
+var p=localStorage.getItem('xx-theme');
+if(p!=='light'&&p!=='dark'&&p!=='system')p='system';
+var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+document.documentElement.dataset.theme=d?'dark':'light';
+}catch(e){document.documentElement.dataset.theme='light'}})()`
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={getLocale()}>
+    <html lang={getLocale()} suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-dvh flex-col bg-paper text-ink font-body antialiased">
         <ClerkProvider localization={esMX}>
