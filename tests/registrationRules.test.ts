@@ -1,17 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import { emptyRegistration, LETTER_LIMIT } from '../convex/lib/registrationSchema'
+import { MEXICAN_STATES } from '../convex/lib/mexicanStates'
 import type { RegistrationData } from '../convex/lib/registrationSchema'
 import {
   LETTER_MIN,
+  RANKINGS_MIN,
+  RESULTS_MIN,
   checkBirthDate,
   checkEmail,
   checkGraduationYear,
   checkLetter,
   checkName,
+  checkRankings,
+  checkResults,
+  checkState,
   checkWhatsapp,
   toErrorMap,
   validateRegistration,
 } from '../convex/lib/registrationRules'
+
+/** `n` complete result rows, distinct enough to read in a failure message. */
+function filledResults(n: number) {
+  return Array.from({ length: n }, (_, i) => ({
+    tournament: `Torneo ${i + 1}`,
+    result: `${i + 1}º`,
+  }))
+}
 
 /** A registration that passes every rule. The base for one-field mutations. */
 function validRegistration(): RegistrationData {
@@ -21,11 +35,13 @@ function validRegistration(): RegistrationData {
     whatsapp: '+52 55 1234 5678',
     birthDate: '2008-04-11',
     branch: 'womens',
-    cityState: 'Monterrey, NL',
+    state: 'Nuevo León',
+    city: 'Monterrey',
   })
   d.academic = { school: 'ITESM', grade: '11', graduationYear: '2027', interest: 'Biología' }
   d.athletic = { club: 'Club Campestre', coach: 'L. Ruiz', ghin: '4.2', amateurStatus: true }
-  d.results = [{ tournament: 'CNIJ', result: '2º' }]
+  d.results = filledResults(RESULTS_MIN)
+  d.rankings = [{ name: 'CNIJ', position: '12' }]
   d.motivationLetter = 'x'.repeat(Math.max(LETTER_MIN, 1))
   d.confirmations = { rules: true, scholarshipUnderstood: true, privacy: true }
   return d
@@ -56,10 +72,44 @@ describe('validateRegistration', () => {
     expect(toErrorMap(validateRegistration(d))['personal.branch']).toBe('branch_required')
   })
 
-  it('requires at least one fully filled result row', () => {
+  it('rejects a state that is not one of the 32', () => {
     const d = validRegistration()
-    d.results = [{ tournament: 'CNIJ', result: '' }]
+    d.personal.state = 'Nueva York'
+    expect(toErrorMap(validateRegistration(d))['personal.state']).toBe('state_required')
+  })
+
+  it('reports an empty city apart from an empty state', () => {
+    const d = validRegistration()
+    d.personal.state = ''
+    d.personal.city = '   '
+    const map = toErrorMap(validateRegistration(d))
+    expect(map['personal.state']).toBe('state_required')
+    expect(map['personal.city']).toBe('city_required')
+  })
+
+  it('requires RESULTS_MIN fully filled result rows', () => {
+    const d = validRegistration()
+    d.results = filledResults(RESULTS_MIN - 1)
     expect(toErrorMap(validateRegistration(d)).results).toBe('results_required')
+  })
+
+  it('does not credit a half-filled result row towards the minimum', () => {
+    const d = validRegistration()
+    d.results = [...filledResults(RESULTS_MIN - 1), { tournament: 'Solo torneo', result: '  ' }]
+    expect(toErrorMap(validateRegistration(d)).results).toBe('results_required')
+  })
+
+  it('requires a ranking with a position', () => {
+    const d = validRegistration()
+    // What `emptyRegistration` seeds: the four names, no positions.
+    d.rankings = [{ name: 'CNIJ', position: '' }, { name: 'WAGR', position: '   ' }]
+    expect(toErrorMap(validateRegistration(d)).rankings).toBe('rankings_required')
+  })
+
+  it('accepts a position given only on the free-form ranking row', () => {
+    const d = validRegistration()
+    d.rankings = [{ name: 'CNIJ', position: '' }, { name: 'Ranking estatal', position: '3' }]
+    expect(toErrorMap(validateRegistration(d)).rankings).toBeUndefined()
   })
 
   it('reports each unchecked confirmation separately', () => {
@@ -69,6 +119,23 @@ describe('validateRegistration', () => {
     expect(map['confirmations.rules']).toBe('confirm_rules_required')
     expect(map['confirmations.scholarshipUnderstood']).toBe('confirm_scholarship_required')
     expect(map['confirmations.privacy']).toBe('confirm_privacy_required')
+  })
+})
+
+describe('checkState', () => {
+  it.each([
+    ['Nuevo León', undefined],
+    ['  Ciudad de México  ', undefined],
+    ['', 'state_required'],
+    ['Nuevo Leon', 'state_required'],
+    ['nuevo león', 'state_required'],
+  ])('%j -> %s', (value, expected) => {
+    expect(checkState(value)).toBe(expected)
+  })
+
+  it('offers every federal entity, once', () => {
+    expect(MEXICAN_STATES).toHaveLength(32)
+    expect(new Set(MEXICAN_STATES).size).toBe(32)
   })
 })
 
@@ -164,5 +231,27 @@ describe('checkLetter', () => {
 
   it('enforces the floor when it is set', () => {
     expect(checkLetter('short', 200)).toBe('letter_too_short')
+  })
+})
+
+describe('checkResults', () => {
+  it('counts only rows with both cells filled', () => {
+    expect(checkResults(filledResults(RESULTS_MIN))).toBeUndefined()
+    expect(checkResults(filledResults(RESULTS_MIN - 1))).toBe('results_required')
+  })
+
+  /** The floor is a parameter so a moved threshold does not need a new test. */
+  it('takes the minimum as an argument', () => {
+    expect(checkResults(filledResults(1), 1)).toBeUndefined()
+    expect(checkResults(filledResults(1), 2)).toBe('results_required')
+  })
+})
+
+describe('checkRankings', () => {
+  it('wants RANKINGS_MIN rows carrying both a name and a position', () => {
+    const seeded = [{ name: 'CNIJ', position: '' }]
+    expect(checkRankings(seeded)).toBe('rankings_required')
+    expect(checkRankings([{ name: 'CNIJ', position: '12' }])).toBeUndefined()
+    expect(RANKINGS_MIN).toBeGreaterThan(0)
   })
 })

@@ -7,7 +7,9 @@ import {
   daysInMonth,
   firstWeekday,
   parseISO,
+  parseMonth,
   toISO,
+  toMonthISO,
   todayMX,
 } from '../src/components/DateField/date'
 
@@ -97,5 +99,37 @@ describe('todayMX', () => {
     // 2026-08-29T03:00Z is 9 p.m. on the 28th in central Mexico.
     expect(todayMX(Date.parse('2026-08-29T03:00:00.000Z'))).toEqual({ y: 2026, m: 8, d: 28 })
     expect(todayMX(Date.parse('2026-08-29T06:00:00.000Z'))).toEqual({ y: 2026, m: 8, d: 29 })
+  })
+})
+
+/**
+ * The competitive calendar asks for a month, not a day. Its value is stored
+ * `yyyy-mm` — one segment shorter than a date of birth — and everything the
+ * picker does with it still happens in `Ymd`, on the 1st.
+ */
+describe('parseMonth', () => {
+  it('reads a well-formed month as its first day', () => {
+    expect(parseMonth('2026-10')).toEqual({ y: 2026, m: 10, d: 1 })
+  })
+
+  it('rejects a month outside 1 to 12', () => {
+    expect(parseMonth('2026-00')).toBeNull()
+    expect(parseMonth('2026-13')).toBeNull()
+  })
+
+  it('rejects anything that is not yyyy-mm, a full date included', () => {
+    expect(parseMonth('')).toBeNull()
+    expect(parseMonth('2026-10-01')).toBeNull()
+    expect(parseMonth('10/2026')).toBeNull()
+  })
+})
+
+describe('toMonthISO', () => {
+  it('drops the day', () => {
+    expect(toMonthISO({ y: 2026, m: 10, d: 23 })).toBe('2026-10')
+  })
+
+  it('pads a single-digit month', () => {
+    expect(toMonthISO({ y: 2026, m: 3, d: 1 })).toBe('2026-03')
   })
 })

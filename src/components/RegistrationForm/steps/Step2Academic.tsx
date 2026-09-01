@@ -57,7 +57,6 @@ export default function Step2Academic({ form }: StepProps) {
           <TextField
             id="grad"
             label={m.reg_graduation()}
-            help={m.reg_graduation_help()}
             value={field.state.value ?? ''}
             onChange={field.handleChange}
             onBlur={field.handleBlur}

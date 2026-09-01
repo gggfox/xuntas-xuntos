@@ -8,6 +8,7 @@ import Step5Rankings, { fields as f5 } from './Step5Rankings'
 import Step6Calendar, { fields as f6 } from './Step6Calendar'
 import Step7Letter, { fields as f7 } from './Step7Letter'
 import Step8Confirmations, { fields as f8 } from './Step8Confirmations'
+import { RESULTS_MIN } from '../../../lib/registrationRules'
 import type { StepFieldPath, StepFields } from '../../../lib/registrationSteps'
 import type { StepProps } from './types'
 
@@ -36,7 +37,15 @@ export const STEPS: readonly StepDef[] = [
   { n: 1, title: m.reg_s1_title, sub: m.reg_s1_sub, fields: f1, Component: Step1Personal },
   { n: 2, title: m.reg_s2_title, sub: m.reg_s2_sub, fields: f2, Component: Step2Academic },
   { n: 3, title: m.reg_s3_title, fields: f3, Component: Step3Athletic },
-  { n: 4, title: m.reg_s4_title, sub: m.reg_s4_sub, fields: f4, Component: Step4Results },
+  {
+    n: 4,
+    title: m.reg_s4_title,
+    /* The one heading whose copy carries a number the rules own, so it is
+       filled from the rule rather than written out twice. */
+    sub: () => m.reg_s4_sub({ n: RESULTS_MIN }),
+    fields: f4,
+    Component: Step4Results,
+  },
   { n: 5, title: m.reg_s5_title, sub: m.reg_s5_sub, fields: f5, Component: Step5Rankings },
   { n: 6, title: m.reg_s6_title, sub: m.reg_s6_sub, fields: f6, Component: Step6Calendar },
   { n: 7, title: m.reg_s7_title, sub: m.reg_s7_sub, fields: f7, Component: Step7Letter },

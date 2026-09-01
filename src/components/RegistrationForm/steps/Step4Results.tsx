@@ -1,6 +1,7 @@
 import * as m from '../../../paraglide/messages.js'
 import DynamicRows from '../DynamicRows'
 import { errorMessage } from '../../../lib/registrationErrors'
+import { checkResults } from '../../../lib/registrationRules'
 import type { StepFieldPath } from '../../../lib/registrationSteps'
 import type { StepProps } from './types'
 
@@ -11,12 +12,7 @@ export default function Step4Results({ form }: StepProps) {
     <form.Field
       name="results"
       mode="array"
-      validators={{
-        onDynamic: ({ value }) =>
-          value.some((r) => r.tournament.trim() && r.result.trim())
-            ? undefined
-            : ('results_required' as const),
-      }}
+      validators={{ onDynamic: ({ value }) => checkResults(value) }}
     >
       {(field) => (
         <>

@@ -22,3 +22,6 @@ todos.json
 
 # paraglide generated output
 src/paraglide
+
+# reference documents, too large for the repo
+documentation/*.pdf

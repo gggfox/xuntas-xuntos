@@ -24,6 +24,27 @@ export function toISO(p: Ymd): string {
   return `${String(p.y).padStart(4, '0')}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`
 }
 
+/**
+ * A `yyyy-mm` string to the first of that month. `null` if it is not one.
+ *
+ * The competitive calendar asks which month a tournament falls in, not which
+ * day, so its value is one segment shorter than a date of birth. It comes
+ * back as a `Ymd` all the same: the picker's arithmetic, its bounds and its
+ * grids are all written against three numbers, and a month is simply the day
+ * it starts on.
+ */
+export function parseMonth(iso: string): Ymd | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(iso.trim())
+  if (!match) return null
+  const p = { y: Number(match[1]), m: Number(match[2]), d: 1 }
+  return p.m < 1 || p.m > 12 ? null : p
+}
+
+/** The `yyyy-mm` a day belongs to. The counterpart of `parseMonth`. */
+export function toMonthISO(p: Ymd): string {
+  return `${String(p.y).padStart(4, '0')}-${String(p.m).padStart(2, '0')}`
+}
+
 export function daysInMonth(y: number, m: number): number {
   return new Date(Date.UTC(y, m, 0)).getUTCDate()
 }

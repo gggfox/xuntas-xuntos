@@ -39,8 +39,9 @@ type Props = {
 /**
  * Where a failing rule sends the reader.
  *
- * `results` and `form` are deliberately absent: neither is one input, so the
- * summary lists them without a link rather than scrolling somewhere arbitrary.
+ * `results`, `rankings` and `form` are deliberately absent: none of them is
+ * one input, so the summary lists them without a link rather than scrolling
+ * somewhere arbitrary.
  */
 const FIELD_IDS: Partial<Record<RegistrationFieldPath, string>> = {
   'personal.name': 'name',
@@ -48,7 +49,8 @@ const FIELD_IDS: Partial<Record<RegistrationFieldPath, string>> = {
   'personal.whatsapp': 'tel',
   'personal.birthDate': 'birth',
   'personal.branch': 'branch',
-  'personal.cityState': 'city',
+  'personal.state': 'state',
+  'personal.city': 'city',
   'academic.school': 'school',
   'academic.grade': 'grade',
   'academic.graduationYear': 'grad',
@@ -114,7 +116,15 @@ export default function RegistrationForm({
     // read it in, and clamping would fight the stepper on every reload.
     return editable ? clampStep(wanted, STEP_FIELDS, initial) : Math.min(Math.max(0, wanted), LAST_STEP)
   })
-  const [reachable, setReachable] = useState(step)
+  /* The furthest step reached, which on arrival is as far as the draft itself
+     proves the reader got. Seeded from `step` alone it was session memory and
+     nothing else: a reload landing on step 1 — or a sent registration reopened
+     at the top — drew eight steps nobody had ever visited, ticks and all
+     gone. `firstIncompleteStep` reads the same thing back out of the data,
+     since everything before it validates and nothing validates by accident. */
+  const [reachable, setReachable] = useState(() =>
+    Math.max(step, firstIncompleteStep(STEP_FIELDS, initial)),
+  )
 
   const headingRef = useRef<HTMLLegendElement>(null)
   /** Set when the thing to focus after a step change is a field, not the heading. */

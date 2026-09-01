@@ -55,7 +55,7 @@ export default function BirthDateStep() {
             id="dob2"
             label={m.gate_date_label()}
             req
-            inline
+            showAge
             value={birthDate}
             onChange={setBirthDate}
             autoComplete="bday"

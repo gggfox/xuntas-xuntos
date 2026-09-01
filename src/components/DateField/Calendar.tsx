@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as m from '../../paraglide/messages.js'
 import { addDays, addMonths, clamp, compare, daysInMonth, type Ymd } from './date'
 import { utc, type DateFormats } from './format'
-import { VIEWS, type View } from './views'
+import { GRAINS, type Grain, type View } from './views'
 import Icons from '../Icons'
 import DayGrid from './DayGrid'
 import MonthGrid from './MonthGrid'
@@ -19,6 +19,11 @@ type Props = {
   /** Month to show while nothing is selected yet. */
   openAt: Ymd
   fmt: DateFormats
+  /**
+   * How fine an answer to funnel down to. `month` stops on the month grid and
+   * reports the 1st; the day grid never mounts. See `views.ts`.
+   */
+  grain?: Grain
   onPick: (day: Ymd) => void
 }
 
@@ -40,9 +45,12 @@ export default function Calendar({
   max,
   openAt,
   fmt,
+  grain = 'day',
   onPick,
 }: Props) {
-  const [view, setView] = useState<View>('days')
+  const { opens, drillsTo } = GRAINS[grain]
+
+  const [view, setView] = useState<View>(opens)
   /* The month on screen, and the day the arrow keys are sitting on. */
   const [cursor, setCursor] = useState<Ymd>(() => clamp(selected ?? openAt, min, max))
   const [yearPage, setYearPage] = useState(() => pageOf(cursor.y, min.y))
@@ -87,11 +95,20 @@ export default function Calendar({
   }
 
   /* Picking in a coarse view is a way in, not an answer: it drops to the next
-     finer view and reports nothing up. See `views.ts` for the chain. */
-  function drill() {
+     finer view and reports nothing up. Where the funnel ends — which depends
+     on the grain — the pick IS the answer, and goes up instead. See
+     `views.ts` for the chain.
+
+     `at` rather than the state we just set: `setCursor` does not land until
+     the next render, and the answer is needed now. */
+  function drill(at: Ymd) {
+    const next = drillsTo[view]
+    if (!next) {
+      onPick(at)
+      return
+    }
     travel(false)
-    const next = VIEWS[view].drillsTo
-    if (next) setView(next)
+    setView(next)
   }
 
   function step(months: number) {
@@ -126,10 +143,18 @@ export default function Calendar({
     }
   }
 
-  const years = yearsOf(yearPage, min.y)
-  const stepsMonths = view !== 'years'
-  const before = addMonths(cursor, -1)
-  const after = addMonths(cursor, 1)
+  const years = yearsOf(yearPage, min.y, max.y)
+  const paging = view === 'years'
+  /* One month at a time under a day grid; a whole year under a month grid,
+     which already shows every month there is. */
+  const stride = grain === 'month' ? 12 : 1
+  const before = addMonths(cursor, -stride)
+  const after = addMonths(cursor, stride)
+  /* A step is offered only if some day of the span it lands on is in range —
+     the span being the month the arrows move by, or the year. */
+  const spanEnd = (p: Ymd) =>
+    grain === 'month' ? { y: p.y, m: 12, d: 31 } : { ...p, d: daysInMonth(p.y, p.m) }
+  const spanStart = (p: Ymd) => (grain === 'month' ? { y: p.y, m: 1, d: 1 } : { ...p, d: 1 })
 
   return (
     <div
@@ -143,12 +168,11 @@ export default function Calendar({
         <button
           type="button"
           className="cal-nav"
-          onClick={() => (stepsMonths ? step(-1) : pageYears(-1))}
-          /* A step is offered only if some day of the month it lands on is in range. */
-          disabled={
-            view === 'days' && compare({ ...before, d: daysInMonth(before.y, before.m) }, min) < 0
+          onClick={() => (paging ? pageYears(-1) : step(-stride))}
+          disabled={paging ? yearPage === 0 : compare(spanEnd(before), min) < 0}
+          aria-label={
+            paging ? m.date_prev_years() : grain === 'month' ? m.date_prev_year() : m.date_prev_month()
           }
-          aria-label={stepsMonths ? m.date_prev_month() : m.date_prev_years()}
         >
           <Icons.Chevron dir="left" />
         </button>
@@ -158,11 +182,11 @@ export default function Calendar({
           className="cal-title"
           onClick={() => {
             setYearPage(pageOf(cursor.y, min.y))
-            setView((v) => (v === 'days' ? 'years' : 'days'))
+            setView((v) => (v === opens ? 'years' : opens))
             setTick((n) => n + 1)
           }}
-          aria-expanded={view !== 'days'}
-          aria-label={m.date_pick_month_year()}
+          aria-expanded={view !== opens}
+          aria-label={grain === 'month' ? m.date_pick_year() : m.date_pick_month_year()}
         >
           <span aria-live="polite">
             {view === 'years'
@@ -177,9 +201,13 @@ export default function Calendar({
         <button
           type="button"
           className="cal-nav"
-          onClick={() => (stepsMonths ? step(1) : pageYears(1))}
-          disabled={view === 'days' && compare({ ...after, d: 1 }, max) > 0}
-          aria-label={stepsMonths ? m.date_next_month() : m.date_next_years()}
+          onClick={() => (paging ? pageYears(1) : step(stride))}
+          disabled={
+            paging ? years[years.length - 1] >= max.y : compare(spanStart(after), max) > 0
+          }
+          aria-label={
+            paging ? m.date_next_years() : grain === 'month' ? m.date_next_year() : m.date_next_month()
+          }
         >
           <Icons.Chevron dir="right" />
         </button>
@@ -208,8 +236,11 @@ export default function Calendar({
             max={max}
             fmt={fmt}
             onPick={(month) => {
-              setCursor((c) => ({ y: c.y, m: month, d: Math.min(c.d, daysInMonth(c.y, month)) }))
-              drill()
+              const at = { y: cursor.y, m: month, d: Math.min(cursor.d, daysInMonth(cursor.y, month)) }
+              setCursor(at)
+              /* A month reported up is the month itself, not whichever day the
+                 cursor happened to be sitting on inside it. */
+              drill({ ...at, d: 1 })
             }}
           />
         )}
@@ -221,8 +252,9 @@ export default function Calendar({
             min={min}
             max={max}
             onPick={(year) => {
-              setCursor((c) => ({ ...c, y: year, d: Math.min(c.d, daysInMonth(year, c.m)) }))
-              drill()
+              const at = { ...cursor, y: year, d: Math.min(cursor.d, daysInMonth(year, cursor.m)) }
+              setCursor(at)
+              drill(at)
             }}
           />
         )}
@@ -239,5 +271,17 @@ export default function Calendar({
 const pageOf = (year: number, floor: number) =>
   Math.max(0, Math.floor((year - floor) / YEARS_PER_PAGE))
 
-const yearsOf = (page: number, floor: number) =>
-  Array.from({ length: YEARS_PER_PAGE }, (_, i) => floor + page * YEARS_PER_PAGE + i)
+/**
+ * One page of years, cut short at the ceiling.
+ *
+ * A full twenty-four is the right page for a date of birth, which reaches
+ * back to 1930. The competitive calendar spans two years, and printing the
+ * other twenty-two greyed out says the picker is offering something it is
+ * not. The page never runs past `roof` — so the last page of either field is
+ * as long as it needs to be, and no longer.
+ */
+const yearsOf = (page: number, floor: number, roof: number) => {
+  const first = floor + page * YEARS_PER_PAGE
+  const length = Math.max(1, Math.min(YEARS_PER_PAGE, roof - first + 1))
+  return Array.from({ length }, (_, i) => first + i)
+}

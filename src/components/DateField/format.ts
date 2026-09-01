@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { getLocale } from '../../paraglide/runtime.js'
-import { parseISO, toISO, type Ymd } from './date'
+import { parseISO, parseMonth, toISO, type Ymd } from './date'
 
 /**
  * Everything about the field that depends on the language: which number comes
@@ -44,6 +44,33 @@ export function mask(raw: string): string {
   return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)]
     .filter((part) => part.length > 0)
     .join('/')
+}
+
+/**
+ * The same three, for a bare month and year.
+ *
+ * Kept apart from the date trio rather than folded into it with a flag: they
+ * do not take `dayFirst`. Spanish and English both write a month and a year
+ * as `10/2026` — the ambiguity `dayFirst` exists to settle only arises once
+ * there is a day in the string.
+ */
+export function maskMonth(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 6)
+  return [digits.slice(0, 2), digits.slice(2, 6)].filter((part) => part.length > 0).join('/')
+}
+
+/** `null` while the month is incomplete or impossible. */
+export function textToMonthISO(text: string): string | null {
+  const digits = text.replace(/\D/g, '')
+  if (digits.length !== 6) return null
+  const m = Number(digits.slice(0, 2))
+  if (m < 1 || m > 12) return null
+  return `${digits.slice(2, 6)}-${digits.slice(0, 2)}`
+}
+
+export function monthISOToText(iso: string): string {
+  const p = parseMonth(iso)
+  return p ? `${String(p.m).padStart(2, '0')}/${String(p.y).padStart(4, '0')}` : ''
 }
 
 /** `null` while the date is incomplete or impossible, so half of one never counts. */

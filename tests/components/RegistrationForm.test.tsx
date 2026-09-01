@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as m from '../../src/paraglide/messages.js'
 import RegistrationForm from '../../src/components/RegistrationForm'
 import { emptyRegistration } from '../../convex/lib/registrationSchema'
+import { RESULTS_MIN } from '../../convex/lib/registrationRules'
 import type { RegistrationData } from '../../convex/lib/registrationSchema'
 import type { RegistrationError } from '../../src/lib/registrationRules'
 
@@ -33,11 +34,16 @@ function complete(): RegistrationData {
     whatsapp: '5512345678',
     birthDate: '2008-04-11',
     branch: 'womens',
-    cityState: 'Monterrey, NL',
+    state: 'Nuevo León',
+    city: 'Monterrey',
   })
   d.academic = { school: 'ITESM', grade: '11', graduationYear: '2027', interest: '' }
   d.athletic = { club: 'Campestre', coach: 'L. Ruiz', ghin: '4.2', amateurStatus: true }
-  d.results = [{ tournament: 'CNIJ', result: '2º' }]
+  d.results = Array.from({ length: RESULTS_MIN }, (_, i) => ({
+    tournament: `Torneo ${i + 1}`,
+    result: `${i + 1}º`,
+  }))
+  d.rankings = [{ name: 'CNIJ', position: '12' }]
   d.motivationLetter = 'Quiero jugar.'
   d.confirmations = { rules: true, scholarshipUnderstood: true, privacy: true }
   return d
@@ -246,7 +252,9 @@ describe('date of birth blur', () => {
   it('stays quiet while focus is still moving around inside the field', () => {
     renderForm()
     const birth = control(m.reg_birth_date())
-    const toggle = screen.getByRole('button', { name: m.date_open() })
+    /* The step opens the calendar with the field, so the toggle is the one
+       offering to close it. */
+    const toggle = screen.getByRole('button', { name: m.date_close() })
 
     // On the way to the calendar: the date is empty, but they are not done.
     fireEvent.focusOut(birth, { relatedTarget: toggle })

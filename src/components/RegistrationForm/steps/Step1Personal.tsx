@@ -4,12 +4,14 @@ import FieldGrid from '../FieldGrid'
 import SelectField from '../SelectField'
 import TextField from '../TextField'
 import { errorMessage } from '../../../lib/registrationErrors'
+import { MEXICAN_STATES } from '../../../lib/registrationSchema'
 import {
   checkBirthDate,
   checkBranch,
   checkEmail,
   checkName,
   checkRequiredText,
+  checkState,
   checkWhatsapp,
 } from '../../../lib/registrationRules'
 import type { StepFieldPath } from '../../../lib/registrationSteps'
@@ -27,7 +29,8 @@ export const fields = [
   'personal.whatsapp',
   'personal.birthDate',
   'personal.branch',
-  'personal.cityState',
+  'personal.state',
+  'personal.city',
 ] as const satisfies readonly StepFieldPath[]
 
 export default function Step1Personal({ form }: StepProps) {
@@ -82,7 +85,15 @@ export default function Step1Personal({ form }: StepProps) {
 
       <form.Field name="personal.birthDate" validators={{ onDynamic: ({ value }) => checkBirthDate(value) }}>
         {(field) => (
-          <div className="mb-[15px]">
+          /* The calendar is the second column, rows one to four: the field
+             takes them whole and the four short ones stack down the first.
+             That leaves row five free for the pair the place is asked in,
+             state and city, side by side. None of them needs placement of
+             its own — auto-placement steps over a cell that is taken — and
+             the date keeps its position in the markup, so what is read out
+             and what is tabbed through is still the order the fields are
+             asked in. */
+          <div className="mb-[15px] sm:col-start-2 sm:row-span-4 sm:row-start-1">
             <DateField
               id="birth"
               label={m.reg_birth_date()}
@@ -116,8 +127,26 @@ export default function Step1Personal({ form }: StepProps) {
         )}
       </form.Field>
 
+      <form.Field name="personal.state" validators={{ onDynamic: ({ value }) => checkState(value) }}>
+        {(field) => (
+          <SelectField
+            id="state"
+            label={m.reg_state()}
+            req
+            value={field.state.value}
+            onChange={field.handleChange}
+            onBlur={field.handleBlur}
+            error={field.state.meta.errors[0]}
+            options={[
+              { v: '', t: m.reg_state_select() },
+              ...MEXICAN_STATES.map((s) => ({ v: s, t: s })),
+            ]}
+          />
+        )}
+      </form.Field>
+
       <form.Field
-        name="personal.cityState"
+        name="personal.city"
         validators={{ onDynamic: ({ value }) => checkRequiredText(value, 'city_required') }}
       >
         {(field) => (
@@ -129,6 +158,7 @@ export default function Step1Personal({ form }: StepProps) {
             onChange={field.handleChange}
             onBlur={field.handleBlur}
             error={field.state.meta.errors[0]}
+            autoComplete="address-level2"
           />
         )}
       </form.Field>

@@ -2,6 +2,7 @@ import { ConvexError } from 'convex/values'
 import * as m from '../paraglide/messages.js'
 import type { AppErrorCode } from '../../convex/lib/errorCodes'
 import { LETTER_LIMIT } from './registrationSchema'
+import { RESULTS_MIN } from './registrationRules'
 import { FIELD_LIMIT, ROW_LIMIT } from '../../convex/lib/registrationLimits'
 
 /**
@@ -22,6 +23,7 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   birth_date_future: m.gate_date_future,
   birth_date_implausible: m.gate_date_implausible,
   branch_required: m.reg_branch_error,
+  state_required: m.reg_state_error,
   city_required: m.reg_city_error,
   school_required: m.reg_school_error,
   grade_required: m.reg_grade_error,
@@ -29,7 +31,8 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   club_required: m.reg_club_error,
   coach_required: m.reg_coach_error,
   ghin_required: m.reg_ghin_error,
-  results_required: m.reg_results_error,
+  results_required: () => m.reg_results_error({ n: RESULTS_MIN }),
+  rankings_required: m.reg_rankings_error,
   letter_required: m.reg_letter_error,
   letter_too_short: m.reg_letter_too_short,
   letter_too_long: () => m.reg_letter_too_long({ limit: LETTER_LIMIT }),

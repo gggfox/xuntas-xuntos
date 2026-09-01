@@ -1,6 +1,7 @@
 import type { AppErrorCode, FieldErrorCode } from './errorCodes'
 import { LETTER_LIMIT, type RegistrationData } from './registrationSchema'
 import { isValidBirthDate } from './cycle'
+import { isMexicanState } from './mexicanStates'
 
 /**
  * Validation for a registration, as pure functions returning codes.
@@ -39,6 +40,25 @@ export const GRADUATION_YEARS_AHEAD = 12
  */
 export const LETTER_MIN = 0
 
+/**
+ * P5 — how many complete result rows a record has to show.
+ *
+ * A season is not one tournament. The panel reads step 4 to judge how much a
+ * player competes, and a single row says nothing either way, so the form asks
+ * for four before it will move on. The form seeds exactly this many blank
+ * rows, which is what makes the ask legible without a sentence explaining it.
+ */
+export const RESULTS_MIN = 4
+
+/**
+ * P6 — how many rankings, with a position, are required.
+ *
+ * Rankings used to be entirely optional. One is now the floor: every player
+ * the convocatoria is addressed to appears in at least one of the four lists,
+ * and the free-form row catches anyone who appears only in a fifth.
+ */
+export const RANKINGS_MIN = 1
+
 // --- field paths ------------------------------------------------------------
 
 /**
@@ -51,7 +71,8 @@ export type RegistrationFieldPath =
   | 'personal.whatsapp'
   | 'personal.birthDate'
   | 'personal.branch'
-  | 'personal.cityState'
+  | 'personal.state'
+  | 'personal.city'
   | 'academic.school'
   | 'academic.grade'
   | 'academic.graduationYear'
@@ -59,6 +80,7 @@ export type RegistrationFieldPath =
   | 'athletic.coach'
   | 'athletic.ghin'
   | 'results'
+  | 'rankings'
   | 'motivationLetter'
   | 'confirmations.rules'
   | 'confirmations.scholarshipUnderstood'
@@ -122,6 +144,15 @@ export function checkBranch(value: string): FieldErrorCode | undefined {
   return value === 'womens' || value === 'mens' ? undefined : 'branch_required'
 }
 
+/**
+ * Membership, not merely non-empty: the field is a closed list of 32, so a
+ * value from outside it did not come from the dropdown and there is no
+ * reading of it that we should store.
+ */
+export function checkState(value: string): FieldErrorCode | undefined {
+  return isMexicanState(value.trim()) ? undefined : 'state_required'
+}
+
 /** The shared shape of the six plain required text fields. */
 export function checkRequiredText(
   value: string,
@@ -142,6 +173,31 @@ export function checkGraduationYear(
   if (year < thisYear - GRADUATION_YEARS_BACK) return 'graduation_year_invalid'
   if (year > thisYear + GRADUATION_YEARS_AHEAD) return 'graduation_year_invalid'
   return undefined
+}
+
+/**
+ * A row counts only when both cells are filled. Half a row is someone who
+ * started typing and stopped, and crediting it would let the form pass on
+ * work nobody finished.
+ */
+export function countFilledRows(rows: readonly { a: string; b: string }[]): number {
+  return rows.filter((r) => r.a.trim() && r.b.trim()).length
+}
+
+export function checkResults(
+  rows: RegistrationData['results'],
+  min: number = RESULTS_MIN,
+): FieldErrorCode | undefined {
+  const filled = countFilledRows(rows.map((r) => ({ a: r.tournament, b: r.result })))
+  return filled >= min ? undefined : 'results_required'
+}
+
+export function checkRankings(
+  rows: RegistrationData['rankings'],
+  min: number = RANKINGS_MIN,
+): FieldErrorCode | undefined {
+  const filled = countFilledRows(rows.map((r) => ({ a: r.name, b: r.position })))
+  return filled >= min ? undefined : 'rankings_required'
 }
 
 /**
@@ -176,7 +232,8 @@ export function validateRegistration(
   push('personal.whatsapp', checkWhatsapp(d.personal.whatsapp))
   push('personal.birthDate', checkBirthDate(d.personal.birthDate, now))
   push('personal.branch', checkBranch(d.personal.branch))
-  push('personal.cityState', checkRequiredText(d.personal.cityState, 'city_required'))
+  push('personal.state', checkState(d.personal.state))
+  push('personal.city', checkRequiredText(d.personal.city, 'city_required'))
 
   push('academic.school', checkRequiredText(d.academic.school, 'school_required'))
   push('academic.grade', checkRequiredText(d.academic.grade, 'grade_required'))
@@ -186,9 +243,8 @@ export function validateRegistration(
   push('athletic.coach', checkRequiredText(d.athletic.coach, 'coach_required'))
   push('athletic.ghin', checkRequiredText(d.athletic.ghin, 'ghin_required'))
 
-  if (!d.results.some((r) => r.tournament.trim() && r.result.trim())) {
-    push('results', 'results_required')
-  }
+  push('results', checkResults(d.results))
+  push('rankings', checkRankings(d.rankings))
 
   push('motivationLetter', checkLetter(d.motivationLetter))
 

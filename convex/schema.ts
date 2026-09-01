@@ -165,7 +165,8 @@ export default defineSchema({
       whatsapp: v.string(),
       birthDate: v.string(),
       branch: vBranch,
-      cityState: v.string(),
+      state: v.string(),
+      city: v.string(),
     }),
 
     academic: v.object({

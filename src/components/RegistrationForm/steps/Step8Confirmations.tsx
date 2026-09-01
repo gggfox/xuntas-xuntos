@@ -13,7 +13,11 @@ export const fields = [
 
 export default function Step8Confirmations({ form }: StepProps) {
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+    /* `auto-rows-fr` is what keeps the three cards the same height stacked on
+       a phone: without it each row sizes to its own text and the middle card,
+       which carries no document link, sits visibly shorter than the two
+       around it. */
+    <div className="grid auto-rows-fr grid-cols-1 gap-3 lg:grid-cols-3">
       <form.Field
         name="confirmations.rules"
         validators={{ onDynamic: ({ value }) => (value ? undefined : ('confirm_rules_required' as const)) }}

@@ -18,7 +18,8 @@ export type RegistrationData = {
     whatsapp: string
     birthDate: string
     branch: 'womens' | 'mens'
-    cityState: string
+    state: string
+    city: string
   }
   academic: {
     school: string
@@ -43,7 +44,15 @@ export type RegistrationData = {
   }
 }
 
-/** Starts with three results and two events visible, like the prototype. */
+/**
+ * Starts with four results and two events visible.
+ *
+ * Four because that is `RESULTS_MIN` in `registrationRules.ts`: the number of
+ * blank rows is how the form says how many it wants, and a reader who fills
+ * in what is in front of them has done enough. The count is not imported —
+ * that would be a cycle, since the rules import this file — so a test in
+ * `tests/registrationSchema.test.ts` holds the two together instead.
+ */
 export function emptyRegistration(seed?: Partial<RegistrationData['personal']>): RegistrationData {
   return {
     personal: {
@@ -52,12 +61,14 @@ export function emptyRegistration(seed?: Partial<RegistrationData['personal']>):
       whatsapp: '',
       birthDate: '',
       branch: '' as 'womens' | 'mens',
-      cityState: '',
+      state: '',
+      city: '',
       ...seed,
     },
     academic: { school: '', grade: '', graduationYear: '', interest: '' },
     athletic: { club: '', coach: '', ghin: '', amateurStatus: false },
     results: [
+      { tournament: '', result: '' },
       { tournament: '', result: '' },
       { tournament: '', result: '' },
       { tournament: '', result: '' },

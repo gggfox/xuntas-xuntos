@@ -15,11 +15,18 @@ import Icons from '../Icons'
  * the calendar itself, in the system from `docs/BRAND.md`, and while it was
  * at it, it closed the range: nothing before 1930, nothing after today.
  *
+ * The grid is open with the field rather than behind a press. Every screen
+ * that asks here is asking for a date decades back, which is a lot of paging
+ * for a panel nobody can see is there; the toggle beside the box folds it
+ * away for whoever would rather type the date.
+ *
  * Every use of this field asks for a date of birth, and that is why the panel
- * opens eighteen years back when it is empty and why it prints the age
- * underneath. The age is the answer the form is actually after — whether an
- * authorization is needed — and seeing it is what catches the year typed
- * wrong before the server has to say so.
+ * opens eighteen years back when it is empty. Where the age decides what the
+ * screen asks next — the gate, where being a minor summons the guardian
+ * fields — `showAge` prints it under the grid: it is the answer those screens
+ * are after, and seeing it is what catches the year typed wrong before the
+ * server has to say so. In the registration form nothing on the step turns on
+ * it, so the line stays off there rather than reading the date back.
  *
  * This file owns the value and the text box. Where the calendar is in time
  * lives in `Calendar.tsx`; it reports back nothing but the day that was
@@ -43,8 +50,8 @@ type Props = {
   help?: string
   error?: string
   autoComplete?: string
-  /** Starts open and stays open after a pick. For screens whose only job is this date. */
-  inline?: boolean
+  /** Prints the age under the grid. For screens where the age decides what is asked next. */
+  showAge?: boolean
   /** ISO bounds. Defaults: 1930-01-01 to today in central Mexico time. */
   min?: string
   max?: string
@@ -62,7 +69,7 @@ export default function DateField({
   help,
   error,
   autoComplete,
-  inline = false,
+  showAge = false,
   min,
   max,
 }: Props) {
@@ -85,18 +92,18 @@ export default function DateField({
   const panelId = `${id}-cal`
   const errorId = `${id}-err`
 
-  /* The inline panel unfolds on mount instead of being there already: the
-     screen assembles itself once, and the movement says the panel is part of
-     the field rather than a box that happened to be printed under it.
+  /* The panel unfolds on mount instead of being there already: the screen
+     assembles itself once, and the movement says the panel is part of the
+     field rather than a box that happened to be printed under it.
 
-     Why an effect: `useState(inline)` would open the panel in the first
-     render and there would be nothing to animate — the unfold needs a painted
-     closed state to move away from, and only a commit gives us one. The
-     second render is the point here, not an accident.
+     Why an effect: `useState(true)` would open the panel in the first render
+     and there would be nothing to animate — the unfold needs a painted closed
+     state to move away from, and only a commit gives us one. The second
+     render is the point here, not an accident.
      See `.agents/skills/vercel-react-best-practices/rules/rerender-derived-state-no-effect.md`. */
   useEffect(() => {
-    if (inline) setOpen(true)
-  }, [inline])
+    setOpen(true)
+  }, [])
 
   /* The value can change from outside — a draft loading, a form reset.
 
@@ -112,22 +119,6 @@ export default function DateField({
     setText(isoToText(value, fmt.dayFirst))
   }, [value, fmt.dayFirst])
 
-  /* A panel that lives inside a form grid closes when you work elsewhere.
-
-     Why an effect: `document` is an external system, and the listener has to
-     come off again when the panel closes and when the field unmounts. It is
-     bound only while an open, non-inline panel is up — one at a time — so
-     there is nothing here for the dedup rule to fold.
-     See `.agents/skills/vercel-react-best-practices/rules/client-event-listeners.md`. */
-  useEffect(() => {
-    if (!open || inline) return
-    function onDown(ev: MouseEvent) {
-      if (!rootRef.current?.contains(ev.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open, inline])
-
   function emit(iso: string) {
     emitted.current = iso
     onChange(iso)
@@ -136,7 +127,6 @@ export default function DateField({
   function pick(day: Ymd) {
     setText(isoToText(toISO(day), fmt.dayFirst))
     emit(toISO(day))
-    if (!inline) setOpen(false)
   }
 
   function onType(raw: string) {
@@ -181,9 +171,6 @@ export default function DateField({
         if (rootRef.current?.contains(ev.relatedTarget)) return
         onBlur?.()
       }}
-      onKeyDown={(ev) => {
-        if (ev.key === 'Escape' && open && !inline) setOpen(false)
-      }}
     >
       <label htmlFor={id} className="text-[12.5px] font-medium">
         {label} {req && <span className="text-bad">*</span>}
@@ -198,7 +185,6 @@ export default function DateField({
           placeholder={m.date_placeholder()}
           value={text}
           onChange={(e) => onType(e.target.value)}
-          onFocus={() => !inline && setOpen(true)}
           aria-invalid={Boolean(shown)}
           aria-describedby={describedBy}
           autoComplete={autoComplete}
@@ -232,7 +218,7 @@ export default function DateField({
         </div>
       </div>
 
-      {age >= 0 && (
+      {showAge && age >= 0 && (
         <p className="cal-read">
           <b>{m.date_age({ age })}</b>
           <span aria-hidden="true">·</span>

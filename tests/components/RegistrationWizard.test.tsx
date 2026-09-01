@@ -1,8 +1,10 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as m from '../../src/paraglide/messages.js'
 import RegistrationForm from '../../src/components/RegistrationForm'
 import { emptyRegistration } from '../../convex/lib/registrationSchema'
+import { RESULTS_MIN } from '../../convex/lib/registrationRules'
+import { FIXED_RANKINGS } from '../../convex/lib/registrationSchema'
 import type { RegistrationData } from '../../convex/lib/registrationSchema'
 import type { RegistrationError } from '../../src/lib/registrationRules'
 
@@ -16,7 +18,8 @@ function throughStep1(): RegistrationData {
     whatsapp: '5512345678',
     birthDate: '2008-04-11',
     branch: 'womens',
-    cityState: 'Monterrey, NL',
+    state: 'Nuevo León',
+    city: 'Monterrey',
   })
 }
 
@@ -24,7 +27,11 @@ function complete(): RegistrationData {
   const d = throughStep1()
   d.academic = { school: 'ITESM', grade: '11', graduationYear: '2027', interest: '' }
   d.athletic = { club: 'Campestre', coach: 'L. Ruiz', ghin: '4.2', amateurStatus: true }
-  d.results = [{ tournament: 'CNIJ', result: '2º' }]
+  d.results = Array.from({ length: RESULTS_MIN }, (_, i) => ({
+    tournament: `Torneo ${i + 1}`,
+    result: `${i + 1}º`,
+  }))
+  d.rankings = [{ name: 'CNIJ', position: '12' }]
   d.motivationLetter = 'Quiero jugar.'
   d.confirmations = { rules: true, scholarshipUnderstood: true, privacy: true }
   return d
@@ -154,6 +161,26 @@ describe('the stepper', () => {
     expect(shownStep()).toBe(1)
   })
 
+  /**
+   * The ticks used to be session memory: a reload, or a sent registration
+   * reopened at the top, drew eight steps as though the form were untouched.
+   */
+  it('remembers what is filled in when the form is reopened at the top', () => {
+    renderWizard({ initial: complete(), initialStep: 0 })
+    expect(shownStep()).toBe(1)
+
+    for (const n of [2, 5, 8]) {
+      expect(pill(n)).toHaveTextContent(m.reg_step_state_done())
+      expect(pill(n)).toBeEnabled()
+    }
+  })
+
+  it('does not tick a step the draft has not got to yet', () => {
+    renderWizard({ initial: throughStep1(), initialStep: 0 })
+    expect(pill(1)).not.toHaveTextContent(m.reg_step_state_done())
+    expect(pill(5)).not.toHaveTextContent(m.reg_step_state_done())
+  })
+
   it('marks the step being read', () => {
     renderWizard()
     expect(pill(1)).toHaveAttribute('aria-current', 'step')
@@ -226,6 +253,121 @@ describe('submitting from the last step', () => {
       fireEvent.submit(document.querySelector('form')!)
     })
     expect(onSubmit).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * Steps 4 and 5 are the two whose rule is a count rather than a filled box,
+ * and both used to let anyone through: results wanted one row, rankings
+ * wanted nothing at all. Neither field has an id in `FIELD_IDS` — an array is
+ * not one input — so the message under the rows is the only thing that says
+ * what is wrong, which is what these check.
+ */
+describe('the counted steps', () => {
+  /** `n` complete rows, and the blanks the form seeds left as they are. */
+  function withResults(n: number) {
+    const d = complete()
+    d.results = d.results.map((_row, i) =>
+      i < n ? { tournament: `Torneo ${i + 1}`, result: `${i + 1}º` } : { tournament: '', result: '' },
+    )
+    return d
+  }
+
+  function positions(...given: (string | undefined)[]) {
+    const d = complete()
+    d.rankings = FIXED_RANKINGS.map((name, i) => ({ name, position: given[i] ?? '' }))
+    return d
+  }
+
+  const resultsError = () => m.reg_results_error({ n: RESULTS_MIN })
+
+  it('opens the form on step 4 while it is a row short', () => {
+    renderWizard({ initial: withResults(RESULTS_MIN - 1) })
+    expect(shownStep()).toBe(4)
+  })
+
+  it('holds the reader on step 4 and says how many results are wanted', () => {
+    renderWizard({ initial: withResults(RESULTS_MIN - 1) })
+    fireEvent.click(next())
+
+    expect(shownStep()).toBe(4)
+    expect(screen.getByText(resultsError())).toBeInTheDocument()
+  })
+
+  it('lets the last row typed in be the one that opens the gate', () => {
+    renderWizard({ initial: withResults(RESULTS_MIN - 1) })
+    fireEvent.click(next())
+    expect(shownStep()).toBe(4)
+
+    const i = RESULTS_MIN
+    fireEvent.change(screen.getByLabelText(`${m.reg_tournament_name()} ${i}`), {
+      target: { value: 'Campestre invierno' },
+    })
+    const score = screen.getByLabelText(`${m.reg_tournament_result()} ${i}`)
+    fireEvent.change(score, { target: { value: '2º' } })
+    // Blur, not change: the form revalidates on blur until the first submit,
+    // so that nobody is told they are wrong halfway through typing.
+    fireEvent.blur(score)
+
+    expect(screen.queryByText(resultsError())).not.toBeInTheDocument()
+    fireEvent.click(next())
+    expect(shownStep()).toBe(5)
+  })
+
+  /** Half a row is someone who started typing, not a result. */
+  it('does not count a row with only a tournament on it', () => {
+    renderWizard({ initial: withResults(RESULTS_MIN - 1) })
+    fireEvent.change(screen.getByLabelText(`${m.reg_tournament_name()} ${RESULTS_MIN}`), {
+      target: { value: 'Campestre invierno' },
+    })
+    fireEvent.click(next())
+
+    expect(shownStep()).toBe(4)
+    expect(screen.getByText(resultsError())).toBeInTheDocument()
+  })
+
+  it('holds the reader on step 5 until one ranking has a position', () => {
+    renderWizard({ initial: positions() })
+    expect(shownStep()).toBe(5)
+
+    fireEvent.click(next())
+    expect(shownStep()).toBe(5)
+    expect(screen.getByText(m.reg_rankings_error())).toBeInTheDocument()
+  })
+
+  it('asks for one, not all four', () => {
+    renderWizard({ initial: positions() })
+    const position = screen.getByLabelText(`${m.reg_ranking_position()} ${FIXED_RANKINGS[1]}`)
+    fireEvent.change(position, { target: { value: '41' } })
+    fireEvent.blur(position)
+
+    expect(screen.queryByText(m.reg_rankings_error())).not.toBeInTheDocument()
+    fireEvent.click(next())
+    expect(shownStep()).toBe(6)
+  })
+
+  /** Someone who appears only in a list XUNTAS does not name still qualifies. */
+  it('takes the free-form row as an answer', () => {
+    renderWizard({ initial: positions() })
+    fireEvent.change(screen.getByLabelText(m.reg_ranking_other()), {
+      target: { value: 'Ranking estatal' },
+    })
+    fireEvent.change(
+      screen.getByLabelText(`${m.reg_ranking_position()} ${m.reg_ranking_other()}`),
+      { target: { value: '3' } },
+    )
+
+    fireEvent.click(next())
+    expect(shownStep()).toBe(6)
+  })
+
+  /** A closed window has nothing to gate, counted steps included. */
+  it('lets both go once the window has closed', () => {
+    renderWizard({ initial: withResults(0), editable: false, initialStep: 3 })
+    fireEvent.click(next())
+    expect(shownStep()).toBe(5)
+    fireEvent.click(next())
+    expect(shownStep()).toBe(6)
   })
 })
 
@@ -341,5 +483,81 @@ describe('an error does not move the page', () => {
     const slots = ['ck1-err', 'ck2-err', 'ck3-err'].map((id) => document.getElementById(id))
     expect(slots.every(Boolean)).toBe(true)
     for (const s of slots) expect(s).toHaveClass('min-h-[2.9em]')
+  })
+})
+
+/**
+ * The competitive calendar asks which month a tournament falls in, and for a
+ * while it asked with a bare text box — so `10/2025`, `oct`, `otoño` and a
+ * blank were all equally acceptable answers, and a month already past was as
+ * easy to write as one ahead. It is a `MonthField` now: the same walk through
+ * years and months as the date of birth, stopping a step early, in a popover
+ * so the rows under it stay where the reader left them.
+ */
+describe('the competitive calendar rows', () => {
+  /* Frozen so the range the picker offers does not depend on the day the
+     suite runs: from this September, October is always a month ahead. */
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-15T18:00:00.000Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function goToCalendar(calendar: RegistrationData['calendar']) {
+    const d = complete()
+    d.calendar = calendar
+    d.motivationLetter = ''
+    // With the letter empty the form opens on step 7; the calendar is behind it.
+    renderWizard({ initial: d })
+    fireEvent.click(back())
+    expect(shownStep()).toBe(6)
+  }
+
+  const dateBox = (n: number) => screen.getByLabelText(`${m.reg_event_date()} ${n}`)
+  const openers = () => screen.getAllByRole('button', { name: m.date_open_months() })
+
+  it('offers a month to pick rather than a box to type a date into', () => {
+    goToCalendar([{ event: 'Campestre invierno', date: '' }])
+    fireEvent.click(openers()[0])
+
+    expect(screen.getByRole('button', { name: /^oct/i })).toBeInTheDocument()
+    // The funnel stops at months: no day grid, so no cell named for a day.
+    expect(screen.queryByRole('button', { name: '15' })).not.toBeInTheDocument()
+  })
+
+  it('writes the month into the row that was asked, and no other', () => {
+    goToCalendar([
+      { event: 'Campestre invierno', date: '' },
+      { event: 'Nacional', date: '' },
+    ])
+    fireEvent.click(openers()[1])
+    fireEvent.click(screen.getByRole('button', { name: /^oct/i }))
+
+    expect(dateBox(2)).toHaveValue('10/2026')
+    expect(dateBox(1)).toHaveValue('')
+  })
+
+  it('prints a month that came back from a draft', () => {
+    goToCalendar([{ event: 'Nacional', date: '2027-03' }])
+    expect(dateBox(1)).toHaveValue('03/2027')
+  })
+
+  it('refuses a month already behind the reader', () => {
+    goToCalendar([{ event: 'Nacional', date: '' }])
+    fireEvent.change(dateBox(1), { target: { value: '012026' } })
+
+    expect(dateBox(1)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText(m.date_month_past())).toBeInTheDocument()
+  })
+
+  /** The results rows share `DynamicRows`; their second column is prose. */
+  it('leaves the results rows a plain pair of text boxes', () => {
+    const d = complete()
+    d.results = []
+    renderWizard({ initial: d })
+    expect(shownStep()).toBe(4)
+    expect(screen.queryByRole('button', { name: m.date_open_months() })).not.toBeInTheDocument()
   })
 })

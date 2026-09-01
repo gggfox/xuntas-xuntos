@@ -21,7 +21,8 @@ export type AccountMilestones = {
 /**
  * Approximate progress, only for the bar. It is not the validation: it counts
  * whether a field was answered, not whether the answer is any good, so the bar
- * can read 100% on a form that still fails to submit.
+ * can read 100% on a form that still fails to submit — one result row counts
+ * here where the rules want four.
  */
 export function computeProgress(d: RegistrationData, account: AccountMilestones): number {
   const slots = [
@@ -33,13 +34,15 @@ export function computeProgress(d: RegistrationData, account: AccountMilestones)
     d.personal.whatsapp,
     d.personal.birthDate,
     d.personal.branch,
-    d.personal.cityState,
+    d.personal.state,
+    d.personal.city,
     d.academic.school,
     d.academic.grade,
     d.athletic.club,
     d.athletic.coach,
     d.athletic.ghin,
     d.results.some((r) => r.tournament && r.result),
+    d.rankings.some((r) => r.name && r.position),
     d.motivationLetter,
     d.confirmations.rules,
     d.confirmations.scholarshipUnderstood,

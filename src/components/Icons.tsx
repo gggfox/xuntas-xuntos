@@ -137,9 +137,10 @@ function Shield(props: IconProps) {
  * `text-yel`, and if the palette in `styles.css` ever moves, this moves with
  * it. An `<img>` would carry a hardcoded hex and quietly drift.
  *
- * The artwork is the one from xuntas.org (`favicon.svg` there). Only the
- * fill was changed — the site ships it in its own yellow, `#ebf437`, which is
- * a different yellow from this app's `--color-yel`.
+ * The artwork is the one from xuntas.org (`favicon.svg` there), used as-is.
+ * It used to arrive needing a recolor, because this app ran on a yellow of
+ * its own; since `--color-yel` became the guideline's `#ebf437` the site's
+ * fill and ours are the same value, and there is nothing left to convert.
  *
  * Sized by the caller: no intrinsic width/height, so a `className` decides.
  */

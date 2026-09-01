@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { emptyRegistration } from '../convex/lib/registrationSchema'
 import type { RegistrationData } from '../convex/lib/registrationSchema'
-import { LETTER_MIN } from '../convex/lib/registrationRules'
+import { LETTER_MIN, RESULTS_MIN } from '../convex/lib/registrationRules'
 import {
   clampStep,
   firstIncompleteStep,
@@ -24,12 +24,13 @@ const STEPS: StepFields = [
     'personal.whatsapp',
     'personal.birthDate',
     'personal.branch',
-    'personal.cityState',
+    'personal.state',
+    'personal.city',
   ],
   ['academic.school', 'academic.grade', 'academic.graduationYear'],
   ['athletic.club', 'athletic.coach', 'athletic.ghin'],
   ['results'],
-  [],
+  ['rankings'],
   [],
   ['motivationLetter'],
   ['confirmations.rules', 'confirmations.scholarshipUnderstood', 'confirmations.privacy'],
@@ -42,11 +43,16 @@ function validRegistration(): RegistrationData {
     whatsapp: '+52 55 1234 5678',
     birthDate: '2008-04-11',
     branch: 'womens',
-    cityState: 'Monterrey, NL',
+    state: 'Nuevo León',
+    city: 'Monterrey',
   })
   d.academic = { school: 'ITESM', grade: '11', graduationYear: '2027', interest: '' }
   d.athletic = { club: 'Club Campestre', coach: 'L. Ruiz', ghin: '4.2', amateurStatus: true }
-  d.results = [{ tournament: 'CNIJ', result: '2º' }]
+  d.results = Array.from({ length: RESULTS_MIN }, (_, i) => ({
+    tournament: `Torneo ${i + 1}`,
+    result: `${i + 1}º`,
+  }))
+  d.rankings = [{ name: 'CNIJ', position: '12' }]
   d.motivationLetter = 'x'.repeat(Math.max(LETTER_MIN, 1))
   d.confirmations = { rules: true, scholarshipUnderstood: true, privacy: true }
   return d

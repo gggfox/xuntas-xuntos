@@ -18,7 +18,8 @@ function complete(): RegistrationData {
     whatsapp: '5512345678',
     birthDate: '2008-04-11',
     branch: 'womens',
-    cityState: 'Monterrey',
+    state: 'Nuevo León',
+    city: 'Monterrey',
   })
   d.academic.school = 'ITESM'
   d.academic.grade = '11'
@@ -26,6 +27,7 @@ function complete(): RegistrationData {
   d.athletic.coach = 'L. Ruiz'
   d.athletic.ghin = '4.2'
   d.results = [{ tournament: 'CNIJ', result: '2\u00ba' }]
+  d.rankings = [{ name: 'CNIJ', position: '12' }]
   d.motivationLetter = 'Quiero jugar.'
   d.confirmations = { rules: true, scholarshipUnderstood: true, privacy: true }
   return d

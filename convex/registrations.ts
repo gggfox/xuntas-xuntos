@@ -11,8 +11,10 @@ import type { Doc } from './_generated/dataModel'
 import { vBranch } from './schema'
 
 /**
- * Form payload. Same fields as registro_xuntas.html — XUNTAS already approved
- * that shape and we do not change it.
+ * Form payload. The fields of registro_xuntas.html, with one departure:
+ * its single "ciudad y estado" box is `state` and `city` here, because a
+ * state picked from the 32 is a field we can group and count by and a typed
+ * "Monterrey, NL" is not.
  */
 const vRegistrationData = v.object({
   personal: v.object({
@@ -21,7 +23,8 @@ const vRegistrationData = v.object({
     whatsapp: v.string(),
     birthDate: v.string(),
     branch: vBranch,
-    cityState: v.string(),
+    state: v.string(),
+    city: v.string(),
   }),
   academic: v.object({
     school: v.string(),
