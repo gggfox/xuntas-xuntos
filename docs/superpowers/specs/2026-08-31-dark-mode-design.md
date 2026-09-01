@@ -382,7 +382,42 @@ at all — with the single exception of `formButtonPrimary`, which is the Clerk
 row of the section 2 table and does need its `text-ink!`/`border-ink!` pinned. Where the two overlap, prefer `elements`: it is the half that cannot
 drift.
 
-### 10. Documentation
+### 10. The meteors
+
+`src/components/Meteors.tsx` draws nine hairline streaks fixed to the viewport,
+behind the page, on `/empezar` and the registration panel. It is the site's one
+decorative layer, and this design missed it on the first pass.
+
+Two of its three colours already behave. The tail is
+`linear-gradient(to right, var(--color-line-2), transparent)`, so it inverts
+from dark ink on bone to translucent white on near-black — correct, and for
+free. The layer's `z-index: -1` and the `isolate` it depends on are structural,
+not chromatic, and are untouched.
+
+The head is the problem. It is `var(--color-yel-line)` — `#acb522`, a yellow
+*darkened specifically to survive on bone paper*, which is the one thing a
+near-black page does not require. Under the section 2 rule it names a role
+relative to the **page**, so it inverts; `--color-yel-line` itself stays pinned
+because its other consumer is `.nota`'s border, sitting on the soft-yellow
+panel. Those are two different jobs that happened to share a value, and they
+split:
+
+```css
+--color-meteor: #acb522;   /* light: the muted tone bone paper needs */
+--color-meteor: #ebf437;   /* dark:  the brand yellow, finally legible */
+```
+
+This does not contradict D2. The brand yellow is not moving — the meteor is
+changing which of the already-pinned yellows it draws with.
+
+**The head also gains a glow, in dark only.** The existing comment rejects one
+outright, but read it again: *"a shadow is light spilling into darkness, and on
+bone paper the same shadow is a yellow-green smudge that reads as a printing
+fault."* That is an argument against a glow on bone and, in the same breath, an
+argument **for** one on black. Light mode keeps its flat head; the comment gets
+amended to say why the two differ rather than being quietly contradicted.
+
+### 11. Documentation
 
 - `docs/BRAND.md`: the "There is no dark mode" paragraph is replaced by the
   dark-mode rules — that the palette inverts rather than being invented, that

@@ -7,6 +7,13 @@ CSS would win — which is why there are none here.
 
 To see the current values: open `src/styles.css`.
 
+Above that file sits `documentation/B&P_XUNTAS_GUIDELINE_2025.pdf`, the 2025
+brand guideline from Brands&People. Page 13 is the palette, and it is the
+authority for the two **primarios** — the yellow and the black. Everything
+else in the theme is either derived from those two or has no counterpart in
+the guideline at all. When the two disagree, the guideline wins and
+`styles.css` gets corrected, not the other way round.
+
 ---
 
 ## The principle
@@ -165,10 +172,19 @@ as inline SVG with `fill="currentColor"`. That is the reason it is inline and
 not an `<img>`: it takes the color of whatever it sits in, so it follows
 `styles.css` instead of pinning a hex of its own.
 
-**Two yellows exist and only one belongs here.** The site ships its artwork in
-`#ebf437`; this app's `--color-yel` is `#edf45f`. Anything imported from the
-site gets recolored on the way in. Side by side the difference reads as a
-rendering fault, not as two brands.
+**There is one yellow, and it is the guideline's.** For a while this app ran
+on `#edf45f`, inherited from the approved prototype, while xuntas.org shipped
+its artwork in the guideline's `#ebf437` — so anything imported from the site
+had to be recolored on the way in, and side by side the two read as a
+rendering fault rather than as two brands. `--color-yel` is now `#ebf437`, the
+same value, and that conversion step is gone.
+
+The three supporting tones (`--color-yel-line`, `--color-yel-d`,
+`--color-yel-s`) are **not** in the guideline; neither is `--color-ochre`. They
+are derived from `#ebf437`, holding the same hue, saturation and lightness
+steps the prototype had used around its own yellow, so the relationships the
+designer set up survive the re-anchoring. If the yellow ever moves again, they
+get re-derived — they are not independent choices.
 
 **The wordmark is not used.** The site's lockup reads "XUNTAS" alone, and this
 is the registration for a program with a men's branch. The header keeps the

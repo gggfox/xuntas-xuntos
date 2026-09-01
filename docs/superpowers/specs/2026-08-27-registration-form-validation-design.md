@@ -47,7 +47,7 @@ Three problems, one subsystem.
 
 ## Open decisions
 
-Four thresholds in section 3 are product decisions, not technical ones. They are
+Six thresholds in section 3 are product decisions, not technical ones. They are
 proposals and need XUNTAS's confirmation before stage 2 ships. Each is a single
 constant in `convex/lib/registrationRules.ts`, so changing one later is a one-line
 edit plus a test update.
@@ -66,6 +66,20 @@ edit plus a test update.
   floor as a parameter, so a test exercises the rejection path while it is
   switched off in production, and raising `LETTER_MIN` turns it back on with no
   other edit. P1–P3 ship at their proposed values and remain open.
+- **P5 — minimum result rows. DECIDED: 4.** *Amended after implementation.* The
+  rule shipped as "at least one row", which let a single tournament stand in for
+  a season; the panel reads step 4 to judge how much a player competes, and one
+  row says nothing either way. `emptyRegistration` seeds exactly `RESULTS_MIN`
+  blank rows so the ask is legible without a sentence explaining it, and
+  `tests/registrationSchema.test.ts` holds the seed to the constant — the schema
+  cannot import the rules, which import it.
+- **P6 — minimum rankings. DECIDED: 1.** *Amended after implementation.*
+  Rankings shipped entirely optional, with step 5 carrying an empty field list
+  so the gate on "next" had nothing to hold anyone up over. One is now the
+  floor: the players this convocatoria addresses appear in at least one list,
+  and the free-form fifth row catches anyone who appears only somewhere XUNTAS
+  does not name. Both floors are parameters on `checkResults` / `checkRankings`,
+  so a moved threshold does not need a new test.
 
 ## Non-goals
 
@@ -138,9 +152,11 @@ now a link to its field, and each field renders its own message.
 | `whatsapp` | >= 10 digits after stripping spaces, dashes, parens, `+` **(P2)** |
 | `birthDate` | `isValidBirthDate` from `convex/lib/cycle.ts`: real calendar date, not future, year >= 1930. Distinct codes for future vs implausible. |
 | `branch` | must be `womens` or `mens`. **Added server-side.** |
-| `cityState`, `school`, `grade`, `club`, `coach`, `ghin` | non-empty after trim |
+| `state` | must be one of the 32 federal entities in `convex/lib/mexicanStates.ts`. The single `cityState` box of the approved shape is `state` + `city` here. |
+| `city`, `school`, `grade`, `club`, `coach`, `ghin` | non-empty after trim |
 | `graduationYear` | if present, 4 digits, within current year -1 .. +12 **(P3)** |
-| `results` | at least one row with both cells filled |
+| `results` | at least `RESULTS_MIN` rows with both cells filled **(P5 = 4)** |
+| `rankings` | at least `RANKINGS_MIN` rows with both a name and a position **(P6 = 1)**. The four fixed names count only once a position is typed beside them. |
 | `motivationLetter` | non-empty, <= `LETTER_LIMIT`. No minimum **(P4 = 0)**. Enforced client-side too. |
 | confirmations | each unchecked box gets its own error code with real error copy |
 | guardian email | valid address **and** not equal to the registrant's own email (`gate_guardian_email_same`) |
@@ -204,7 +220,11 @@ those components dumb, prop-driven, and one per file. `createFormHook` bound
 components are deliberately not used: they generate component definitions that
 would fight the one-component-per-file rule.
 
-- Array fields (`mode="array"`) for `results`, `rankings`, `calendar`.
+- Array fields (`mode="array"`) for `results`, `rankings`, `calendar`. The
+  first two validate the array itself rather than its cells — the rule is a
+  count, not a property of any one row — and neither appears in `FIELD_IDS`,
+  since an array is not one input to send focus to. The message under the rows
+  is what says the count is short.
 - Validation timing is `revalidateLogic({ mode: 'blur', modeAfterSubmission:
   'change' })` with `onDynamic` field validators, rather than hand-wiring
   `onBlur`/`onChange` per field as this section first described. It is the same
