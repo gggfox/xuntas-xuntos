@@ -47,6 +47,15 @@
   --color-chrome: #161615;
 
   /*
+   * The meteor head. Split out of `--color-yel-line` because that token has
+   * two jobs: a border on the soft-yellow `.nota` panel, and this. The first
+   * does not move between themes; this one must, because #acb522 is a yellow
+   * darkened to survive on BONE PAPER, which is the one thing a near-black
+   * page does not need.
+   */
+  --color-meteor: #acb522;
+
+  /*
    * Washes, hairlines and tints that used to be written as literals. They are
    * tokens now for one reason: a literal cannot invert, and `rgba(31,122,69,.4)`
    * beside a `--color-ok` that has moved gives a light-green chip a dark-green
@@ -129,6 +138,11 @@
      invert with the background, so they invert too. */
   --color-yel-s: #24260f;
   --color-ochre: #d4dd6a;
+
+  /* The brand yellow, finally legible. This does not contradict "the yellow
+     does not move": #ebf437 is unchanged — the meteor is changing WHICH of the
+     pinned yellows it draws with. */
+  --color-meteor: #ebf437;
 
   /* Re-derived at the same hue. The light values fail contrast on a dark
      card, and docs/BRAND.md calls accessibility non-negotiable. */
@@ -386,10 +400,10 @@ body {
   /*
    * One streak: a 2 px head, with the tail drawn behind it by `::before`.
    *
-   * The head is the brand yellow and the tail is ink, at the same 22 % the
-   * rest of the site draws its lines at. No glow around the head: a shadow
-   * is light spilling into darkness, and on bone paper the same shadow is a
-   * yellow-green smudge that reads as a printing fault.
+   * The head is the brand's yellow for the theme in play — muted on bone,
+   * full strength on black — and the tail is ink at the same 22 % the rest
+   * of the site draws its lines at, which inverts on its own. The glow below
+   * is dark-only, and the reason is the same one that rules it out on paper.
    *
    * The rotation lives in the keyframe, not here — a `transform` on the
    * element is replaced wholesale by the animated one, not composed with it.
@@ -399,7 +413,7 @@ body {
     width: 2px;
     height: 2px;
     border-radius: 999px;
-    background: var(--color-yel-line);
+    background: var(--color-meteor);
     animation-name: meteor;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
@@ -412,6 +426,17 @@ body {
     height: 1px;
     transform: translateY(-50%);
     background: linear-gradient(to right, var(--color-line-2), transparent);
+  }
+
+  /*
+   * The glow is dark-only, and the comment above explains why without meaning
+   * to: a shadow is light spilling into darkness. On bone paper that spill is
+   * a yellow-green smudge and reads as a printing fault, which is why the head
+   * stays flat in light. On a near-black page it is simply what a fast, hot
+   * thing looks like.
+   */
+  :root[data-theme='dark'] .meteor {
+    box-shadow: 0 0 6px 1px rgba(235, 244, 55, 0.45);
   }
 }
 
