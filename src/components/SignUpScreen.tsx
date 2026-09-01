@@ -5,10 +5,12 @@ import * as m from '../paraglide/messages.js'
 import { localizeHref } from '../paraglide/runtime.js'
 import { readPreSignupToken } from '../lib/preSignup'
 import { clerkAppearance } from '../lib/clerkAppearance'
+import { useThemeContext } from './ThemeProvider'
 
 export default function SignUpScreen() {
   const [token, setToken] = useState<string | null | undefined>(undefined)
   const { pathname } = useLocation()
+  const { resolved } = useThemeContext()
 
   /**
    * The token: sessionStorage does not exist on the server, so it is read
@@ -70,7 +72,7 @@ export default function SignUpScreen() {
 
       <div className="mt-8">
         <SignUp
-          appearance={clerkAppearance}
+          appearance={clerkAppearance(resolved)}
           /**
            * Only the token, which is an opaque reference to the pre-signup
            * the server already resolved. `unsafeMetadata` can be rewritten

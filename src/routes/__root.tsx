@@ -6,7 +6,8 @@ import { convex } from '../lib/convex'
 import { getLocale } from '../paraglide/runtime.js'
 import * as m from '../paraglide/messages.js'
 import AppBar from '../components/AppBar'
-import ThemeProvider from '../components/ThemeProvider'
+import ThemeProvider, { useThemeContext } from '../components/ThemeProvider'
+import { clerkAppearance } from '../lib/clerkAppearance'
 
 import appCss from '../styles.css?url'
 
@@ -85,6 +86,27 @@ var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)
 document.documentElement.dataset.theme=d?'dark':'light';
 }catch(e){document.documentElement.dataset.theme='light'}})()`
 
+/**
+ * Split out of `RootDocument` because `ThemeProvider` renders the context
+ * that Clerk needs to be handed: `RootDocument` mounts `ThemeProvider` itself,
+ * so it cannot also call `useThemeContext` — a component below the provider
+ * has to do that reading.
+ *
+ * `ConvexProviderWithClerk` wraps `{children}` alone, not a fragment beside
+ * it, so a sibling (`ThemeSync`, reconciling the theme with the signed-in
+ * account) can be mounted here later without disturbing this shape.
+ */
+function ThemedProviders({ children }: { children: React.ReactNode }) {
+  const { resolved } = useThemeContext()
+  return (
+    <ClerkProvider localization={esMX} appearance={clerkAppearance(resolved)}>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        {children}
+      </ConvexProviderWithClerk>
+    </ClerkProvider>
+  )
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang={getLocale()} suppressHydrationWarning>
@@ -94,26 +116,24 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="flex min-h-dvh flex-col bg-paper text-ink font-body antialiased">
         <ThemeProvider>
-          <ClerkProvider localization={esMX}>
-            <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-              <AppBar />
-              {children}
-              {/*
-                mt-auto, not a fixed margin: on a page shorter than the window the
-                footer lands on the bottom edge instead of floating with a band of
-                paper underneath it. On a long page the margin collapses to nothing
-                and the page's own bottom padding does the spacing.
-              */}
-              <footer className="relative mt-auto border-t border-line">
-                <div className="band py-[15px]">
-                  <p className="eyebrow">
-                    {m.brand_cycle()} · {m.reg_closing()}
-                  </p>
-                </div>
-              </footer>
-              <Scripts />
-            </ConvexProviderWithClerk>
-          </ClerkProvider>
+          <ThemedProviders>
+            <AppBar />
+            {children}
+            {/*
+              mt-auto, not a fixed margin: on a page shorter than the window the
+              footer lands on the bottom edge instead of floating with a band of
+              paper underneath it. On a long page the margin collapses to nothing
+              and the page's own bottom padding does the spacing.
+            */}
+            <footer className="relative mt-auto border-t border-line">
+              <div className="band py-[15px]">
+                <p className="eyebrow">
+                  {m.brand_cycle()} · {m.reg_closing()}
+                </p>
+              </div>
+            </footer>
+            <Scripts />
+          </ThemedProviders>
         </ThemeProvider>
       </body>
     </html>

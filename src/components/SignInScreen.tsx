@@ -2,8 +2,10 @@ import { SignIn } from '@clerk/tanstack-react-start'
 import * as m from '../paraglide/messages.js'
 import { localizeHref } from '../paraglide/runtime.js'
 import { clerkAppearance } from '../lib/clerkAppearance'
+import { useThemeContext } from './ThemeProvider'
 
 export default function SignInScreen() {
+  const { resolved } = useThemeContext()
   return (
     <main className="col col-560 pt-[46px] pb-[90px]">
       <p className="eyebrow">{m.brand_cycle()}</p>
@@ -11,7 +13,7 @@ export default function SignInScreen() {
       <p className="mt-3 max-w-[52ch] font-light text-soft">{m.account_no_password()}</p>
       <div className="mt-8">
         <SignIn
-          appearance={clerkAppearance}
+          appearance={clerkAppearance(resolved)}
           routing="path"
           path={localizeHref('/entrar')}
           signUpUrl={localizeHref('/empezar')}
