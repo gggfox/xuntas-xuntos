@@ -12,7 +12,7 @@ import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage } from './lib/cycle'
 import { validateBirthDateDeclaration } from './lib/guardianRules'
 import type { AppErrorCode } from './lib/errorCodes'
 import { newToken } from './lib/tokens'
-import { vRole } from './schema'
+import { vRole, vThemePreference } from './schema'
 
 /**
  * Errors cross the wire as codes so the browser can say them in the reader's
@@ -290,6 +290,45 @@ export const declareBirthDate = mutation({
     }
 
     return { ok: true as const, isMinor }
+  },
+})
+
+/**
+ * Stores the reader's theme.
+ *
+ * Deliberately trivial: no rate limit, no audit trail, nothing derived. It is
+ * a display preference, and treating it with the ceremony of the registration
+ * data would be miscalibrated.
+ */
+export const setThemePreference = mutation({
+  args: { preference: vThemePreference },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx)
+    await ctx.db.patch(user._id, {
+      themePreference: args.preference,
+      updatedAt: Date.now(),
+    })
+    return { ok: true as const }
+  },
+})
+
+/**
+ * The account's stored theme, for the header.
+ *
+ * The three-way return is what lets the client tell "signed out" from "signed
+ * in and never chose" — a single `null` for both would make the reconciliation
+ * in `ThemeSync` ambiguous, and it would push this browser's preference onto
+ * an account that nobody was signed in to.
+ *
+ * Deliberately NOT folded into `myStatus`: that query serves the registration
+ * panel, and the header runs on every page in the app.
+ */
+export const myThemePreference = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await currentUser(ctx)
+    if (!user) return null
+    return { preference: user.themePreference ?? null }
   },
 })
 
