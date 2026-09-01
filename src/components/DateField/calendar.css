@@ -56,8 +56,11 @@
       border-color 0.14s,
       transform 0.14s;
   }
+  /* All three hovers were .05, .05 and .055; they are one `--color-wash` at
+     .045 now. That is a real, if imperceptible, change to LIGHT mode, and it
+     is recorded in the spec rather than smuggled in. */
   .cal-nav:hover:not(:disabled) {
-    background: rgba(17, 17, 17, 0.05);
+    background: var(--color-wash);
     border-color: var(--color-ink);
   }
   .cal-nav:active:not(:disabled) {
@@ -87,7 +90,7 @@
       border-color 0.14s;
   }
   .cal-title:hover {
-    background: rgba(17, 17, 17, 0.05);
+    background: var(--color-wash);
     border-color: var(--color-line-2);
   }
   .cal-title svg {
@@ -164,11 +167,11 @@
      pointer that just put it there. */
   .cal-day:not([aria-pressed="true"]):hover:not(:disabled),
   .cal-cell:not([aria-pressed="true"]):hover:not(:disabled) {
-    background: rgba(17, 17, 17, 0.055);
+    background: var(--color-wash);
   }
   .cal-day:disabled,
   .cal-cell:disabled {
-    color: rgba(17, 17, 17, 0.2);
+    color: var(--color-faint);
     cursor: not-allowed;
   }
 

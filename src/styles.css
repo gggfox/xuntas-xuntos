@@ -36,6 +36,37 @@
   --color-line: rgba(22, 22, 21, 0.11);
   --color-line-2: rgba(22, 22, 21, 0.22);
 
+  /*
+   * Pinned. These two name a role relative to a colour that does NOT move
+   * between themes — the yellow, and the header band — so they must not
+   * invert with the page. Painting them with `--color-ink` instead would
+   * give dark mode a near-white border on a yellow button and a bone header.
+   * See docs/BRAND.md.
+   */
+  --color-on-yel: #161615;
+  --color-chrome: #161615;
+
+  /*
+   * Washes, hairlines and tints that used to be written as literals. They are
+   * tokens now for one reason: a literal cannot invert, and `rgba(31,122,69,.4)`
+   * beside a `--color-ok` that has moved gives a light-green chip a dark-green
+   * border.
+   */
+  --color-wash: rgba(22, 22, 21, 0.045);
+  --color-faint: rgba(22, 22, 21, 0.2);
+  --color-yel-ring: rgba(235, 244, 55, 0.4);
+  --color-ok-line: rgba(31, 122, 69, 0.4);
+  --color-ok-wash: rgba(31, 122, 69, 0.07);
+  --color-warn-line: rgba(178, 107, 0, 0.4);
+  --color-warn-wash: rgba(178, 107, 0, 0.08);
+  --color-bad-line: rgba(179, 38, 30, 0.4);
+  --color-bad-wash: rgba(179, 38, 30, 0.07);
+  /* Separate from `--color-bad-wash`: the invalid field is tinted at .03 and
+     the chip at .07. Collapsing them would darken every invalid field in
+     light mode, and an error state is the last place to accept an
+     unrequested visual change. */
+  --color-bad-tint: rgba(179, 38, 30, 0.03);
+
   /* Semantic. For state only, never decorative. */
   --color-ok: #1f7a45;
   --color-warn: #b26b00;
@@ -50,9 +81,71 @@
   --radius-ctl: 8px;
 }
 
-/* No dark mode: the brand is light paper. Declared, not accidental. */
 :root {
-  color-scheme: light only;
+  color-scheme: light;
+}
+
+/*
+ * Dark mode.
+ *
+ * Tailwind v4 emits every `@theme` entry as a real custom property on
+ * `:root`, and each utility compiles to `var(--color-…)` rather than to a
+ * baked hex. Overriding the same properties here therefore re-colours the
+ * whole app — opacity modifiers included, since `text-ink/50` compiles to a
+ * `color-mix()` over this same variable.
+ *
+ * There is deliberately no `prefers-color-scheme` copy of this block. The
+ * script in `__root.tsx` resolves `system` down to a concrete value before
+ * first paint, so `data-theme` is always present. Duplicating the palette to
+ * serve a no-JS visitor would serve a case that cannot arise: the
+ * registration form does not function without JavaScript.
+ *
+ * `--color-yel`, `--color-yel-line`, `--color-yel-d`, `--color-on-yel` and
+ * `--color-chrome` are absent on purpose. They do not move.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* The page drops BELOW the header's #161615 so the ink band still reads as
+     a band — the same half-tone separation as bone-page against white-card,
+     inverted. It is why the header needs no border and no shadow. */
+  --color-paper: #0f0f0e;
+  --color-card: #1c1c1b;
+
+  --color-ink: #fafaf8;
+  /* The weights step AWAY from the text colour, toward the page — the same
+     direction of travel as #161615 to #333332 in light. */
+  --color-ink-2: #e4e4e0;
+  --color-ink-3: #cfcfca;
+  --color-soft: rgba(250, 250, 248, 0.6);
+
+  /* Nudged up from .11/.22. Light-on-dark loses more perceived contrast at a
+     given alpha than dark-on-light; holding the number reads as washed out. */
+  --color-line: rgba(250, 250, 248, 0.13);
+  --color-line-2: rgba(250, 250, 248, 0.24);
+
+  /* Both exist BECAUSE the page is light: ochre is the answer to "yellow does
+     not contrast on paper", and yel-s is a near-white panel. Their reasons
+     invert with the background, so they invert too. */
+  --color-yel-s: #24260f;
+  --color-ochre: #d4dd6a;
+
+  /* Re-derived at the same hue. The light values fail contrast on a dark
+     card, and docs/BRAND.md calls accessibility non-negotiable. */
+  --color-ok: #4ade80;
+  --color-warn: #e0a33a;
+  --color-bad: #f87171;
+
+  --color-wash: rgba(250, 250, 248, 0.07);
+  --color-faint: rgba(250, 250, 248, 0.26);
+  --color-yel-ring: rgba(235, 244, 55, 0.3);
+  --color-ok-line: rgba(74, 222, 128, 0.4);
+  --color-ok-wash: rgba(74, 222, 128, 0.1);
+  --color-warn-line: rgba(224, 163, 58, 0.4);
+  --color-warn-wash: rgba(224, 163, 58, 0.1);
+  --color-bad-line: rgba(248, 113, 113, 0.4);
+  --color-bad-wash: rgba(248, 113, 113, 0.1);
+  --color-bad-tint: rgba(248, 113, 113, 0.06);
 }
 
 html {
@@ -151,12 +244,14 @@ body {
 
   .btn {
     background: var(--color-yel);
-    color: var(--color-ink);
+    color: var(--color-on-yel);
     font-weight: 600;
     font-size: 13.5px;
     padding: 9px 17px;
     border-radius: 7px;
-    border: 1px solid var(--color-ink);
+    /* on-yel, not ink: BRAND.md requires yellow to always carry an INK
+       border, and `--color-ink` is bone in dark mode. */
+    border: 1px solid var(--color-on-yel);
     transition: background-color 0.15s;
   }
   .btn:hover:not(:disabled) {
@@ -169,11 +264,14 @@ body {
 
   .btn-ghost {
     background: transparent;
+    /* Explicit because `.btn` above is pinned to on-yel for the yellow it no
+       longer has. A ghost button sits on the page, so it takes the page's ink. */
+    color: var(--color-ink);
     border-color: var(--color-line-2);
     font-weight: 500;
   }
   .btn-ghost:hover:not(:disabled) {
-    background: rgba(22, 22, 21, 0.045);
+    background: var(--color-wash);
   }
 
   .card {
@@ -196,17 +294,17 @@ body {
   .fld-input:focus {
     outline: 0;
     border-color: var(--color-ink);
-    box-shadow: 0 0 0 3px rgba(235, 244, 55, 0.4);
+    box-shadow: 0 0 0 3px var(--color-yel-ring);
   }
   .fld-input[aria-invalid="true"] {
     border-color: var(--color-bad);
-    background: rgba(179, 38, 30, 0.03);
+    background: var(--color-bad-tint);
   }
   /* Matches a field inside a disabled fieldset too, which is how the closed
      window locks a whole step. Without this the field looks editable and
      simply swallows every click. */
   .fld-input:disabled {
-    background: rgba(22, 22, 21, 0.035);
+    background: var(--color-wash);
     color: var(--color-soft);
     border-color: var(--color-line);
     cursor: not-allowed;
@@ -226,24 +324,24 @@ body {
   }
   .chip-y {
     background: var(--color-yel);
-    border-color: var(--color-ink);
-    color: var(--color-ink);
+    border-color: var(--color-on-yel);
+    color: var(--color-on-yel);
     font-weight: 600;
   }
   .chip-ok {
     color: var(--color-ok);
-    border-color: rgba(31, 122, 69, 0.4);
-    background: rgba(31, 122, 69, 0.07);
+    border-color: var(--color-ok-line);
+    background: var(--color-ok-wash);
   }
   .chip-warn {
     color: var(--color-warn);
-    border-color: rgba(178, 107, 0, 0.4);
-    background: rgba(178, 107, 0, 0.08);
+    border-color: var(--color-warn-line);
+    background: var(--color-warn-wash);
   }
   .chip-bad {
     color: var(--color-bad);
-    border-color: rgba(179, 38, 30, 0.4);
-    background: rgba(179, 38, 30, 0.07);
+    border-color: var(--color-bad-line);
+    background: var(--color-bad-wash);
   }
 
   /* Notice in soft yellow. For the important-but-not-an-error. */
