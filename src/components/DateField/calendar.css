@@ -335,5 +335,27 @@
       /* The 6px the fields already stack their own parts with. */
       row-gap: 6px;
     }
+
+    /*
+     * Every part keeps its own height instead of stretching to fill the row
+     * its neighbour made tall. Stretching is what put the review date's
+     * calendar button out of place: the box around that input grew to the
+     * height of the two boxes opposite, and the button centres itself on the
+     * box, not on the input inside it.
+     */
+    .cal-pair.cal-pair > * > * {
+      align-self: start;
+    }
+
+    /*
+     * The box a field is answered in sits at the foot of its row. The window
+     * asks in two boxes under their own headings and the review date asks in
+     * one without, so aligning their tops would leave the inputs themselves
+     * a heading apart — it is the boxes a reader compares, not the space
+     * above them.
+     */
+    .cal-pair.cal-pair > * > *:nth-child(2) {
+      align-self: end;
+    }
   }
 }
