@@ -188,6 +188,9 @@ export const create = internalMutation({
         name: args.name ?? existing.name,
         emailVerified: args.emailVerified,
         role: args.role,
+        // Only fill `roles` when the row does not already have one, so a
+        // re-delivered webhook cannot clobber roles set by hand.
+        roles: existing.roles ?? [args.role],
         updatedAt: now,
       })
       return existing._id
@@ -212,6 +215,7 @@ export const create = internalMutation({
       email: args.email,
       name: args.name,
       role: args.role,
+      roles: [args.role],
       emailVerified: args.emailVerified,
       birthDate: preSignup?.birthDate,
       wasMinorAtSignup: preSignup?.isMinor,
@@ -352,6 +356,9 @@ export const update = internalMutation({
       name: args.name ?? user.name,
       emailVerified: args.emailVerified,
       role: args.role,
+      // Only fill `roles` when the row does not already have one, so a
+      // re-delivered webhook cannot clobber roles set by hand.
+      roles: user.roles ?? [args.role],
       updatedAt: Date.now(),
     })
   },

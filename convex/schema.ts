@@ -11,8 +11,19 @@ export const CURRENT_CYCLE = '2026-2027'
 /** Program branch. XUNTAS = women's, XUNTOS = men's. */
 export const vBranch = v.union(v.literal('womens'), v.literal('mens'))
 
-/** Account role. Read from Clerk publicMetadata.role and copied here. */
-export const vRole = v.union(v.literal('athlete'), v.literal('admin'))
+/**
+ * Account roles. Owned by Convex — see docs/DECISIONS.md, "Convex owns roles".
+ * `role` (singular, Clerk-mirrored) is on its way out: this deploy adds
+ * `roles`, the backfill fills it, the next deploy drops `role`.
+ */
+export const vRole = v.union(
+  v.literal('athlete'),
+  v.literal('admin'),
+  v.literal('master_admin'),
+  v.literal('coach'),
+  v.literal('finance'),
+  v.literal('health'),
+)
 
 /**
  * Status of the REGISTRATION (the data), not of the account nor the guardian.
@@ -82,6 +93,28 @@ export default defineSchema({
     .index('by_expires', ['expiresAt']),
 
   /**
+   * Staff invitations. Bound to an email: the webhook redeems one by matching
+   * the account's primary address, so a forwarded link is worth nothing to
+   * anyone else. `token` only names the page the invitee lands on.
+   */
+  staffInvites: defineTable({
+    email: v.string(),
+    roles: v.array(vRole),
+    token: v.string(),
+    invitedBy: v.id('users'),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    lastSentAt: v.number(),
+    timesSent: v.number(),
+    acceptedAt: v.optional(v.number()),
+    /** clerkId of the account that redeemed it. */
+    acceptedBy: v.optional(v.string()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index('by_token', ['token'])
+    .index('by_email', ['email']),
+
+  /**
    * Mirror of the Clerk account. The MIRRORED fields (email, name, role,
    * emailVerified) are written by the webhook and never by the client.
    *
@@ -98,6 +131,12 @@ export default defineSchema({
     email: v.string(),
     name: v.optional(v.string()),
     role: vRole,
+    /**
+     * The roles that count. Optional only for the length of the backfill;
+     * `users.backfillRoles` fills it from `role`, and the next schema step
+     * makes it required.
+     */
+    roles: v.optional(v.array(vRole)),
     emailVerified: v.boolean(),
     /**
      * Captured in the age gate, before the Clerk signup.
