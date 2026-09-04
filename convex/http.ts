@@ -29,7 +29,12 @@ function primaryEmail(data: ClerkEvent['data']): { email: string; verified: bool
   const list = data.email_addresses ?? []
   const primary = list.find((e) => e.id === data.primary_email_address_id) ?? list[0]
   return {
-    email: primary?.email_address ?? '',
+    // Lowercased here, the single place this value enters Convex: every
+    // `by_email` lookup (grantRoles, invite, invite redemption in
+    // users.create) compares against a lowercased input, so the stored
+    // value must already be canonical or an existing account's differently
+    // cased email defeats the match.
+    email: (primary?.email_address ?? '').trim().toLowerCase(),
     verified: primary?.verification?.status === 'verified',
   }
 }
