@@ -181,3 +181,77 @@ export const recordEmailEvent = internalMutation({
     }
   },
 })
+
+/**
+ * Role names for the two staff emails. Spanish, like the rest of the mail;
+ * the panel itself is bilingual, but every email this system sends is in the
+ * language the organisation writes in.
+ */
+const ROLE_NAMES_ES: Record<string, string> = {
+  admin: 'Administración',
+  master_admin: 'Administración maestra',
+  coach: 'Coach',
+  finance: 'Finanzas',
+  health: 'Salud',
+}
+
+function roleList(roles: string[]): string {
+  return roles.map((r) => textForEmail(ROLE_NAMES_ES[r] ?? r)).join(', ')
+}
+
+export const sendStaffInvitation = internalMutation({
+  args: {
+    to: v.string(),
+    inviterName: v.string(),
+    roles: v.array(v.string()),
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const href = `${appUrl()}/es/invitacion/${encodeURIComponent(args.token)}`
+    const inviter = textForEmail(args.inviterName)
+
+    await resend.sendEmail(ctx, {
+      from: FROM,
+      to: args.to,
+      replyTo: [REPLY_TO],
+      subject: 'Te invitaron al panel de XUNTAS+XUNTOS',
+      html: template(
+        `<p style="margin:0 0 14px;">Hola:</p>
+         <p style="margin:0 0 14px;">
+           <b>${inviter}</b> te invitó al panel de XUNTAS+XUNTOS con el rol de
+           <b>${roleList(args.roles)}</b>.
+         </p>
+         <p style="margin:0 0 14px;">
+           Crea tu cuenta con este mismo correo. No hay contraseña: entras con Google
+           o con un código que te llega por correo.
+         </p>
+         ${button(href, 'Crear mi cuenta')}
+         <p style="margin:0 0 14px;font-size:13px;color:rgba(17,17,17,.58);">
+           La invitación vence en 7 días. Si no esperabas este correo, ignóralo.
+         </p>`,
+        'Te invitaron al panel de XUNTAS+XUNTOS.',
+      ),
+    })
+  },
+})
+
+export const sendAccessGranted = internalMutation({
+  args: { to: v.string(), roles: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    await resend.sendEmail(ctx, {
+      from: FROM,
+      to: args.to,
+      replyTo: [REPLY_TO],
+      subject: 'Ya tienes acceso al panel de XUNTAS+XUNTOS',
+      html: template(
+        `<p style="margin:0 0 14px;">Hola:</p>
+         <p style="margin:0 0 14px;">
+           Tu cuenta ahora tiene el rol de <b>${roleList(args.roles)}</b> en el panel
+           de XUNTAS+XUNTOS. Entra con la cuenta que ya tienes.
+         </p>
+         ${button(`${appUrl()}/es/administracion`, 'Ir al panel')}`,
+        'Tu cuenta ya tiene acceso al panel.',
+      ),
+    })
+  },
+})
