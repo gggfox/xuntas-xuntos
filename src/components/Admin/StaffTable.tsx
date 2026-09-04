@@ -9,6 +9,7 @@ import {
   type ReactTable,
 } from '@tanstack/react-table'
 import * as m from '../../paraglide/messages.js'
+import Pill, { type PillTone } from '../Pill'
 import RoleChecks, { roleName } from './RoleChecks'
 import type { Role } from '../../lib/permissions'
 import { useDateFormats } from '../DateField/format'
@@ -57,11 +58,12 @@ const INVITE_STATUS: Record<InviteRow['status'], () => string> = {
   revoked: m.invite_status_revoked,
 }
 
-const CHIP: Record<InviteRow['status'], string> = {
-  pending: 'chip chip-warn',
-  expired: 'chip',
-  accepted: 'chip chip-ok',
-  revoked: 'chip chip-bad',
+/** Amber is the only one that asks for anything: a pending invite can be chased. */
+const INVITE_TONE: Record<InviteRow['status'], PillTone> = {
+  pending: 'warn',
+  expired: 'neutral',
+  accepted: 'ok',
+  revoked: 'bad',
 }
 
 export default function StaffTable({
@@ -108,12 +110,13 @@ export default function StaffTable({
                 />
               )
             }
+            /* All one tone: the roles are a list of facts, not a ranking, and
+               the screen has already spent its yellow on the button that
+               sends an invitation. */
             return (
               <span className="flex flex-wrap gap-1">
                 {row.roles.map((r) => (
-                  <span key={r} className="chip">
-                    {roleName(r)}
-                  </span>
+                  <Pill key={r}>{roleName(r)}</Pill>
                 ))}
               </span>
             )
@@ -175,11 +178,17 @@ export default function StaffTable({
         inviteHelper.display({
           id: 'roles',
           header: m.staff_col_roles,
-          cell: (c) => c.row.original.roles.map(roleName).join(', '),
+          cell: (c) => (
+            <span className="flex flex-wrap gap-1">
+              {c.row.original.roles.map((r) => (
+                <Pill key={r}>{roleName(r)}</Pill>
+              ))}
+            </span>
+          ),
         }),
         inviteHelper.accessor('status', {
           header: m.staff_col_status,
-          cell: (c) => <span className={CHIP[c.getValue()]}>{INVITE_STATUS[c.getValue()]()}</span>,
+          cell: (c) => <Pill tone={INVITE_TONE[c.getValue()]}>{INVITE_STATUS[c.getValue()]()}</Pill>,
         }),
         inviteHelper.accessor('invitedByName', { header: m.staff_col_invited_by }),
         inviteHelper.accessor('expiresAt', {

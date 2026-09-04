@@ -38,8 +38,15 @@ export default function InviteForm({ onInvite }: Props) {
     }
   }
 
+  /*
+   * The card runs the full width of the column, like the two tables under
+   * it: the three are one stack of panels down the page, and a card that
+   * stopped halfway would read as a column that failed to fill rather than
+   * as a deliberate measure. The email box keeps a reading width of its own
+   * — a text field the width of a table is a field nobody can aim at.
+   */
   return (
-    <form onSubmit={submit} noValidate className="card mt-8 max-w-[62ch] px-[21px] py-[19px]">
+    <form onSubmit={submit} noValidate className="card mt-8 px-[21px] py-[19px]">
       <b className="mb-3 block font-disp text-[15px]">{m.staff_invite_title()}</b>
       <label htmlFor="invite-email" className="text-[12.5px] font-medium">
         {m.staff_invite_email()} <span className="text-bad">*</span>
@@ -47,7 +54,7 @@ export default function InviteForm({ onInvite }: Props) {
       <input
         id="invite-email"
         type="email"
-        className="fld-input mt-1.5 mb-4"
+        className="fld-input mt-1.5 mb-4 max-w-[42ch]"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         autoComplete="off"

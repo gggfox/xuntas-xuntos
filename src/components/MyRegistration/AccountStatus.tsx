@@ -1,5 +1,6 @@
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '../../../convex/_generated/api'
+import Pill from '../Pill'
 
 export type MyStatus = NonNullable<FunctionReturnType<typeof api.users.myStatus>>
 
@@ -15,17 +16,17 @@ type Props = {
 export default function AccountStatus({ status, alreadySubmitted }: Props) {
   return (
     <div className="mt-5 flex flex-wrap gap-2">
-      <span className={status.account.emailVerified ? 'chip chip-ok' : 'chip chip-warn'}>
+      <Pill tone={status.account.emailVerified ? 'ok' : 'warn'}>
         {status.account.emailVerified ? 'Correo verificado' : 'Falta verificar correo'}
-      </span>
+      </Pill>
       {status.guardian.required && (
-        <span className={status.guardian.confirmed ? 'chip chip-ok' : 'chip chip-bad'}>
+        <Pill tone={status.guardian.confirmed ? 'ok' : 'bad'}>
           {status.guardian.confirmed ? 'Tutor autorizó' : 'Falta autorización del tutor'}
-        </span>
+        </Pill>
       )}
-      <span className={alreadySubmitted ? 'chip chip-ok' : 'chip'}>
+      <Pill tone={alreadySubmitted ? 'ok' : 'neutral'}>
         {alreadySubmitted ? 'Registro enviado' : 'Borrador'}
-      </span>
+      </Pill>
     </div>
   )
 }
