@@ -194,19 +194,34 @@ export const sendGuardianAuthorization = internalMutation({
  * the registration looks fine and nobody finds out the authorization is never
  * going to arrive. It is logged with a stable prefix so it can be filtered in
  * the Convex logs.
+ *
+ * A decision notice also moves here: the review table shows delivered/bounced
+ * so nobody assumes a family knows something the mail never reached them
+ * with.
  */
 export const recordEmailEvent = internalMutation({
   args: vOnEmailEventArgs,
-  handler: async (_ctx, args) => {
-    if (args.event.type === 'email.bounced' || args.event.type === 'email.complained') {
+  handler: async (ctx, args) => {
+    const type = args.event.type
+    const failed = type === 'email.bounced' || type === 'email.complained'
+    if (failed) {
       console.error(
-        `[email] FAILURE ${args.event.type} id=${args.id} — ` +
-          'check who it was addressed to in the Resend dashboard',
+        `[email] FAILURE ${type} id=${args.id} — check who it was addressed to in the Resend dashboard`,
       )
-      return
-    }
-    if (args.event.type === 'email.delivery_delayed') {
+    } else if (type === 'email.delivery_delayed') {
       console.warn(`[email] delayed id=${args.id}`)
+    }
+
+    if (failed || type === 'email.delivered') {
+      const r = await ctx.db
+        .query('registrations')
+        .withIndex('by_notice_email', (q) => q.eq('decisionNotice.emailId', args.id))
+        .unique()
+      if (r?.decisionNotice) {
+        await ctx.db.patch(r._id, {
+          decisionNotice: { ...r.decisionNotice, status: failed ? 'bounced' : 'delivered' },
+        })
+      }
     }
   },
 })
@@ -283,6 +298,96 @@ export const sendAccessGranted = internalMutation({
         'Tu cuenta ya tiene acceso al panel.',
         STAFF_HEADER_LINE,
       ),
+    })
+  },
+})
+
+const vNoticeDecision = v.union(v.literal('rejected'), v.literal('selected'), v.literal('not_selected'))
+type NoticeDecisionArg = 'rejected' | 'selected' | 'not_selected'
+
+/**
+ * The three decisions a family hears about. Fixed copy, drafted for XUNTAS
+ * to approve: no internal note ever reaches a body, and no name beyond the
+ * athlete's own. `cycleTitle` is the long, body-copy form (`titleOf`) — the
+ * caller derives it from the same `cycle` string it also uses for the
+ * header chrome, so a 2027 email says 2027 in both places.
+ */
+function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle: string) {
+  const name = textForEmail(firstName, 60)
+  const title = textForEmail(cycleTitle)
+  switch (decision) {
+    case 'rejected':
+      return {
+        subject: `Sobre tu registro · ${cycleTitle}`,
+        preheader: 'Revisamos tu registro a la Convocatoria.',
+        html: `<p style="margin:0 0 14px;">Hola, ${name}:</p>
+          <p style="margin:0 0 14px;">Revisamos tu registro a la ${title} del Programa de Desarrollo y, en esta ocasión, no cumple con los requisitos de la convocatoria.</p>
+          <p style="margin:0 0 14px;">Sabemos que detrás de un registro hay trabajo y ganas. Te animamos a seguir compitiendo y a registrarte en la siguiente convocatoria.</p>
+          <p style="margin:0 0 14px;">Si tienes dudas, responde a este correo.</p>`,
+      }
+    case 'selected':
+      return {
+        subject: 'Fuiste seleccionad@ · Programa de Desarrollo XUNTAS+XUNTOS',
+        preheader: 'El Consejo Técnico te seleccionó.',
+        html: `<p style="margin:0 0 14px;">Hola, ${name}:</p>
+          <p style="margin:0 0 14px;"><b>El Consejo Técnico te seleccionó para el Programa de Desarrollo</b> en la ${title}.</p>
+          <p style="margin:0 0 14px;">En los próximos días te escribiremos con los siguientes pasos y la documentación que necesitamos para completar tu expediente.</p>
+          <p style="margin:0 0 14px;">Felicidades. Nos da mucho gusto que formes parte.</p>
+          ${button(`${appUrl()}/es/mi-registro`, 'Ver mi registro')}`,
+      }
+    case 'not_selected':
+      return {
+        subject: `Sobre tu registro · ${cycleTitle}`,
+        preheader: 'El Consejo Técnico terminó su revisión.',
+        html: `<p style="margin:0 0 14px;">Hola, ${name}:</p>
+          <p style="margin:0 0 14px;">El Consejo Técnico terminó la revisión de la ${title}. En esta ocasión no fuiste seleccionad@ para el Programa de Desarrollo.</p>
+          <p style="margin:0 0 14px;">El registro fue numeroso y los lugares, pocos. Esto no dice nada de tu potencial: te animamos a seguir compitiendo y a registrarte en la siguiente convocatoria.</p>
+          <p style="margin:0 0 14px;">Si tienes dudas, responde a este correo.</p>`,
+      }
+  }
+}
+
+/**
+ * Fired by `notices.sendRejection` / `notices.sendBatch`. A no-op (not an
+ * error) if the notice is not pending — the scheduler is fire-and-forget, so
+ * this is the guard against a second press racing the first one's own
+ * scheduled run.
+ */
+export const sendDecisionNotice = internalMutation({
+  args: { registrationId: v.id('registrations'), sentBy: v.id('users') },
+  handler: async (ctx, args) => {
+    const r = await ctx.db.get(args.registrationId)
+    if (!r || !r.decisionNotice || r.decisionNotice.status !== 'not_sent') return
+    const user = await ctx.db.get(r.userId)
+    if (!user) return
+
+    const firstName = r.personal.name.trim().split(/\s+/)[0] || user.name || 'hola'
+    const body = decisionBody(r.decisionNotice.decision, firstName, titleOf(r.cycle, 'es'))
+    // The ACCOUNT email, which Clerk verified — never the one typed into the form.
+    const emailId = await resend.sendEmail(ctx, {
+      from: FROM,
+      to: user.email,
+      replyTo: [REPLY_TO],
+      subject: body.subject,
+      html: template(body.html, body.preheader, headerLineFor(r.cycle)),
+    })
+    await ctx.db.patch(r._id, {
+      decisionNotice: { ...r.decisionNotice, status: 'sent', emailId, sentAt: Date.now(), sentBy: args.sentBy },
+    })
+  },
+})
+
+/** The same copy, to any address, with no row to patch. What a staff member checks before a batch goes out. */
+export const sendDecisionTest = internalMutation({
+  args: { to: v.string(), decision: vNoticeDecision, cycle: v.string() },
+  handler: async (ctx, args) => {
+    const body = decisionBody(args.decision, 'Prueba', titleOf(args.cycle, 'es'))
+    await resend.sendEmail(ctx, {
+      from: FROM,
+      to: args.to,
+      replyTo: [REPLY_TO],
+      subject: `[PRUEBA] ${body.subject}`,
+      html: template(body.html, body.preheader, headerLineFor(args.cycle)),
     })
   },
 })
