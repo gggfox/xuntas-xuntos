@@ -45,7 +45,7 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   guardian_email_same_as_own: m.gate_guardian_email_same,
 
   // Actions.
-  window_closed: m.reg_closed,
+  window_closed: m.err_window_closed,
   already_reviewed: m.err_already_reviewed,
   birth_date_missing: m.err_birth_date_missing,
   birth_date_locked: m.err_birth_date_locked,
@@ -65,6 +65,13 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   cannot_remove_own_master_admin: m.err_cannot_remove_own_master_admin,
   cannot_remove_last_master_admin: m.err_cannot_remove_last_master_admin,
   user_not_found: m.err_user_not_found,
+  cycle_name_invalid: m.err_cycle_name_invalid,
+  cycle_dates_invalid: m.err_cycle_dates_invalid,
+  cycle_review_before_close: m.err_cycle_review_before_close,
+  cycle_exists: m.err_cycle_exists,
+  cycle_not_found: m.err_cycle_not_found,
+  no_active_cycle: m.err_no_active_cycle,
+  window_open: m.err_window_open,
   generic: m.err_generic,
 }
 

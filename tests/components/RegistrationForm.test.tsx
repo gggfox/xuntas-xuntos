@@ -169,7 +169,7 @@ describe('RegistrationForm validation', () => {
     await act(async () => {
       fireEvent.submit(document.querySelector('form')!)
     })
-    expect(await screen.findByRole('alert')).toHaveTextContent(m.reg_closed())
+    expect(await screen.findByRole('alert')).toHaveTextContent(m.err_window_closed())
   })
 })
 
