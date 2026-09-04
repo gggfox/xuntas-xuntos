@@ -21,7 +21,7 @@ function HomePage() {
      * lede and the two cards inherit it instead of each capping itself.
      */
     <main className="col col-560 pt-[46px] pb-[90px]">
-      <RegistrationLede title={c?.title ?? ''} />
+      <RegistrationLede title={c?.title ?? ''} titleReady={!!c} />
       <RegistrationBrief />
       {/* `undefined` while the query is in flight, `null` if no cycle is
           active (a configuration fault): either way, nothing renders here

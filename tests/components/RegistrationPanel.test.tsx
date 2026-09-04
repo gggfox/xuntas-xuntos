@@ -96,6 +96,28 @@ describe('RegistrationPanel null states', () => {
   })
 })
 
+describe('cycle not yet loaded', () => {
+  /**
+   * Everything else that gates the form is ready — an athlete account, an
+   * age already declared, a registration query answered — but the cycle
+   * query has not resolved. The panel's loading gate has to catch this on
+   * its own: without it, the form below would mount with an empty
+   * `closesOnText` and a blank eyebrow.
+   */
+  it('waits for the cycle even once the account and registration are ready', () => {
+    statusResult = {
+      account: { roles: ['athlete'], emailVerified: true, ageDeclared: true, isMinor: false },
+      guardian: { required: false, confirmed: true },
+      registration: null,
+    }
+    queryResult = { registration: null, editable: true, closesAt: 0 }
+    cycleResult = undefined
+    render(<RegistrationPanel />)
+    expect(screen.getByText(m.common_loading())).toBeInTheDocument()
+    expect(screen.queryByText(m.reg_title())).not.toBeInTheDocument()
+  })
+})
+
 describe('staff accounts', () => {
   it('sends an account without the athlete role to the admin panel', () => {
     statusResult = {
