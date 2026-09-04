@@ -9,6 +9,7 @@
   "nav_my_registration": "My registration",
   "nav_sign_out": "Sign out",
   "nav_sign_in": "Sign in",
+  "nav_admin": "Administration",
   "theme_label": "Theme",
   "theme_system": "system",
   "theme_light": "light",
@@ -226,5 +227,13 @@
   "date_invalid": "That date does not exist.",
   "date_age": "{age} years old",
   "date_age_adult": "Of legal age",
-  "date_age_minor": "Authorization required"
+  "date_age_minor": "Authorization required",
+  "admin_eyebrow": "Administration panel",
+  "admin_title": "Administration",
+  "admin_nav_registrations": "Registrations",
+  "admin_nav_staff": "Staff",
+  "admin_nav_cycles": "Calls for applications",
+  "admin_signed_out": "Sign in to see the panel.",
+  "admin_no_tools_title": "Your role has no tools here yet",
+  "admin_no_tools_text": "Your account exists and has access. The screens for your role are being built; we'll let you know when they're ready."
 }

@@ -9,6 +9,7 @@
   "nav_my_registration": "Mi registro",
   "nav_sign_out": "Salir",
   "nav_sign_in": "Entrar",
+  "nav_admin": "Administración",
   "theme_label": "Tema",
   "theme_system": "automático",
   "theme_light": "claro",
@@ -226,5 +227,13 @@
   "date_invalid": "Esa fecha no existe.",
   "date_age": "{age} años",
   "date_age_adult": "Mayor de edad",
-  "date_age_minor": "Necesitas autorización"
+  "date_age_minor": "Necesitas autorización",
+  "admin_eyebrow": "Panel de administración",
+  "admin_title": "Administración",
+  "admin_nav_registrations": "Registros",
+  "admin_nav_staff": "Equipo",
+  "admin_nav_cycles": "Convocatorias",
+  "admin_signed_out": "Entra con tu cuenta para ver el panel.",
+  "admin_no_tools_title": "Tu rol todavía no tiene herramientas aquí",
+  "admin_no_tools_text": "Tu cuenta existe y tiene acceso. Las pantallas para tu rol se están construyendo; te avisaremos cuando estén."
 }

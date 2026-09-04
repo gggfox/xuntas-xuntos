@@ -10,10 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdministracionRouteImport } from './routes/administracion'
 import { Route as AvisoDePrivacidadRouteImport } from './routes/aviso-de-privacidad'
 import { Route as BasesRouteImport } from './routes/bases'
 import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
+import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
+import { Route as AdministracionEquipoRouteImport } from './routes/administracion.equipo'
 import { Route as AutorizarTokenRouteImport } from './routes/autorizar.$token'
 import { Route as CrearCuentaIndexRouteImport } from './routes/crear-cuenta.index'
 import { Route as CrearCuentaSplatRouteImport } from './routes/crear-cuenta.$'
@@ -23,6 +26,11 @@ import { Route as EntrarSplatRouteImport } from './routes/entrar.$'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdministracionRoute = AdministracionRouteImport.update({
+  id: '/administracion',
+  path: '/administracion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AvisoDePrivacidadRoute = AvisoDePrivacidadRouteImport.update({
@@ -44,6 +52,16 @@ const MiRegistroRoute = MiRegistroRouteImport.update({
   id: '/mi-registro',
   path: '/mi-registro',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdministracionIndexRoute = AdministracionIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdministracionRoute,
+} as any)
+const AdministracionEquipoRoute = AdministracionEquipoRouteImport.update({
+  id: '/equipo',
+  path: '/equipo',
+  getParentRoute: () => AdministracionRoute,
 } as any)
 const AutorizarTokenRoute = AutorizarTokenRouteImport.update({
   id: '/autorizar/$token',
@@ -73,13 +91,16 @@ const EntrarSplatRoute = EntrarSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/administracion': typeof AdministracionRouteWithChildren
   '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/administracion/equipo': typeof AdministracionEquipoRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
+  '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
 }
@@ -89,22 +110,27 @@ export interface FileRoutesByTo {
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/administracion/equipo': typeof AdministracionEquipoRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
+  '/administracion': typeof AdministracionIndexRoute
   '/crear-cuenta': typeof CrearCuentaIndexRoute
   '/entrar': typeof EntrarIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/administracion': typeof AdministracionRouteWithChildren
   '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/administracion/equipo': typeof AdministracionEquipoRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
+  '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
 }
@@ -112,13 +138,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/administracion'
     | '/aviso-de-privacidad'
     | '/bases'
     | '/empezar'
     | '/mi-registro'
+    | '/administracion/equipo'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
+    | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
   fileRoutesByTo: FileRoutesByTo
@@ -128,27 +157,33 @@ export interface FileRouteTypes {
     | '/bases'
     | '/empezar'
     | '/mi-registro'
+    | '/administracion/equipo'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
+    | '/administracion'
     | '/crear-cuenta'
     | '/entrar'
   id:
     | '__root__'
     | '/'
+    | '/administracion'
     | '/aviso-de-privacidad'
     | '/bases'
     | '/empezar'
     | '/mi-registro'
+    | '/administracion/equipo'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
+    | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdministracionRoute: typeof AdministracionRouteWithChildren
   AvisoDePrivacidadRoute: typeof AvisoDePrivacidadRoute
   BasesRoute: typeof BasesRoute
   EmpezarRoute: typeof EmpezarRoute
@@ -167,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/administracion': {
+      id: '/administracion'
+      path: '/administracion'
+      fullPath: '/administracion'
+      preLoaderRoute: typeof AdministracionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aviso-de-privacidad': {
@@ -196,6 +238,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/mi-registro'
       preLoaderRoute: typeof MiRegistroRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/administracion/': {
+      id: '/administracion/'
+      path: '/'
+      fullPath: '/administracion/'
+      preLoaderRoute: typeof AdministracionIndexRouteImport
+      parentRoute: typeof AdministracionRoute
+    }
+    '/administracion/equipo': {
+      id: '/administracion/equipo'
+      path: '/equipo'
+      fullPath: '/administracion/equipo'
+      preLoaderRoute: typeof AdministracionEquipoRouteImport
+      parentRoute: typeof AdministracionRoute
     }
     '/autorizar/$token': {
       id: '/autorizar/$token'
@@ -235,8 +291,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdministracionRouteChildren {
+  AdministracionEquipoRoute: typeof AdministracionEquipoRoute
+  AdministracionIndexRoute: typeof AdministracionIndexRoute
+}
+
+const AdministracionRouteChildren: AdministracionRouteChildren = {
+  AdministracionEquipoRoute: AdministracionEquipoRoute,
+  AdministracionIndexRoute: AdministracionIndexRoute,
+}
+
+const AdministracionRouteWithChildren = AdministracionRoute._addFileChildren(
+  AdministracionRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdministracionRoute: AdministracionRouteWithChildren,
   AvisoDePrivacidadRoute: AvisoDePrivacidadRoute,
   BasesRoute: BasesRoute,
   EmpezarRoute: EmpezarRoute,
@@ -250,13 +321,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
