@@ -130,6 +130,13 @@ export default defineSchema({
     email: v.string(),
     name: v.optional(v.string()),
     /**
+     * LEGACY. The Clerk-mirrored single role, superseded by `roles`. Kept
+     * optional so a deployment whose rows still carry it accepts the schema;
+     * `users.dropLegacyRole` unsets it after `backfillRoles` has run, and the
+     * field leaves the schema in a later PR once no row has it.
+     */
+    role: v.optional(vRole),
+    /**
      * Owned by Convex, never by Clerk. Written by exactly three paths:
      * `staff.grantRoles` (CLI bootstrap), the invite redeemed in
      * `users.create`, and `staff.setRoles`. See convex/lib/permissions.ts

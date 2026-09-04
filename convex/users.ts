@@ -407,3 +407,49 @@ export const me = query({
     return { roles: user.roles, permissions: permissionsOf(user.roles), email: user.email }
   },
 })
+
+/**
+ * One-off: `roles` from `role`. Idempotent — rows that already carry `roles`
+ * are skipped — so it can be re-run if it is interrupted. Run by hand:
+ *
+ *   npx convex run users:backfillRoles
+ *   npx convex run users:backfillRoles --prod
+ *
+ * Removed together with the legacy `role` field in a later PR.
+ */
+export const backfillRoles = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect()
+    let updated = 0
+    for (const u of users) {
+      if (u.roles !== undefined) continue
+      await ctx.db.patch(u._id, { roles: [u.role ?? 'athlete'] })
+      updated++
+    }
+    console.log(`[users.backfillRoles] ${updated} of ${users.length} rows updated`)
+    return { updated }
+  },
+})
+
+/**
+ * Unsets the legacy `role` on every row that still carries it. Idempotent.
+ * Run AFTER `backfillRoles`, once per deployment:
+ *
+ *   npx convex run users:dropLegacyRole
+ *   npx convex run users:dropLegacyRole --prod
+ */
+export const dropLegacyRole = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect()
+    let updated = 0
+    for (const u of users) {
+      if (u.role === undefined) continue
+      await ctx.db.patch(u._id, { role: undefined })
+      updated++
+    }
+    console.log(`[users.dropLegacyRole] ${updated} of ${users.length} rows updated`)
+    return { updated }
+  },
+})
