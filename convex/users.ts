@@ -395,3 +395,27 @@ export const remove = internalMutation({
     await ctx.db.delete(user._id)
   },
 })
+
+/**
+ * One-off: `roles` from `role`. Idempotent — rows that already carry `roles`
+ * are skipped — so it can be re-run if it is interrupted. Run by hand:
+ *
+ *   npx convex run users:backfillRoles
+ *   npx convex run users:backfillRoles --prod
+ *
+ * Deleted in the schema step that drops `role`.
+ */
+export const backfillRoles = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect()
+    let updated = 0
+    for (const u of users) {
+      if (u.roles !== undefined) continue
+      await ctx.db.patch(u._id, { roles: [u.role] })
+      updated++
+    }
+    console.log(`[users.backfillRoles] ${updated} of ${users.length} rows updated`)
+    return { updated }
+  },
+})
