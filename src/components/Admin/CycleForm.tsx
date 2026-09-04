@@ -49,35 +49,45 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
     }
   }
 
+  /*
+   * The card runs the full width of the column so the two calendars can sit
+   * beside each other on a desktop: they are read together — the review date
+   * only makes sense against the day the window closes — and stacked they
+   * push the second one below the fold. The name keeps a reading width of
+   * its own; a text box as wide as two calendars is a box nobody can aim at.
+   */
   return (
-    <form onSubmit={submit} noValidate className="card mt-6 max-w-[62ch] px-[21px] py-[19px]">
+    <form onSubmit={submit} noValidate className="card mt-6 px-[21px] py-[19px]">
       <label htmlFor="cycle-name" className="text-[12.5px] font-medium">
         {m.cycles_name()} <span className="text-bad">*</span>
       </label>
       <input
         id="cycle-name"
-        className="fld-input mt-1.5 font-mono tracking-[0.04em]"
+        className="fld-input mt-1.5 max-w-[26ch] font-mono tracking-[0.04em]"
         value={cycle}
         onChange={(e) => setCycle(e.target.value)}
         disabled={lockName}
         placeholder="2027-2028"
       />
-      <p className="mt-1 mb-4 text-[11.5px] text-soft">{m.cycles_name_help()}</p>
+      <p className="mt-1 mb-5 text-[11.5px] text-soft">{m.cycles_name_help()}</p>
 
-      <RangeField
-        id="cycle-window"
-        label={m.cycles_window()}
-        start={opensOn}
-        end={closesOn}
-        onChange={({ start, end }) => {
-          setOpensOn(start)
-          setClosesOn(end)
-        }}
-        min={`${new Date().getUTCFullYear() - 1}-01-01`}
-        max={`${new Date().getUTCFullYear() + 5}-12-31`}
-      />
+      {/* Top-aligned: the two fields carry different numbers of lines above
+          their grids, and centring them would leave the calendars on
+          different baselines. */}
+      <div className="grid items-start gap-x-7 gap-y-5 lg:grid-cols-2">
+        <RangeField
+          id="cycle-window"
+          label={m.cycles_window()}
+          start={opensOn}
+          end={closesOn}
+          onChange={({ start, end }) => {
+            setOpensOn(start)
+            setClosesOn(end)
+          }}
+          min={`${new Date().getUTCFullYear() - 1}-01-01`}
+          max={`${new Date().getUTCFullYear() + 5}-12-31`}
+        />
 
-      <div className="mt-4">
         <DateField
           id="cycle-review"
           label={m.cycles_review()}
@@ -90,7 +100,7 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
         />
       </div>
 
-      <p className="min-h-[1.45em] text-[11.5px] leading-[1.45] text-bad">{error}</p>
+      <p className="mt-2 min-h-[1.45em] text-[11.5px] leading-[1.45] text-bad">{error}</p>
       <button type="submit" className="btn" disabled={busy}>
         {busy ? m.common_loading() : submitLabel}
       </button>
