@@ -214,7 +214,7 @@ Before September 4:
 still carry `role`, so the release runs in this order — each step from the
 branch commit named, never out of order:
 
-1. Deploy the schema where `roles` is optional (commit `c086dfc`), then
+1. Deploy the schema where `roles` is optional (commit `11f0c3c`), then
    `npx convex run users:backfillRoles --prod` and confirm `{ updated: N }`
    followed by `{ updated: 0 }` on a second run.
 2. Deploy the branch head (`roles` required, `role` legacy-optional), then
@@ -223,5 +223,11 @@ branch commit named, never out of order:
 3. `npx convex run staff:grantRoles '{"email":"gerardogalangarzafox@gmail.com","roles":["master_admin"]}' --prod`
    (the account must already exist in prod — sign up first).
 4. Only then let the container deploy (`production` branch).
+
+Steps 1–3 are run by hand from a local checkout of the named commits
+(`git checkout 11f0c3c`, then the branch head). Do **not** trigger
+`release.yml` until step 3 is confirmed: it deploys the head schema over
+prod in one job, and Convex refuses that push while any row still lacks
+`roles` — fail-safe, but it leaves the release half done.
 
 `role` leaves the schema in a later PR once no row has it.

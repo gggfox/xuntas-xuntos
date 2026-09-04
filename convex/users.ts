@@ -218,13 +218,18 @@ export const create = internalMutation({
      * a token: a forwarded link is worth nothing to a different address, and
      * a Google sign-up that picks another address simply lands as an athlete
      * (the invite stays pending, and a master_admin can grant directly).
+     * Redemption only runs for a verified address, because this is the one
+     * unauthenticated path into a privileged role — it must not depend on a
+     * Clerk dashboard setting keeping sign-ups verified.
      */
-    const invite = (
-      await ctx.db
-        .query('staffInvites')
-        .withIndex('by_email', (q) => q.eq('email', args.email.trim().toLowerCase()))
-        .collect()
-    ).find((i) => inviteStatus(i, now) === 'pending')
+    const invite = args.emailVerified
+      ? (
+          await ctx.db
+            .query('staffInvites')
+            .withIndex('by_email', (q) => q.eq('email', args.email.trim().toLowerCase()))
+            .collect()
+        ).find((i) => inviteStatus(i, now) === 'pending')
+      : undefined
 
     const roles: Role[] = invite ? [...invite.roles] : ['athlete']
     if (invite) {
@@ -429,7 +434,9 @@ export const me = query({
 
 /**
  * One-off: `roles` from `role`. Idempotent — rows that already carry `roles`
- * are skipped — so it can be re-run if it is interrupted. Run by hand:
+ * are skipped — so it can be re-run if it is interrupted. Also lowercases
+ * `email`, because rows written before the webhook normalized casing still
+ * carry Clerk's original casing, which `by_email` lookups miss. Run by hand:
  *
  *   npx convex run users:backfillRoles
  *   npx convex run users:backfillRoles --prod
@@ -443,7 +450,7 @@ export const backfillRoles = internalMutation({
     let updated = 0
     for (const u of users) {
       if (u.roles !== undefined) continue
-      await ctx.db.patch(u._id, { roles: [u.role ?? 'athlete'] })
+      await ctx.db.patch(u._id, { roles: [u.role ?? 'athlete'], email: u.email.trim().toLowerCase() })
       updated++
     }
     console.log(`[users.backfillRoles] ${updated} of ${users.length} rows updated`)

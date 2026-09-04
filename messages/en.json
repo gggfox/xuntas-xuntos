@@ -196,7 +196,6 @@
   "err_invite_email_invalid": "Enter a valid email address.",
   "err_invite_roles_invalid": "Select at least one role for the invitation.",
   "err_invite_invalid": "This invitation is invalid.",
-  "err_invite_expired": "This invitation has expired.",
   "err_invite_revoked": "This invitation has been revoked.",
   "err_invite_accepted": "This invitation has already been accepted.",
   "err_invite_wait": "Wait before resending the invitation.",

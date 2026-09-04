@@ -54,7 +54,6 @@ export type ActionErrorCode =
   | 'invite_email_invalid'
   | 'invite_roles_invalid'
   | 'invite_invalid'
-  | 'invite_expired'
   | 'invite_revoked'
   | 'invite_accepted'
   | 'invite_wait'

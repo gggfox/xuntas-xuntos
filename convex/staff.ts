@@ -131,9 +131,7 @@ export const resendInvite = mutation({
     const status = inviteStatus(invite, now)
     if (status === 'accepted') fail('invite_accepted')
     if (status === 'revoked') fail('invite_revoked')
-    if (now - invite.lastSentAt < INVITE_RESEND_WAIT_MS) {
-      return { ok: false as const, reason: 'wait' as const, availableAt: invite.lastSentAt + INVITE_RESEND_WAIT_MS }
-    }
+    if (now - invite.lastSentAt < INVITE_RESEND_WAIT_MS) fail('invite_wait')
 
     // A new token on every resend, and a fresh week: the old link stops working.
     const token = newToken()

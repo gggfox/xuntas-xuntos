@@ -1,9 +1,10 @@
 import { Show } from '@clerk/tanstack-react-start'
-import { Link, Outlet, createFileRoute } from '@tanstack/react-router'
+import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
 import AdminShell from '../components/Admin/AdminShell'
 import LoadingFrame from '../components/MyRegistration/LoadingFrame'
 import { useMe } from '../hooks/useMe'
+import { isStaff } from '../lib/permissions'
 
 export const Route = createFileRoute('/administracion')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.admin_title() }) }] }),
@@ -38,6 +39,9 @@ function SignedIn() {
   const me = useMe()
   if (me === undefined) return <LoadingFrame>{m.common_loading()}</LoadingFrame>
   if (me === null) return <LoadingFrame>{m.sync_text()}</LoadingFrame>
+  // Athletes have no admin tools. Symmetric with RegistrationPanel sending
+  // staff back here: each side sends the other to its own panel.
+  if (!isStaff(me.roles)) return <Navigate to="/mi-registro" replace />
   return (
     <AdminShell roles={me.roles}>
       <Outlet />

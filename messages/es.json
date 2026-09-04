@@ -196,7 +196,6 @@
   "err_invite_email_invalid": "Escribe una dirección de correo válida.",
   "err_invite_roles_invalid": "Selecciona al menos un rol para la invitación.",
   "err_invite_invalid": "Esta invitación no es válida.",
-  "err_invite_expired": "Esta invitación ya venció.",
   "err_invite_revoked": "Esta invitación fue revocada.",
   "err_invite_accepted": "Esta invitación ya fue aceptada.",
   "err_invite_wait": "Espera un poco antes de reenviar la invitación.",

@@ -59,7 +59,6 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   invite_email_invalid: m.err_invite_email_invalid,
   invite_roles_invalid: m.err_invite_roles_invalid,
   invite_invalid: m.err_invite_invalid,
-  invite_expired: m.err_invite_expired,
   invite_revoked: m.err_invite_revoked,
   invite_accepted: m.err_invite_accepted,
   invite_wait: m.err_invite_wait,
