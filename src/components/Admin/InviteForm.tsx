@@ -60,7 +60,12 @@ export default function InviteForm({ onInvite }: Props) {
         autoComplete="off"
       />
       <p className="mb-1.5 text-[12.5px] font-medium">{m.staff_invite_roles()}</p>
-      <RoleChecks idPrefix="invite" value={roles} onChange={setRoles} />
+      <RoleChecks
+        idPrefix="invite"
+        label={m.staff_invite_roles()}
+        value={roles}
+        onChange={setRoles}
+      />
       <p className="mt-2 min-h-[1.45em] text-[11.5px] leading-[1.45] text-bad">{error}</p>
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" className="btn" disabled={busy}>

@@ -1,4 +1,5 @@
 import * as m from '../../paraglide/messages.js'
+import { PillToggle } from '../Pill'
 import { ROLES, type Role } from '../../lib/permissions'
 
 export const ROLE_LABEL: Record<Exclude<Role, 'athlete'>, () => string> = {
@@ -14,37 +15,40 @@ export function roleName(role: Role): string {
 }
 
 type Props = {
+  /** Keeps the keys unique when two of these render at once (a form and a row). */
   idPrefix: string
+  /** Names the group of toggles for a screen reader. */
+  label: string
   value: readonly Role[]
   onChange: (next: Role[]) => void
   disabled?: boolean
 }
 
-/** The staff roles as checkboxes. `athlete` is not offered: it is not a job. */
-export default function RoleChecks({ idPrefix, value, onChange, disabled }: Props) {
+/**
+ * The staff roles, as pills you press. `athlete` is not offered: it is not a
+ * job.
+ *
+ * A group of toggles rather than a column of checkboxes, because the set is
+ * short, closed, and read at a glance — and because the same pill shape
+ * shows those roles back in the tables, so choosing one looks like the thing
+ * it produces. `role="group"` keeps the five announced as one question.
+ */
+export default function RoleChecks({ idPrefix, label, value, onChange, disabled }: Props) {
   const staffRoles = ROLES.filter((r): r is Exclude<Role, 'athlete'> => r !== 'athlete')
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2">
-      {staffRoles.map((role) => {
-        const id = `${idPrefix}-${role}`
-        const checked = value.includes(role)
-        return (
-          <label key={role} htmlFor={id} className="flex items-center gap-2 text-[13px]">
-            <input
-              id={id}
-              type="checkbox"
-              checked={checked}
-              disabled={disabled}
-              onChange={(e) =>
-                onChange(
-                  e.target.checked ? [...value, role] : value.filter((r) => r !== role),
-                )
-              }
-            />
-            {ROLE_LABEL[role]()}
-          </label>
-        )
-      })}
+    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+      {staffRoles.map((role) => (
+        <PillToggle
+          key={`${idPrefix}-${role}`}
+          pressed={value.includes(role)}
+          disabled={disabled}
+          onToggle={(pressed) =>
+            onChange(pressed ? [...value, role] : value.filter((r) => r !== role))
+          }
+        >
+          {ROLE_LABEL[role]()}
+        </PillToggle>
+      ))}
     </div>
   )
 }

@@ -55,9 +55,29 @@ describe('StaffTable', () => {
   it('saves an edited set of roles', () => {
     const { onSetRoles } = renderTable(true)
     fireEvent.click(screen.getAllByRole('button', { name: m.staff_edit() })[1])
-    fireEvent.click(screen.getByLabelText(m.role_coach()))
+    fireEvent.click(screen.getByRole('button', { name: m.role_coach() }))
     fireEvent.click(screen.getByRole('button', { name: m.staff_save() }))
     expect(onSetRoles).toHaveBeenCalledWith('u2', ['admin', 'coach'])
+  })
+
+  /**
+   * The roles are toggles, not labels: a screen reader has to be told which
+   * of the five are on, and pressing one has to turn it off again. Reading
+   * `aria-pressed` is what separates a switch from a button that happens to
+   * look chosen.
+   */
+  it('reports each role as a switch and toggles it off again', () => {
+    const { onSetRoles } = renderTable(true)
+    fireEvent.click(screen.getAllByRole('button', { name: m.staff_edit() })[1])
+
+    const admin = screen.getByRole('button', { name: m.role_admin() })
+    const coach = screen.getByRole('button', { name: m.role_coach() })
+    expect(admin).toHaveAttribute('aria-pressed', 'true')
+    expect(coach).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(admin)
+    fireEvent.click(screen.getByRole('button', { name: m.staff_save() }))
+    expect(onSetRoles).toHaveBeenCalledWith('u2', [])
   })
 
   it('lists invitations with their status and lets a manager resend or revoke', () => {

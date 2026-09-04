@@ -366,6 +366,40 @@ body {
     background: var(--color-bad-wash);
   }
 
+  /*
+   * A pill that answers a question rather than reporting one.
+   *
+   * Chosen, it fills with ink and the page's paper colour comes back as the
+   * text — the same way the calendar marks the day it has been given, so the
+   * app has one idiom for "this is the one you picked" instead of two. It
+   * carries more padding than a `.chip` because this one gets aimed at, and
+   * it stays a real `<button>` with `aria-pressed`, which is what tells a
+   * screen reader it is a switch and not a label.
+   */
+  .chip-toggle {
+    padding: 6px 12px;
+    color: var(--color-ink-2);
+    cursor: pointer;
+    transition:
+      background-color 0.13s,
+      color 0.13s,
+      border-color 0.13s;
+  }
+  .chip-toggle:hover:not([aria-pressed='true']):not(:disabled) {
+    background: var(--color-wash);
+    border-color: var(--color-ink);
+  }
+  .chip-toggle[aria-pressed='true'] {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-paper);
+    font-weight: 600;
+  }
+  .chip-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   /* Notice in soft yellow. For the important-but-not-an-error. */
   .nota {
     background: var(--color-yel-s);

@@ -105,6 +105,7 @@ export default function StaffTable({
               return (
                 <RoleChecks
                   idPrefix={`edit-${row._id}`}
+                  label={m.staff_col_roles()}
                   value={editing.roles}
                   onChange={(roles) => setEditing({ id: row._id, roles })}
                 />
