@@ -66,8 +66,11 @@ export default function RegistrationPanel({
   )
 
   // Convex returns undefined while the query is in flight, and the session is
-  // still worth nothing until Clerk's token has been exchanged.
-  if (authLoading || status === undefined || mine === undefined) {
+  // still worth nothing until Clerk's token has been exchanged. `!cycle`
+  // covers both "still loading" and "no active cycle" (a configuration
+  // fault the UI does not design for) — either way, nothing below this
+  // point may render a sentence that needs a date it does not have yet.
+  if (authLoading || status === undefined || mine === undefined || !cycle) {
     return <LoadingFrame reviewOnText={cycle?.reviewOnText}>{m.common_loading()}</LoadingFrame>
   }
 
@@ -136,7 +139,7 @@ export default function RegistrationPanel({
   return (
     <main className="relative isolate col pt-[38px] pb-[90px]">
       <Meteors />
-      <p className="eyebrow">{m.reg_eyebrow({ title: cycle?.title ?? '' })}</p>
+      <p className="eyebrow">{m.reg_eyebrow({ title: cycle.title })}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.reg_title()}</h1>
 
       <AccountStatus status={status} alreadySubmitted={alreadySubmitted} />
@@ -148,7 +151,7 @@ export default function RegistrationPanel({
           initial={initial}
           editable={mine.editable}
           alreadySubmitted={alreadySubmitted}
-          closesOnText={cycle?.closesOnText ?? ''}
+          closesOnText={cycle.closesOnText}
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit}
           /* All three are true by the time this renders — the panel returns

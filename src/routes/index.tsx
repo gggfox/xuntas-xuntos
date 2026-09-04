@@ -36,7 +36,7 @@ function HomePage() {
           closesOnText={c.closesOnText}
         />
       )}
-      <p className="eyebrow mt-8">{m.reg_closing({ date: c?.closesOnText ?? '' })}</p>
+      {c && <p className="eyebrow mt-8">{m.reg_closing({ date: c.closesOnText })}</p>}
     </main>
   )
 }

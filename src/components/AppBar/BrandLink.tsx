@@ -18,9 +18,11 @@ export default function BrandLink() {
       <Icons.BrandMark className="h-[26px] w-auto flex-none text-yel" />
       <span className="min-w-0">
         <b className="block font-disp text-[16px] leading-[1.15] font-bold">{m.brand_name()}</b>
-        <span className="font-mono text-[10px] tracking-[.12em] text-white/50 uppercase">
-          {m.brand_cycle({ cycle: c?.cycle ?? '' })}
-        </span>
+        {c && (
+          <span className="font-mono text-[10px] tracking-[.12em] text-white/50 uppercase">
+            {m.brand_cycle({ cycle: c.cycle })}
+          </span>
+        )}
       </span>
     </Link>
   )

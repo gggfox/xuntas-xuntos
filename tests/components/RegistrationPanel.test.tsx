@@ -13,13 +13,23 @@ let authState: { isLoading: boolean; isAuthenticated: boolean }
 let queryResult: unknown
 let statusResult: unknown
 /**
- * `RegistrationPanel` also calls `useActiveCycle`, unconditionally, before
- * any of its early returns — so every test here needs an answer for it, not
- * just the ones that reach the form. `null` reads as "no active cycle",
- * which `useActiveCycle` treats the same as still loading: it returns early
- * without touching `.cycle`.
+ * `RegistrationPanel` also calls `useActiveCycle`, and its own loading gate
+ * now waits on it — nothing below that gate may render a sentence that needs
+ * a date it does not have yet. A resolved cycle is the default so every test
+ * here reaches the screen it is actually testing, `authLoading`/`isAuthenticated`
+ * included: those are what each test below actually varies.
  */
 let cycleResult: unknown
+const RESOLVED_CYCLE = {
+  cycle: '2026-2027',
+  opensOn: '2026-09-04',
+  closesOn: '2026-09-18',
+  reviewOn: '2026-09-23',
+  opensAtMs: 0,
+  closesAtMs: 0,
+  isOpen: true,
+  beforeOpening: false,
+}
 
 vi.mock('convex/react', () => ({
   useConvexAuth: () => authState,
@@ -53,7 +63,7 @@ beforeEach(() => {
   authState = { isLoading: false, isAuthenticated: true }
   queryResult = undefined
   statusResult = undefined
-  cycleResult = null
+  cycleResult = RESOLVED_CYCLE
 })
 
 describe('RegistrationPanel null states', () => {

@@ -70,9 +70,15 @@ function Authorize() {
   return (
     <Frame title={m.authorize_title()}>
       <p className="font-light text-soft">
-        <b className="font-medium text-ink">{request.athleteName}</b> se registró a la{' '}
-        {m.brand_cycle({ cycle: c?.cycle ?? '' })} del Programa de Desarrollo de {m.brand_name()} y te señaló como su
-        padre, madre o tutor.
+        {c ? (
+          <>
+            <b className="font-medium text-ink">{request.athleteName}</b> se registró a la{' '}
+            {m.brand_cycle({ cycle: c.cycle })} del Programa de Desarrollo de {m.brand_name()} y te señaló
+            como su padre, madre o tutor.
+          </>
+        ) : (
+          m.common_loading()
+        )}
       </p>
       <p className="mt-3 font-light text-soft">
         Como es menor de edad, necesitamos tu autorización para crear su cuenta y tratar sus datos.

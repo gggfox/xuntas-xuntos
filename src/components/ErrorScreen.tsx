@@ -22,7 +22,7 @@ export default function ErrorScreen({ error }: { error: Error }) {
 
   return (
     <main className="col col-560 pt-[46px] pb-[90px]">
-      <p className="eyebrow">{m.brand_cycle({ cycle: c?.cycle ?? '' })}</p>
+      {c && <p className="eyebrow">{m.brand_cycle({ cycle: c.cycle })}</p>}
       <h1 className="h-display mt-[7px] text-[clamp(24px,4vw,32px)]">{m.error_title()}</h1>
       <p className="mt-3 max-w-[52ch] font-light text-soft">{m.error_text()}</p>
 

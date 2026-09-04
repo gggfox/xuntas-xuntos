@@ -70,7 +70,7 @@ export default function SignUpScreen() {
       <p className="eyebrow">{m.account_eyebrow()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.account_title()}</h1>
       <p className="mt-3 max-w-[52ch] font-light text-soft">
-        {m.account_lede({ date: cycle?.closesOnText ?? '' })}
+        {cycle ? m.account_lede({ date: cycle.closesOnText }) : m.common_loading()}
       </p>
       <p className="mt-2 max-w-[52ch] text-[13px] font-light text-soft">{m.account_no_password()}</p>
 
