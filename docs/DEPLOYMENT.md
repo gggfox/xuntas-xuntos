@@ -29,8 +29,48 @@ lands before the new frontend queries it.
 > container arrived first, the app would ask for a table that does not exist
 > yet. With the call for applications this close, it is worth checking that
 > the Convex workflow finished green before calling the deployment good.
+>
+> **This release additionally needs the `cycles` row seeded**, and seeding is
+> not part of `convex deploy` — it is a function someone runs by hand, once,
+> after. The window lives in that table, not in the code, so between the
+> Convex deploy finishing and the seed running, the app serves
+> `no_active_cycle` on every registration query. That gap is expected, not a
+> regression, but it means the container must not go out — and nobody should
+> start the smoke test — until the seed has run.
 
 Requires the `CONVEX_PROD_DEPLOY_KEY` secret in the repo. See the README.
+
+**Deploy in this order, every time:**
+
+1. Push to `production`.
+2. Wait for the `convex-production` workflow to finish green.
+3. Seed the call for applications — see "Seeding the call for applications"
+   below. It is idempotent, so it is safe to run again if unsure whether it
+   already did.
+4. Only then let the container deploy (it usually is already running by this
+   point; if so, trigger a redeploy by hand in Dokploy rather than serving
+   traffic against a cycle-less backend).
+5. Run the smoke test in §3.
+
+### Seeding the call for applications
+
+The window lives in the `cycles` table, so a deployment with no row has no
+window and every registration query fails with `no_active_cycle`. Seed it
+once per deployment, before the frontend that reads it goes out:
+
+```bash
+npx convex run cycles:seed --prod
+```
+
+It is idempotent: `{ inserted: true, activated: true }` the first time,
+`{ inserted: false, activated: false }` after. (If a different cycle is
+already active when this runs — a second environment reusing the seed, or a
+re-run after `create`/`setActive` moved on — it inserts 2026–2027 *inactive*
+instead of dethroning whatever is active: `{ inserted: true, activated:
+false }`. A `master_admin` promotes it from `/administracion/convocatorias`
+when that is actually wanted.) From then on the dates are edited from
+`/administracion/convocatorias` by a `master_admin`, and every change is
+recorded in `cycleChanges` with who made it.
 
 ---
 
@@ -142,21 +182,6 @@ to know the webhooks and the emails are right:
 
 If step 3 fails and everything else works, suspect number one is
 `RESEND_TEST_MODE`.
-
-### Seeding the call for applications
-
-The window lives in the `cycles` table, so a deployment with no row has no
-window and every registration query fails with `no_active_cycle`. Seed it
-once per deployment, before the frontend that reads it goes out:
-
-```bash
-npx convex run cycles:seed --prod
-```
-
-It is idempotent: `{ inserted: true }` the first time, `{ inserted: false }`
-after. From then on the dates are edited from
-`/administracion/convocatorias` by a `master_admin`, and every change is
-recorded in `cycleChanges` with who made it.
 
 ---
 

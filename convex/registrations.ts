@@ -258,6 +258,7 @@ export const submit = mutation({
         guardianMissing: guardian !== null && guardian.confirmedAt === undefined,
         closesOnText: formatDay(cycle.closesOn, 'es'),
         reviewOnText: formatDay(cycle.reviewOn, 'es'),
+        cycle: cycle.cycle,
       })
     }
 

@@ -5,4 +5,10 @@
  * a day ends.
  */
 export { ageAt, isUnderage } from '../../convex/lib/cycle'
-export { formatDay, isWindowOpenFor, titleOf, windowOf } from '../../convex/lib/cycleRules'
+export {
+  formatDay,
+  isWindowOpenFor,
+  titleOf,
+  windowOf,
+  windowStatusAt,
+} from '../../convex/lib/cycleRules'

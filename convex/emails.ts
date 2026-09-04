@@ -3,6 +3,7 @@ import { components, internal } from './_generated/api'
 import { internalMutation } from './_generated/server'
 import { v } from 'convex/values'
 import { textForEmail } from './lib/html'
+import { titleOf } from './lib/cycleRules'
 
 /**
  * Resend client with durable execution: queue, retries and idempotency. It
@@ -22,8 +23,25 @@ const REPLY_TO = 'hola@xuntas.org'
 
 const appUrl = () => process.env.APP_URL ?? 'https://app.xuntas.org'
 
+/**
+ * The header chrome's short form of a cycle's name ("Convocatoria
+ * 2026–2027") — shorter than `titleOf`'s body-copy phrasing, which spells
+ * out "Convocatoria General". Derived from the cycle name we already have on
+ * hand, never typed, so a new call for applications needs no email edit.
+ */
+function headerLineFor(cycle: string): string {
+  return `Convocatoria ${cycle.replace('-', '–')}`
+}
+
+/**
+ * The header chrome for mail that is not about any particular call for
+ * applications — a staff invitation or a grant of panel access reads oddly
+ * naming a registration cycle it has nothing to do with.
+ */
+const STAFF_HEADER_LINE = 'Panel de administración'
+
 /** Shared HTML wrapper. Email = tables and inline styles, not Tailwind. */
-function template(content: string, preheader: string): string {
+function template(content: string, preheader: string, headerLine: string): string {
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -37,7 +55,7 @@ function template(content: string, preheader: string): string {
       <td style="width:34px;height:34px;background:#EDF45F;border-radius:50%;text-align:center;vertical-align:middle;font-family:Georgia,serif;font-weight:bold;font-size:18px;color:#111111;">X</td>
       <td style="padding-left:11px;">
         <div style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:16px;color:#FFFFFF;line-height:1.15;">XUNTAS&ndash;XUNTOS</div>
-        <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);">Convocatoria 2026&ndash;2027</div>
+        <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);">${headerLine}</div>
       </td>
     </tr></table>
   </td></tr>
@@ -71,10 +89,12 @@ export const sendAthleteConfirmation = internalMutation({
     guardianMissing: v.boolean(),
     closesOnText: v.string(),
     reviewOnText: v.string(),
+    cycle: v.string(),
   },
   handler: async (ctx, args) => {
     // Escaped: the name comes from the form and ends up inside the HTML.
     const firstName = textForEmail(args.name.trim().split(/\s+/)[0] || args.name, 60)
+    const headerLine = headerLineFor(args.cycle)
 
     const guardianNotice = args.guardianMissing
       ? `<div style="background:#F8FBD4;border:1px solid #C9D42B;border-radius:9px;padding:16px 19px;margin:22px 0;">
@@ -91,7 +111,7 @@ export const sendAthleteConfirmation = internalMutation({
       from: FROM,
       to: args.to,
       replyTo: [REPLY_TO],
-      subject: 'Recibimos tu registro · Convocatoria 2026–2027',
+      subject: `Recibimos tu registro · ${headerLine}`,
       html: template(
         `<p style="margin:0 0 14px;">Hola, ${firstName}:</p>
          <p style="margin:0 0 14px;">Tu registro al Programa de Desarrollo quedó guardado.</p>
@@ -101,6 +121,7 @@ export const sendAthleteConfirmation = internalMutation({
          <p style="margin:0 0 14px;">Recuerda que el registro no garantiza la admisión ni la obtención de una beca.</p>
          ${button(`${appUrl()}/es/mi-registro`, 'Ver mi registro')}`,
         'Tu registro al Programa de Desarrollo quedó guardado.',
+        headerLine,
       ),
     })
   },
@@ -118,6 +139,7 @@ export const sendGuardianAuthorization = internalMutation({
     token: v.string(),
     isResend: v.boolean(),
     closesOnText: v.string(),
+    cycle: v.string(),
   },
   handler: async (ctx, args) => {
     // The token is hex we generate, but it gets encoded anyway: the URL is
@@ -133,6 +155,10 @@ export const sendGuardianAuthorization = internalMutation({
     // Escaped: both come from forms.
     const guardianName = textForEmail(args.guardianName)
     const athleteName = textForEmail(args.athleteName)
+    // The full body-copy title ("Convocatoria General 2026–2027"), not the
+    // header chrome's shorter form — derived, so it does not need escaping,
+    // but running it through costs nothing.
+    const cycleTitle = textForEmail(titleOf(args.cycle, 'es'))
 
     await resend.sendEmail(ctx, {
       from: FROM,
@@ -142,7 +168,7 @@ export const sendGuardianAuthorization = internalMutation({
       html: template(
         `<p style="margin:0 0 14px;">Hola, ${guardianName}:</p>
          <p style="margin:0 0 14px;">
-           <b>${athleteName}</b> se registró a la Convocatoria General 2026–2027 del
+           <b>${athleteName}</b> se registró a la ${cycleTitle} del
            Programa de Desarrollo de XUNTAS+XUNTOS y te señaló como su padre, madre o tutor.
          </p>
          <p style="margin:0 0 14px;">
@@ -155,6 +181,7 @@ export const sendGuardianAuthorization = internalMutation({
            ignora este correo y responde para avisarnos: la cuenta no quedará autorizada.
          </p>`,
         `${athleteName} necesita tu autorización para completar su registro.`,
+        headerLineFor(args.cycle),
       ),
     })
   },
@@ -232,6 +259,7 @@ export const sendStaffInvitation = internalMutation({
            La invitación vence en 7 días. Si no esperabas este correo, ignóralo.
          </p>`,
         'Te invitaron al panel de XUNTAS+XUNTOS.',
+        STAFF_HEADER_LINE,
       ),
     })
   },
@@ -253,6 +281,7 @@ export const sendAccessGranted = internalMutation({
          </p>
          ${button(`${appUrl()}/es/administracion`, 'Ir al panel')}`,
         'Tu cuenta ya tiene acceso al panel.',
+        STAFF_HEADER_LINE,
       ),
     })
   },

@@ -73,6 +73,22 @@ export function isWindowOpenFor(
   return now >= opensAtMs && now <= closesAtMs
 }
 
+/**
+ * `isOpen` / `beforeOpening` from the window's own instants, checked against
+ * `now` at the moment this runs. A Convex query only re-executes when its
+ * DATA changes, and wall-clock time is not data — so a reader who caches
+ * these two booleans from a query result can go on believing the window is
+ * closed (or open) long after the clock disagrees. Call this again on every
+ * render instead of trusting a snapshot.
+ */
+export function windowStatusAt(
+  opensAtMs: number,
+  closesAtMs: number,
+  now: number = Date.now(),
+): { isOpen: boolean; beforeOpening: boolean } {
+  return { isOpen: now >= opensAtMs && now <= closesAtMs, beforeOpening: now < opensAtMs }
+}
+
 const NAME_RE = /^(\d{4})-(\d{4})$/
 
 export function validateCycle(input: CycleInput): AppErrorCode | null {

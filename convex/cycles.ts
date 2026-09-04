@@ -67,6 +67,7 @@ async function record(
  * Run once per deployment BEFORE the code that reads it deploys:
  *
  *   npx convex run cycles:seed
+ *   npx convex run cycles:seed --prod
  */
 export const seed = internalMutation({
   args: {},
@@ -75,18 +76,30 @@ export const seed = internalMutation({
       .query('cycles')
       .withIndex('by_cycle', (q) => q.eq('cycle', '2026-2027'))
       .unique()
-    if (existing) return { inserted: false }
+    if (existing) return { inserted: false, activated: false }
+
+    // `by_active` is a `.unique()` index: a second active row does not sit
+    // beside the first, it takes every query on that index down. This can
+    // run against a deployment that already has a different cycle active
+    // (a second environment reusing this seed, a re-run after `create` and
+    // `setActive` moved on) — in that case the invariant "at most one active
+    // row" wins over "the seeded row starts active", so it lands inactive
+    // and a person promotes it with `setActive` if that is what they want.
+    const activeElsewhere = await ctx.db
+      .query('cycles')
+      .withIndex('by_active', (q) => q.eq('isActive', true))
+      .unique()
     const now = Date.now()
     await ctx.db.insert('cycles', {
       cycle: '2026-2027',
       opensOn: '2026-09-04',
       closesOn: '2026-09-18',
       reviewOn: '2026-09-23',
-      isActive: true,
+      isActive: activeElsewhere === null,
       createdAt: now,
       updatedAt: now,
     })
-    return { inserted: true }
+    return { inserted: true, activated: activeElsewhere === null }
   },
 })
 

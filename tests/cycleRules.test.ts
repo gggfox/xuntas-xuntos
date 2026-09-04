@@ -7,6 +7,7 @@ import {
   titleOf,
   validateCycle,
   windowOf,
+  windowStatusAt,
 } from '../convex/lib/cycleRules'
 
 const C2026 = { cycle: '2026-2027', opensOn: '2026-09-04', closesOn: '2026-09-18', reviewOn: '2026-09-23' }
@@ -35,6 +36,35 @@ describe('isWindowOpenFor', () => {
   it('is still open at the last millisecond and closes afterwards', () => {
     expect(isWindowOpenFor(C2026, closesAtMs)).toBe(true)
     expect(isWindowOpenFor(C2026, closesAtMs + 1)).toBe(false)
+  })
+})
+
+/**
+ * The client-side counterpart of `isWindowOpenFor`, taking the raw instants
+ * a query already returns instead of the day strings — see
+ * `src/hooks/useActiveCycle.ts`, which must recompute this on every render
+ * rather than trust a value cached in a reactive query.
+ */
+describe('windowStatusAt', () => {
+  const { opensAtMs, closesAtMs } = windowOf(C2026)
+
+  it('is before opening, then open, then closed, in that order', () => {
+    expect(windowStatusAt(opensAtMs, closesAtMs, opensAtMs - 1)).toEqual({
+      isOpen: false,
+      beforeOpening: true,
+    })
+    expect(windowStatusAt(opensAtMs, closesAtMs, opensAtMs)).toEqual({
+      isOpen: true,
+      beforeOpening: false,
+    })
+    expect(windowStatusAt(opensAtMs, closesAtMs, closesAtMs)).toEqual({
+      isOpen: true,
+      beforeOpening: false,
+    })
+    expect(windowStatusAt(opensAtMs, closesAtMs, closesAtMs + 1)).toEqual({
+      isOpen: false,
+      beforeOpening: false,
+    })
   })
 })
 

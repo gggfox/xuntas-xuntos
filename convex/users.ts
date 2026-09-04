@@ -125,6 +125,7 @@ async function openGuardianAuthorization(
     token,
     isResend: false,
     closesOnText: formatDay(cycle.closesOn, 'es'),
+    cycle: cycle.cycle,
   })
 }
 
