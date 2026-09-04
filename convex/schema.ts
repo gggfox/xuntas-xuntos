@@ -13,8 +13,6 @@ export const vBranch = v.union(v.literal('womens'), v.literal('mens'))
 
 /**
  * Account roles. Owned by Convex — see docs/DECISIONS.md, "Convex owns roles".
- * `role` (singular, Clerk-mirrored) is on its way out: this deploy adds
- * `roles`, the backfill fills it, the next deploy drops `role`.
  */
 export const vRole = v.union(
   v.literal('athlete'),
@@ -115,8 +113,9 @@ export default defineSchema({
     .index('by_email', ['email']),
 
   /**
-   * Mirror of the Clerk account. The MIRRORED fields (email, name, role,
+   * Mirror of the Clerk account. The MIRRORED fields (email, name,
    * emailVerified) are written by the webhook and never by the client.
+   * `roles` is not mirrored — see its own comment below.
    *
    * Two fields are not mirrored and are written by the person themselves
    * through a mutation: `birthDate` (once, via `declareBirthDate`) and
@@ -130,13 +129,13 @@ export default defineSchema({
     clerkId: v.string(),
     email: v.string(),
     name: v.optional(v.string()),
-    role: vRole,
     /**
-     * The roles that count. Optional only for the length of the backfill;
-     * `users.backfillRoles` fills it from `role`, and the next schema step
-     * makes it required.
+     * Owned by Convex, never by Clerk. Written by exactly three paths:
+     * `staff.grantRoles` (CLI bootstrap), the invite redeemed in
+     * `users.create`, and `staff.setRoles`. See convex/lib/permissions.ts
+     * for what each role may do.
      */
-    roles: v.optional(v.array(vRole)),
+    roles: v.array(vRole),
     emailVerified: v.boolean(),
     /**
      * Captured in the age gate, before the Clerk signup.
@@ -154,8 +153,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_clerk_id', ['clerkId'])
-    .index('by_email', ['email'])
-    .index('by_role', ['role']),
+    .index('by_email', ['email']),
 
   /**
    * State axis 2: GUARDIAN AUTHORIZATION.

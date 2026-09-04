@@ -50,7 +50,6 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   birth_date_missing: m.err_birth_date_missing,
   birth_date_locked: m.err_birth_date_locked,
   not_signed_in: m.err_not_signed_in,
-  admin_required: m.err_admin_required,
   permission_required: m.err_permission_required,
   guardian_not_required: m.err_guardian_not_required,
   guardian_already_confirmed: m.err_guardian_already_confirmed,

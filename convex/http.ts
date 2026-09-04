@@ -18,6 +18,7 @@ type ClerkEvent = {
     primary_email_address_id?: string | null
     first_name?: string | null
     last_name?: string | null
+    /** Unread since roles moved to Convex; kept in the type so a future reader knows it arrives. */
     public_metadata?: Record<string, unknown> | null
     unsafe_metadata?: Record<string, unknown> | null
   }
@@ -36,11 +37,6 @@ function primaryEmail(data: ClerkEvent['data']): { email: string; verified: bool
 function fullName(data: ClerkEvent['data']): string | undefined {
   const n = [data.first_name, data.last_name].filter(Boolean).join(' ').trim()
   return n || undefined
-}
-
-/** The role lives in Clerk publicMetadata and is only mirrored here. */
-function role(data: ClerkEvent['data']): 'athlete' | 'admin' {
-  return data.public_metadata?.role === 'admin' ? 'admin' : 'athlete'
 }
 
 function text(v: unknown): string | undefined {
@@ -93,7 +89,6 @@ http.route({
           email,
           name: fullName(event.data),
           emailVerified: verified,
-          role: role(event.data),
           /**
            * The ONLY thing read from `unsafeMetadata`, and on purpose: it is
            * an opaque reference to the pre-signup the server already resolved.
@@ -115,7 +110,6 @@ http.route({
           email,
           name: fullName(event.data),
           emailVerified: verified,
-          role: role(event.data),
         })
         break
       }

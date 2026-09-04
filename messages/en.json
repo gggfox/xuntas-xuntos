@@ -187,7 +187,6 @@
   "err_birth_date_missing": "We need your date of birth before you can submit your registration.",
   "err_birth_date_locked": "Your date of birth is already on file and can't be changed.",
   "err_not_signed_in": "You are not signed in.",
-  "err_admin_required": "Administrator role required.",
   "err_guardian_not_required": "This account does not require guardian authorization.",
   "err_guardian_already_confirmed": "The authorization has already been confirmed.",
   "err_field_too_long": "One of the fields is longer than {limit} characters.",

@@ -6,7 +6,7 @@ import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
 import { LETTER_LIMIT } from './lib/registrationSchema'
 import { validateRegistration } from './lib/registrationRules'
 import type { ActionErrorCode } from './lib/errorCodes'
-import { requireAdmin, requireUser, currentUser } from './users'
+import { requirePermission, requireUser, currentUser } from './users'
 import type { Doc } from './_generated/dataModel'
 import { vBranch } from './schema'
 
@@ -275,7 +275,7 @@ export const submit = mutation({
 export const listForAdmin = query({
   args: { status: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx)
+    await requirePermission(ctx, 'review_registrations')
 
     const registrations = args.status
       ? await ctx.db
@@ -311,7 +311,7 @@ export const review = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const admin = await requireAdmin(ctx)
+    const admin = await requirePermission(ctx, 'review_registrations')
     await ctx.db.patch(args.registrationId, {
       status: args.status,
       validatedBy: admin._id,

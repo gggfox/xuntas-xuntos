@@ -12,7 +12,8 @@ import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage } from './lib/cycle'
 import { validateBirthDateDeclaration } from './lib/guardianRules'
 import type { AppErrorCode } from './lib/errorCodes'
 import { newToken } from './lib/tokens'
-import { vRole, vThemePreference } from './schema'
+import { vThemePreference } from './schema'
+import { can, permissionsOf, type Permission } from './lib/permissions'
 
 /**
  * Errors cross the wire as codes so the browser can say them in the reader's
@@ -42,9 +43,12 @@ export async function requireUser(ctx: QueryCtx): Promise<Doc<'users'>> {
   return user
 }
 
-export async function requireAdmin(ctx: QueryCtx): Promise<Doc<'users'>> {
+export async function requirePermission(
+  ctx: QueryCtx,
+  permission: Permission,
+): Promise<Doc<'users'>> {
   const user = await requireUser(ctx)
-  if (user.role !== 'admin') fail('admin_required')
+  if (!can(user.roles, permission)) fail('permission_required')
   return user
 }
 
@@ -73,7 +77,7 @@ export const myStatus = query({
         name: user.name,
         email: user.email,
         emailVerified: user.emailVerified,
-        role: user.role,
+        roles: user.roles,
         /**
          * `false` means the account was created without a valid pre-signup and
          * we do not know their age. It does NOT mean of legal age — that
@@ -167,7 +171,6 @@ export const create = internalMutation({
     email: v.string(),
     name: v.optional(v.string()),
     emailVerified: v.boolean(),
-    role: vRole,
     preSignupToken: v.optional(v.string()),
   },
   // Annotated on purpose: the handler calls `internal.preSignups.consume`,
@@ -183,14 +186,13 @@ export const create = internalMutation({
     const now = Date.now()
 
     if (existing) {
+      // `roles` is untouched here on purpose: a re-delivered webhook must
+      // not reset a master_admin back to athlete. Convex owns `roles`, and
+      // this mirror only ever writes it once, at insert, below.
       await ctx.db.patch(existing._id, {
         email: args.email,
         name: args.name ?? existing.name,
         emailVerified: args.emailVerified,
-        role: args.role,
-        // Only fill `roles` when the row does not already have one, so a
-        // re-delivered webhook cannot clobber roles set by hand.
-        roles: existing.roles ?? [args.role],
         updatedAt: now,
       })
       return existing._id
@@ -214,8 +216,7 @@ export const create = internalMutation({
       clerkId: args.clerkId,
       email: args.email,
       name: args.name,
-      role: args.role,
-      roles: [args.role],
+      roles: ['athlete'],
       emailVerified: args.emailVerified,
       birthDate: preSignup?.birthDate,
       wasMinorAtSignup: preSignup?.isMinor,
@@ -343,7 +344,6 @@ export const update = internalMutation({
     email: v.string(),
     name: v.optional(v.string()),
     emailVerified: v.boolean(),
-    role: vRole,
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -351,14 +351,12 @@ export const update = internalMutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique()
     if (!user) return
+    // `roles` is untouched here for the same reason it is in `create`:
+    // Clerk never owns roles, so this mirror never writes them.
     await ctx.db.patch(user._id, {
       email: args.email,
       name: args.name ?? user.name,
       emailVerified: args.emailVerified,
-      role: args.role,
-      // Only fill `roles` when the row does not already have one, so a
-      // re-delivered webhook cannot clobber roles set by hand.
-      roles: user.roles ?? [args.role],
       updatedAt: Date.now(),
     })
   },
@@ -397,25 +395,15 @@ export const remove = internalMutation({
 })
 
 /**
- * One-off: `roles` from `role`. Idempotent — rows that already carry `roles`
- * are skipped — so it can be re-run if it is interrupted. Run by hand:
- *
- *   npx convex run users:backfillRoles
- *   npx convex run users:backfillRoles --prod
- *
- * Deleted in the schema step that drops `role`.
+ * Roles and permissions for the header and the admin guard. Separate from
+ * `myStatus` for the same reason `myThemePreference` is: that query serves
+ * the registration panel, and the header runs on every page.
  */
-export const backfillRoles = internalMutation({
+export const me = query({
   args: {},
   handler: async (ctx) => {
-    const users = await ctx.db.query('users').collect()
-    let updated = 0
-    for (const u of users) {
-      if (u.roles !== undefined) continue
-      await ctx.db.patch(u._id, { roles: [u.role] })
-      updated++
-    }
-    console.log(`[users.backfillRoles] ${updated} of ${users.length} rows updated`)
-    return { updated }
+    const user = await currentUser(ctx)
+    if (!user) return null
+    return { roles: user.roles, permissions: permissionsOf(user.roles), email: user.email }
   },
 })

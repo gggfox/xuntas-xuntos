@@ -187,7 +187,6 @@
   "err_birth_date_missing": "Antes de enviar tu registro necesitamos tu fecha de nacimiento.",
   "err_birth_date_locked": "Tu fecha de nacimiento ya está registrada y no se puede cambiar.",
   "err_not_signed_in": "No hay sesión iniciada.",
-  "err_admin_required": "Se requiere rol de administrador.",
   "err_guardian_not_required": "Esta cuenta no requiere autorización de tutor.",
   "err_guardian_already_confirmed": "La autorización ya fue confirmada.",
   "err_field_too_long": "Hay un campo con más de {limit} caracteres.",

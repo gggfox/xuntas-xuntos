@@ -44,7 +44,6 @@ export type ActionErrorCode =
   | 'birth_date_missing'
   | 'birth_date_locked'
   | 'not_signed_in'
-  | 'admin_required'
   | 'permission_required'
   | 'guardian_not_required'
   | 'guardian_already_confirmed'
