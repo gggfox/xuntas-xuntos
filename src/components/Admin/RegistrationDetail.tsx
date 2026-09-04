@@ -16,6 +16,10 @@ export default function RegistrationDetail({ detail }: { detail: Detail }) {
   const r = detail.registration
   const yes = m.detail_yes()
   const no = m.detail_no()
+  // `undefined` here means the account predates the field that would have
+  // answered this, not that the athlete is of age — an unknown must read as
+  // unknown, never silently as the reassuring answer.
+  const minorFlag = r.wasMinorAtCycleStart ?? detail.account.wasMinorAtSignup
   return (
     <article>
       <section className="card mb-[30px] px-[21px] py-[15px]">
@@ -30,7 +34,9 @@ export default function RegistrationDetail({ detail }: { detail: Detail }) {
                 <GuardianChip required={detail.guardian.required} confirmed={detail.guardian.confirmed} />
                 {detail.guardian.required && (
                   <span className="text-[12px] text-soft">
-                    {detail.guardian.guardianName} · {detail.guardian.guardianEmail} · {m.detail_guardian_sent({ n: detail.guardian.timesSent ?? 0 })}
+                    {detail.guardian.guardianName
+                      ? `${detail.guardian.guardianName} · ${detail.guardian.guardianEmail} · ${m.detail_guardian_sent({ n: detail.guardian.timesSent ?? 0 })}`
+                      : m.detail_guardian_missing_cycle()}
                   </span>
                 )}
               </span>
@@ -40,7 +46,7 @@ export default function RegistrationDetail({ detail }: { detail: Detail }) {
         <p className="mt-3 font-mono text-[11px] text-soft">
           {m.regs_col_sections()}: {m.regs_sections({ n: detail.sectionsComplete, total: SECTIONS_TOTAL })}
           {' · '}
-          {(r.wasMinorAtCycleStart ?? detail.account.wasMinorAtSignup) ? m.detail_minor() : m.detail_adult()}
+          {minorFlag === undefined ? m.detail_age_unknown() : minorFlag ? m.detail_minor() : m.detail_adult()}
         </p>
       </section>
 

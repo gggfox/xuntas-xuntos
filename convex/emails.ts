@@ -315,12 +315,16 @@ type NoticeDecisionArg = 'rejected' | 'selected' | 'not_selected'
 function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle: string) {
   const name = textForEmail(firstName, 60)
   const title = textForEmail(cycleTitle)
+  // `firstName` can be genuinely empty (no name on the form, no name on the
+  // account either) — that used to fall back to the literal word "hola" and
+  // produce "Hola, hola:". An unnamed greeting reads better than a fake one.
+  const greeting = name ? `Hola, ${name}:` : 'Hola:'
   switch (decision) {
     case 'rejected':
       return {
         subject: `Sobre tu registro · ${cycleTitle}`,
         preheader: 'Revisamos tu registro a la Convocatoria.',
-        html: `<p style="margin:0 0 14px;">Hola, ${name}:</p>
+        html: `<p style="margin:0 0 14px;">${greeting}</p>
           <p style="margin:0 0 14px;">Revisamos tu registro a la ${title} del Programa de Desarrollo y, en esta ocasión, no cumple con los requisitos de la convocatoria.</p>
           <p style="margin:0 0 14px;">Sabemos que detrás de un registro hay trabajo y ganas. Te animamos a seguir compitiendo y a registrarte en la siguiente convocatoria.</p>
           <p style="margin:0 0 14px;">Si tienes dudas, responde a este correo.</p>`,
@@ -329,7 +333,7 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
       return {
         subject: 'Fuiste seleccionad@ · Programa de Desarrollo XUNTAS+XUNTOS',
         preheader: 'El Consejo Técnico te seleccionó.',
-        html: `<p style="margin:0 0 14px;">Hola, ${name}:</p>
+        html: `<p style="margin:0 0 14px;">${greeting}</p>
           <p style="margin:0 0 14px;"><b>El Consejo Técnico te seleccionó para el Programa de Desarrollo</b> en la ${title}.</p>
           <p style="margin:0 0 14px;">En los próximos días te escribiremos con los siguientes pasos y la documentación que necesitamos para completar tu expediente.</p>
           <p style="margin:0 0 14px;">Felicidades. Nos da mucho gusto que formes parte.</p>
@@ -339,7 +343,7 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
       return {
         subject: `Sobre tu registro · ${cycleTitle}`,
         preheader: 'El Consejo Técnico terminó su revisión.',
-        html: `<p style="margin:0 0 14px;">Hola, ${name}:</p>
+        html: `<p style="margin:0 0 14px;">${greeting}</p>
           <p style="margin:0 0 14px;">El Consejo Técnico terminó la revisión de la ${title}. En esta ocasión no fuiste seleccionad@ para el Programa de Desarrollo.</p>
           <p style="margin:0 0 14px;">El registro fue numeroso y los lugares, pocos. Esto no dice nada de tu potencial: te animamos a seguir compitiendo y a registrarte en la siguiente convocatoria.</p>
           <p style="margin:0 0 14px;">Si tienes dudas, responde a este correo.</p>`,
@@ -352,16 +356,27 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
  * error) if the notice is not pending — the scheduler is fire-and-forget, so
  * this is the guard against a second press racing the first one's own
  * scheduled run.
+ *
+ * `decision` is the decision this send was scheduled for, not whatever the
+ * row says by the time this runs. `decide` can run in the gap between the
+ * schedule call and this handler firing, and it does not reach into the
+ * scheduler to cancel a job it just made stale. Without pinning the
+ * decision here, a correction in that gap would send the NEW decision —
+ * including a rejection, through the batch path that deliberately excludes
+ * rejections — with nobody having pressed send for it. That breaks the
+ * promise the rest of this file relies on: a corrected decision is never
+ * sent on its own.
  */
 export const sendDecisionNotice = internalMutation({
-  args: { registrationId: v.id('registrations'), sentBy: v.id('users') },
+  args: { registrationId: v.id('registrations'), decision: vNoticeDecision, sentBy: v.id('users') },
   handler: async (ctx, args) => {
     const r = await ctx.db.get(args.registrationId)
     if (!r || !r.decisionNotice || r.decisionNotice.status !== 'not_sent') return
+    if (r.decisionNotice.decision !== args.decision) return
     const user = await ctx.db.get(r.userId)
     if (!user) return
 
-    const firstName = r.personal.name.trim().split(/\s+/)[0] || user.name || 'hola'
+    const firstName = r.personal.name.trim().split(/\s+/)[0] || user.name?.trim().split(/\s+/)[0] || ''
     const body = decisionBody(r.decisionNotice.decision, firstName, titleOf(r.cycle, 'es'))
     // The ACCOUNT email, which Clerk verified — never the one typed into the form.
     const emailId = await resend.sendEmail(ctx, {

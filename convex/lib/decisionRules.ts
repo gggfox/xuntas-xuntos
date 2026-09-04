@@ -35,7 +35,16 @@ const NEXT: Record<RegistrationStatus, readonly Decision[]> = {
   not_selected: ['selected', 'validated', 'rejected'],
 }
 
-const isDecided = (s: RegistrationStatus): s is Decision => s !== 'draft' && s !== 'submitted'
+/**
+ * Whether a status is one of the four decisions rather than `draft` or
+ * `submitted`. Exported so every place that needs "has this already been
+ * decided" — the draft-save and submit guards in `registrations.ts` included
+ * — asks this function instead of re-listing the decided statuses itself.
+ * `selected` and `not_selected` were added after those two call sites were
+ * written and neither one was updated for them; a shared predicate is the
+ * only way a status added later cannot repeat that gap.
+ */
+export const isDecided = (s: RegistrationStatus): s is Decision => s !== 'draft' && s !== 'submitted'
 
 const isSelectionDecision = (d: RegistrationStatus): boolean => d === 'selected' || d === 'not_selected'
 
@@ -66,7 +75,13 @@ export function checkDecision(input: {
   const locked = input.noticeStatus !== null && input.noticeStatus !== 'not_sent'
   // A sent notice is a promise made to a family. Only a master_admin may
   // unmake it, and only with a reason on file.
-  const needs: Permission = locked ? 'select_registrations' : permissionFor(to)
+  //
+  // Leaving a selection is also gated on `select_registrations`, even when
+  // the destination (`validated`) would only need `review_registrations` on
+  // its own: selection is the master_admin's authority, and a plain admin
+  // walking a row back out of it erases that decision as surely as making
+  // it, just without the ability to redo it.
+  const needs: Permission = locked || isSelectionDecision(from) ? 'select_registrations' : permissionFor(to)
   if (!input.permissions.includes(needs)) {
     return locked ? 'decision_locked' : 'permission_required'
   }

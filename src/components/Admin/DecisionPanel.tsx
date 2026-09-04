@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as m from '../../paraglide/messages.js'
 import { checkDecision, type Decision, type NoticeStatus, type RegistrationStatus } from '../../../convex/lib/decisionRules'
 import type { Permission } from '../../lib/permissions'
@@ -17,6 +17,9 @@ type Props = {
   onDecide: (decision: Decision, note: string) => Promise<void>
   onSendRejection: () => Promise<void>
 }
+
+/** How long the "confirm send" state stays armed before it reverts on its own. */
+const CONFIRM_TIMEOUT_MS = 4000
 
 const BUTTONS: Array<{ decision: Decision; label: () => string }> = [
   { decision: 'validated', label: m.detail_validate },
@@ -51,6 +54,29 @@ export default function DecisionPanel({ status, guardianConfirmed, notice, permi
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // The rejection email is a single, unrecallable send from a bare button —
+  // the batch gets a modal because it is deliberate and counted, and one
+  // family's email deserves the same deliberateness, not less just because
+  // it is one click instead of a dialog's several. A first press only arms
+  // the button; it must be pressed again, while still armed, to actually
+  // send. The timeout handle lives in a ref rather than state so it can be
+  // cleared and reset without a render in between.
+  const [confirmingSend, setConfirmingSend] = useState(false)
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current)
+    }
+  }, [])
+
+  function disarmSend() {
+    if (confirmTimer.current) {
+      clearTimeout(confirmTimer.current)
+      confirmTimer.current = null
+    }
+    setConfirmingSend(false)
+  }
 
   const allowed = BUTTONS.filter((b) => {
     const problem = checkDecision({ from: status, to: b.decision, note: 'x', guardianConfirmed, noticeStatus: notice, permissions })
@@ -115,7 +141,18 @@ export default function DecisionPanel({ status, guardianConfirmed, notice, permi
           type="button"
           className="btn btn-ghost mt-4"
           disabled={busy}
+          onBlur={disarmSend}
           onClick={async () => {
+            // First click only arms the button and starts the revert timer;
+            // it does not send. Only a second click, while still armed,
+            // sends — and it disarms immediately so a stray third click
+            // cannot fire a second email.
+            if (!confirmingSend) {
+              setConfirmingSend(true)
+              confirmTimer.current = setTimeout(() => setConfirmingSend(false), CONFIRM_TIMEOUT_MS)
+              return
+            }
+            disarmSend()
             setBusy(true)
             try {
               await onSendRejection()
@@ -126,7 +163,7 @@ export default function DecisionPanel({ status, guardianConfirmed, notice, permi
             }
           }}
         >
-          {m.detail_send_rejection()}
+          {confirmingSend ? m.detail_send_rejection_confirm() : m.detail_send_rejection()}
         </button>
       )}
 

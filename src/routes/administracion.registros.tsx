@@ -14,7 +14,6 @@ import { useAdminCycle } from '../hooks/useAdminCycle'
 import { useMe } from '../hooks/useMe'
 import { VIEWS, applyFilters, type Filters, type ViewId } from '../lib/adminViews'
 import { can } from '../lib/permissions'
-import { describeConvexError } from '../lib/registrationErrors'
 
 export const Route = createFileRoute('/administracion/registros')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.regs_title() }) }] }),
@@ -54,7 +53,6 @@ function RegistrationsPage() {
   const [filters, setFilters] = useState<Filters>(VIEWS[view].filters)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const shown = useMemo(() => (rows ? applyFilters(rows, filters) : []), [rows, filters])
 
@@ -115,7 +113,6 @@ function RegistrationsPage() {
       </div>
 
       <RegistrationFilters value={filters} onChange={setFilters} lockStatus={view !== 'all'} />
-      {error && <p className="mt-3 text-[12.5px] text-bad">{error}</p>}
 
       <RegistrationsTable
         // v9's table instance is built once, on mount, from `initialState` —
@@ -136,15 +133,17 @@ function RegistrationsPage() {
         <BatchSendDialog
           count={selected.size}
           windowOpen={windowOpen}
+          // Left to reject on failure: `BatchSendDialog` sits in the top
+          // layer over an inert backdrop, so a message printed out here in
+          // the page body — behind that backdrop — is not one the operator
+          // can see. The dialog is the only place a failed send may be
+          // reported; swallowing the error here and returning a fake
+          // {scheduled: 0, skipped: n} used to tell the operator the send
+          // ran and skipped everyone, when it had not run at all.
           onConfirm={async () => {
-            try {
-              const r = await sendBatch({ cycle, ids: [...selected] as Id<'registrations'>[] })
-              setSelected(new Set())
-              return r
-            } catch (err) {
-              setError(describeConvexError(err))
-              return { scheduled: 0, skipped: selected.size }
-            }
+            const r = await sendBatch({ cycle, ids: [...selected] as Id<'registrations'>[] })
+            setSelected(new Set())
+            return r
           }}
           onTest={async () => {
             // A mixed selection sends one preview per distinct decision, so

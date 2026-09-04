@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SECTIONS_TOTAL,
   checkDecision,
+  isDecided,
   noticeDecisionFor,
   permissionFor,
   sectionsComplete,
@@ -16,6 +17,26 @@ const MASTER = [
 ] as const
 
 const base = { guardianConfirmed: true, noticeStatus: null, permissions: REVIEWER }
+
+describe('isDecided', () => {
+  /**
+   * Pinned across all six statuses on purpose: this is the exact
+   * enumeration `saveDraft` and `submit` trust to refuse writing over a
+   * decided registration. `selected` and `not_selected` were added after
+   * those two call sites were written by hand and neither one was updated —
+   * an athlete could rewrite a `selected` row and resubmit it, silently
+   * erasing the Council's decision. A test that names every status is the
+   * one that catches the next status added the same way.
+   */
+  it('is true for every decision and false for draft and submitted', () => {
+    expect(isDecided('draft')).toBe(false)
+    expect(isDecided('submitted')).toBe(false)
+    expect(isDecided('validated')).toBe(true)
+    expect(isDecided('rejected')).toBe(true)
+    expect(isDecided('selected')).toBe(true)
+    expect(isDecided('not_selected')).toBe(true)
+  })
+})
 
 describe('permissionFor', () => {
   it('splits screening from selection', () => {
@@ -103,6 +124,22 @@ describe('checkDecision', () => {
 
   it('still asks nothing extra for validated → selected while unlocked', () => {
     expect(checkDecision({ ...base, permissions: MASTER, from: 'validated', to: 'selected' })).toBeNull()
+  })
+
+  /**
+   * Selection is the master_admin's authority to grant AND to withdraw. A
+   * plain admin (`review_registrations` only) has enough permission to land
+   * on `validated` from `submitted`, but not enough to walk a row that was
+   * already `selected` back to `validated` — that move erases the
+   * Council's decision as surely as making it would have been the
+   * Council's to make, and a reviewer cannot undo the erasure by
+   * re-selecting (only `select_registrations` can).
+   */
+  it('needs select_registrations to leave a selection, even landing on validated', () => {
+    expect(checkDecision({ ...base, from: 'selected', to: 'validated', note: 'x' })).toBe('permission_required')
+    expect(
+      checkDecision({ ...base, permissions: MASTER, from: 'selected', to: 'validated', note: 'x' }),
+    ).toBeNull()
   })
 })
 

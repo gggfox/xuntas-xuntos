@@ -30,6 +30,7 @@ export const sendRejection = mutation({
     if (r.decisionNotice.status !== 'not_sent') fail('notice_not_pending')
     await ctx.scheduler.runAfter(0, internal.emails.sendDecisionNotice, {
       registrationId: r._id,
+      decision: r.decisionNotice.decision,
       sentBy: actor._id,
     })
     return { ok: true as const }
@@ -85,6 +86,7 @@ export const sendBatch = mutation({
       }
       await ctx.scheduler.runAfter(0, internal.emails.sendDecisionNotice, {
         registrationId: r._id,
+        decision: r.decisionNotice.decision,
         sentBy: actor._id,
       })
       scheduled++

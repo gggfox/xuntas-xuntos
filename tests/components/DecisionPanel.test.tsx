@@ -48,9 +48,34 @@ describe('DecisionPanel', () => {
   it('offers the rejection email only while the notice is pending', () => {
     const { onSendRejection } = renderPanel({ status: 'rejected', notice: 'not_sent' })
     fireEvent.click(screen.getByRole('button', { name: m.detail_send_rejection() }))
+    fireEvent.click(screen.getByRole('button', { name: m.detail_send_rejection_confirm() }))
     expect(onSendRejection).toHaveBeenCalled()
     renderPanel({ status: 'rejected', notice: 'sent' })
     expect(screen.getAllByRole('button', { name: m.detail_send_rejection() })).toHaveLength(1)
+  })
+
+  /**
+   * The rejection email cannot be recalled, so one click must never be
+   * enough — the batch send gets a modal for the same reason. The first
+   * click only arms the button (its label switches to the confirm text);
+   * only a second click, while still armed, actually sends.
+   */
+  it('requires a second press to send the rejection email', () => {
+    const { onSendRejection } = renderPanel({ status: 'rejected', notice: 'not_sent' })
+    fireEvent.click(screen.getByRole('button', { name: m.detail_send_rejection() }))
+    expect(onSendRejection).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: m.detail_send_rejection_confirm() })).toBeInTheDocument()
+  })
+
+  it('disarms the confirm state when the button loses focus', () => {
+    const { onSendRejection } = renderPanel({ status: 'rejected', notice: 'not_sent' })
+    const button = screen.getByRole('button', { name: m.detail_send_rejection() })
+    fireEvent.click(button)
+    expect(screen.getByRole('button', { name: m.detail_send_rejection_confirm() })).toBeInTheDocument()
+    fireEvent.blur(screen.getByRole('button', { name: m.detail_send_rejection_confirm() }))
+    expect(screen.getByRole('button', { name: m.detail_send_rejection() })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: m.detail_send_rejection() }))
+    expect(onSendRejection).not.toHaveBeenCalled()
   })
 
   it('never shows two solid-yellow buttons at once, even when a master admin can both re-validate and re-select a not_selected registration', () => {

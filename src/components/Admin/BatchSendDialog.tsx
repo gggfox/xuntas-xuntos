@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import * as m from '../../paraglide/messages.js'
+import { describeConvexError } from '../../lib/registrationErrors'
 
 type Props = {
   count: number
@@ -22,6 +23,10 @@ export default function BatchSendDialog({ count, windowOpen, onConfirm, onTest, 
   const ref = useRef<HTMLDialogElement>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  // The `<b>` below needs a stable id for `aria-labelledby` — the dialog is
+  // the highest-stakes control in the panel, and a native `<dialog>` gets no
+  // accessible name of its own from `showModal` alone.
+  const titleId = useId()
 
   /* Why an effect: showModal is an imperative browser call that must run after mount. */
   useEffect(() => {
@@ -29,8 +34,13 @@ export default function BatchSendDialog({ count, windowOpen, onConfirm, onTest, 
   }, [])
 
   return (
-    <dialog ref={ref} onClose={onClose} className="card m-auto max-w-[52ch] px-[21px] py-[19px] backdrop:bg-ink/40">
-      <b className="block font-disp text-[16px]">{m.batch_title({ n: count })}</b>
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      aria-labelledby={titleId}
+      className="card m-auto max-w-[52ch] px-[21px] py-[19px] backdrop:bg-ink/40"
+    >
+      <b id={titleId} className="block font-disp text-[16px]">{m.batch_title({ n: count })}</b>
       <p className="mt-2 text-[13px] font-light text-soft">
         {windowOpen ? m.batch_window_open() : m.batch_text({ n: count })}
       </p>
@@ -45,6 +55,12 @@ export default function BatchSendDialog({ count, windowOpen, onConfirm, onTest, 
             try {
               const r = await onConfirm()
               setNote(m.batch_done({ scheduled: r.scheduled, skipped: r.skipped }))
+            } catch (err) {
+              // Reported inside the dialog, not the page behind it: this
+              // dialog is in the top layer over an inert backdrop, so a
+              // message printed anywhere else is one the operator cannot
+              // see while it's open.
+              setNote(describeConvexError(err))
             } finally {
               setBusy(false)
             }
@@ -57,8 +73,19 @@ export default function BatchSendDialog({ count, windowOpen, onConfirm, onTest, 
           className="btn btn-ghost"
           disabled={busy}
           onClick={async () => {
-            await onTest()
-            setNote(m.batch_test_sent())
+            setBusy(true)
+            try {
+              await onTest()
+              setNote(m.batch_test_sent())
+            } catch (err) {
+              // Without this catch, a rejected `sendTest` escaped this
+              // async handler as an unhandled promise and the button that
+              // exists purely to build confidence before an irreversible
+              // batch did nothing at all when it failed.
+              setNote(describeConvexError(err))
+            } finally {
+              setBusy(false)
+            }
           }}
         >
           {m.batch_test()}

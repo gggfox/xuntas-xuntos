@@ -326,18 +326,38 @@ decisionNotice?: {
 ### Transitions (`convex/lib/decisionRules.ts`, pure)
 
 ```
-submitted → validated | rejected        review_registrations
-validated → selected | not_selected     select_registrations
-any decided → any other decided         same permission as the target, note required
+submitted → validated | rejected                review_registrations
+validated → selected | not_selected             select_registrations
+rejected → validated                            review_registrations (re-screen, not a reversal into selection)
+selected | not_selected → validated | rejected  select_registrations, note required
+selected ↔ not_selected                         select_registrations, note required
 ```
 
-- `draft` is never decided.
+- `draft` is never decided, and a decided status may not move to *any* other
+  decided status: `rejected` may only go back to `validated` — the row is
+  re-screened before it can be selected again, it does not jump straight
+  from rejected to selected or not_selected. This is the safer rule, and the
+  one the code has always enforced; an earlier draft of this section said
+  "any decided → any other decided" instead, which was wrong the day it was
+  written.
 - `rejected`, `validated`, `selected`, `not_selected` may be changed; the
   mutation appends to `decisionLog` and a **note is required** on every
   rejection, on any change within a stage, on any reversal back to an earlier
   stage, and whenever an email has already been sent — but not on the forward
   move from screening to selection (`validated → selected` / `validated → not_selected`),
   which is the next stage rather than a change of mind.
+- **Permission follows the decision, except leaving a selection.** A
+  transition normally needs whatever `permissionFor` the destination status
+  computes — `review_registrations` for `validated`/`rejected`,
+  `select_registrations` for `selected`/`not_selected`. The one exception is
+  a transition *out of* `selected` or `not_selected`, whatever it lands on:
+  that always needs `select_registrations`, even when the destination alone
+  would only need `review_registrations`. Selection is the master_admin's
+  authority, and leaving one exercises that authority as much as entering
+  one — a plain admin who could walk a `selected` row back to `validated`
+  would be erasing the Council's decision with a permission that was only
+  ever meant to screen, and could not undo the erasure afterward (only
+  `select_registrations` can re-select).
 - **Guardian:** a submitted registration whose guardian has not confirmed may
   be `validated` (it stays flagged) but may **not** be `selected`
   (`guardian_unconfirmed`). This closes DECISIONS open item 2.

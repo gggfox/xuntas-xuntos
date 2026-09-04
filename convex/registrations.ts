@@ -6,7 +6,7 @@ import { formatDay, isWindowOpenFor, windowOf } from './lib/cycleRules'
 import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
 import { LETTER_LIMIT } from './lib/registrationSchema'
 import { validateRegistration } from './lib/registrationRules'
-import { checkDecision, noticeDecisionFor, sectionsComplete } from './lib/decisionRules'
+import { checkDecision, isDecided, noticeDecisionFor, sectionsComplete } from './lib/decisionRules'
 import { permissionsOf } from './lib/permissions'
 import type { AppErrorCode } from './lib/errorCodes'
 import { requirePermission, requireUser, currentUser } from './auth'
@@ -160,7 +160,11 @@ export const saveDraft = mutation({
     const now = Date.now()
 
     if (existing) {
-      if (existing.status === 'validated' || existing.status === 'rejected') {
+      // `selected` and `not_selected` are decisions too, not just
+      // `validated`/`rejected` — `isDecided` is the single list of what
+      // counts as "already reviewed" so a status added later cannot slip
+      // past this guard the way these two did.
+      if (isDecided(existing.status)) {
         fail('already_reviewed')
       }
 
@@ -224,7 +228,9 @@ export const submit = mutation({
       .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
 
-    if (existing && (existing.status === 'validated' || existing.status === 'rejected')) {
+    // Same guard as `saveDraft`: a selected or not-selected row is decided,
+    // and a decided row is not the athlete's to overwrite.
+    if (existing && isDecided(existing.status)) {
       fail('already_reviewed')
     }
 
@@ -272,6 +278,30 @@ export const submit = mutation({
 // Administration.
 // ---------------------------------------------------------------------------
 
+/**
+ * The guardian gate for one registration, resolved against *this cycle's*
+ * row rather than the row's mere presence.
+ *
+ * `guardianAuth` rows are created at signup or at the birth-date recovery
+ * declaration, against whichever cycle happened to be active then — not
+ * against every cycle the athlete might later register in. A minor who
+ * signed up in one cycle and returns to register in the next has no
+ * `guardianAuth` row for the new cycle, and reading that absence as "no
+ * guardian needed" opens the gate for exactly the accounts it exists to
+ * close. The proper fix — a per-cycle authorization opened for every cycle
+ * a minor registers in — is a later branch's work; until then, an absent
+ * row for a known minor must fail safe (`required`, unconfirmed) rather
+ * than fail open. An absent row for a known adult still reads as "no
+ * guardian needed", since no guardian was ever supposed to exist for one.
+ */
+function guardianState(
+  isMinor: boolean,
+  guardian: Doc<'guardianAuth'> | null,
+): { required: boolean; confirmed: boolean } {
+  if (guardian) return { required: true, confirmed: guardian.confirmedAt !== undefined }
+  return { required: isMinor, confirmed: !isMinor }
+}
+
 /** Every registration of one cycle, with the columns the table sorts on. */
 export const listForAdmin = query({
   args: { cycle: v.string() },
@@ -290,6 +320,8 @@ export const listForAdmin = query({
         .query('guardianAuth')
         .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', args.cycle))
         .unique()
+      const isMinor = r.wasMinorAtCycleStart ?? user?.wasMinorAtSignup ?? false
+      const gState = guardianState(isMinor, guardian)
       out.push({
         _id: r._id,
         status: r.status,
@@ -299,9 +331,9 @@ export const listForAdmin = query({
         email: user?.email ?? '',
         branch: r.personal.branch,
         state: r.personal.state,
-        isMinor: r.wasMinorAtCycleStart ?? user?.wasMinorAtSignup ?? false,
-        guardianRequired: guardian !== null,
-        guardianConfirmed: guardian === null || guardian.confirmedAt !== undefined,
+        isMinor,
+        guardianRequired: gState.required,
+        guardianConfirmed: gState.confirmed,
         sectionsComplete: sectionsComplete(r),
         notice: r.decisionNotice?.status ?? null,
         decision: r.decisionNotice?.decision ?? null,
@@ -329,6 +361,9 @@ export const detail = query({
       log.push({ status: entry.status, at: entry.at, byName: by?.name ?? by?.email ?? '', note: entry.note })
     }
 
+    const isMinor = r.wasMinorAtCycleStart ?? user?.wasMinorAtSignup ?? false
+    const gState = guardianState(isMinor, guardian)
+
     return {
       registration: r,
       account: {
@@ -337,15 +372,16 @@ export const detail = query({
         birthDate: user?.birthDate,
         wasMinorAtSignup: user?.wasMinorAtSignup,
       },
-      guardian: guardian
-        ? {
-            required: true,
-            confirmed: guardian.confirmedAt !== undefined,
-            guardianName: guardian.guardianName,
-            guardianEmail: guardian.guardianEmail,
-            timesSent: guardian.timesSent,
-          }
-        : { required: false, confirmed: true },
+      // `guardian` itself may be null even though `required` is true — that
+      // is exactly the fallback case (a minor with no row for this cycle),
+      // and there is no row to read a name or email off of.
+      guardian: {
+        required: gState.required,
+        confirmed: gState.confirmed,
+        guardianName: guardian?.guardianName,
+        guardianEmail: guardian?.guardianEmail,
+        timesSent: guardian?.timesSent,
+      },
       log,
       sectionsComplete: sectionsComplete(r),
     }
@@ -361,19 +397,28 @@ export const detail = query({
 export const decide = mutation({
   args: { id: v.id('registrations'), decision: vDecision, note: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const actor = await requireUser(ctx)
+    // `checkDecision` below returns `decision_invalid` before it ever
+    // checks a permission, and that code is not the same as
+    // `registration_not_found` — so without a permission check up front, any
+    // signed-in athlete could hand in someone else's registration id and
+    // read that row's status off which error code comes back. The panel
+    // already requires this permission to reach `decide` at all; this only
+    // makes the server refuse what the UI already never offers.
+    const actor = await requirePermission(ctx, 'review_registrations')
     const r = await ctx.db.get(args.id)
     if (!r) fail('registration_not_found')
+    const user = await ctx.db.get(r.userId)
     const guardian = await ctx.db
       .query('guardianAuth')
       .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', r.cycle))
       .unique()
+    const isMinor = r.wasMinorAtCycleStart ?? user?.wasMinorAtSignup ?? false
 
     const problem = checkDecision({
       from: r.status,
       to: args.decision,
       note: args.note,
-      guardianConfirmed: guardian === null || guardian.confirmedAt !== undefined,
+      guardianConfirmed: guardianState(isMinor, guardian).confirmed,
       noticeStatus: r.decisionNotice?.status ?? null,
       permissions: permissionsOf(actor.roles),
     })
