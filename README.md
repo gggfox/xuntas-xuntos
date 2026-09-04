@@ -105,14 +105,17 @@ npm install && npm run dev
 
 ## Administrators
 
-There is no role-management screen yet. An admin is created by inviting from
-Clerk with `publicMetadata` set to:
+Roles live in Convex (`users.roles`), not in Clerk. The first `master_admin`
+is granted from the CLI, once per deployment:
 
-```json
-{ "role": "admin" }
+```bash
+npx convex run staff:grantRoles '{"email":"you@xuntas.org","roles":["master_admin"]}'
+npx convex run staff:grantRoles '{"email":"you@xuntas.org","roles":["master_admin"]}' --prod
 ```
 
-The `user.updated` webhook mirrors the role into Convex.
+The account must already exist (sign up first). From then on, staff are
+invited from `/administracion/equipo`. See `convex/lib/permissions.ts` for
+what each role may do.
 
 ---
 

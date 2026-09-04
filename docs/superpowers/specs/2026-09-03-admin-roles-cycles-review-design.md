@@ -109,7 +109,7 @@ Three-step schema transition, the Convex-safe way:
 1. Add `roles: v.optional(v.array(vRole))`, keep `role`. Deploy.
 2. Run `npx convex run users:backfillRoles` (dev, then `--prod`): every row
    gets `roles = [role]`.
-3. Make `roles` required, drop `role`. Deploy.
+3. Make `roles` required and `role` legacy-optional. Deploy, then run `users:dropLegacyRole` (Convex refuses a schema over rows that still carry a field it no longer declares). `role` leaves the schema in a later PR.
 
 Then bootstrap:
 

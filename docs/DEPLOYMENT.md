@@ -168,9 +168,9 @@ dashboard (Functions → run by hand):
 - `registrations:review` with
   `{"registrationId": "...", "status": "validated" | "rejected", "note": "..."}`.
 
-Both require the account to have `role: "admin"`, which is set in Clerk with
-`publicMetadata` `{ "role": "admin" }` and reaches Convex through the
-`user.updated` webhook.
+Both require an account whose `users.roles` grants `review_registrations`
+(`admin` or `master_admin`). Roles are granted from the CLI
+(`staff:grantRoles`, see the README) or from `/administracion/equipo`.
 
 ---
 
@@ -187,6 +187,9 @@ Before September 4:
       table shows up in the prod dashboard
 - [ ] Clerk webhook to the **prod** `.convex.site`, with the 3 events
 - [ ] Resend webhook to the **prod** `.convex.site`
+- [ ] `staff:grantRoles '{"email":"gerardogalangarzafox@gmail.com","roles":["master_admin"]}' --prod` run for the master_admin account
+- [ ] `users:backfillRoles --prod` run (see §6)
+- [ ] `users:dropLegacyRole --prod` run (see §6)
 
 **Container**
 - [ ] Production environment build args with the `pk_live_` keys
@@ -202,3 +205,23 @@ Before September 4:
 - [ ] Full smoke test, with a minor and with an adult
 - [ ] Smoke test with Google in addition to the email code
 - [ ] Someone from XUNTAS read Clerk's sign-up screens in Spanish
+
+---
+
+## 6. Release sequence for the roles migration
+
+`users.roles` replaces the Clerk-mirrored `users.role`. Production rows
+still carry `role`, so the release runs in this order — each step from the
+branch commit named, never out of order:
+
+1. Deploy the schema where `roles` is optional (commit `c086dfc`), then
+   `npx convex run users:backfillRoles --prod` and confirm `{ updated: N }`
+   followed by `{ updated: 0 }` on a second run.
+2. Deploy the branch head (`roles` required, `role` legacy-optional), then
+   `npx convex run users:dropLegacyRole --prod` and confirm `{ updated: 0 }`
+   on a second run.
+3. `npx convex run staff:grantRoles '{"email":"gerardogalangarzafox@gmail.com","roles":["master_admin"]}' --prod`
+   (the account must already exist in prod — sign up first).
+4. Only then let the container deploy (`production` branch).
+
+`role` leaves the schema in a later PR once no row has it.

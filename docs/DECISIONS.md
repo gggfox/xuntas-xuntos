@@ -3,7 +3,7 @@
 A record of the architecture and product decisions, with the why. The code
 points here when something looks odd at first glance but is deliberate.
 
-Last reviewed: August 26, 2026.
+Last reviewed: September 3, 2026.
 
 ---
 
@@ -21,9 +21,19 @@ the release.
 already approved that shape. Changing fields or copy reopens a conversation
 the calendar has no room for.
 
-**The six-role portal (`portal_xuntas.html`) is a visual reference, not a
-specification.** The `coach` and `direccion` roles are not being built this
-cycle.
+**Roles are a Convex-owned array, behind a permission table.** `users.roles`
+holds `athlete | admin | master_admin | coach | finance | health`;
+`convex/lib/permissions.ts` maps roles to permissions and every guard reads a
+permission. Clerk's `publicMetadata.role` is no longer read. `master_admin` is
+a superset. `coach`, `finance` and `health` exist so they can be invited now;
+their screens come later. Design: `docs/superpowers/specs/2026-09-03-admin-roles-cycles-review-design.md`.
+
+**Staff are invited by the app, not from Clerk.** `staffInvites` binds an
+invitation to an email; the `user.created` webhook redeems it by matching the
+account's primary address. Removal revokes roles and never deletes the
+account: `validatedBy` must keep pointing at a person, and deletion is the
+person's own LFPDPPP right. Nobody can remove their own `master_admin`, and
+the last one cannot be removed by anyone. The legacy `role` column stays optional in the schema until `users:dropLegacyRole` has run everywhere; it leaves in a later PR.
 
 ---
 
@@ -183,8 +193,7 @@ and clubs are the person's own content, and no library translates those.
 2. **Policy for when the guardian never confirms.** The recommendation is to
    hold for manual follow-up, never auto-reject. The formal decision is still
    missing.
-3. **Emails that get an admin invitation.** They are added from Clerk.
-4. **XUNTOS in the Shopify store.** `xuntas.org` only talks about the women's
+3. **XUNTOS in the Shopify store.** `xuntas.org` only talks about the women's
    program. Out of scope for this work, but if it is not updated, a male
    registrant never reaches the form.
 
