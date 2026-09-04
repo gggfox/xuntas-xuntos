@@ -13,6 +13,9 @@ type Props = {
   /** Names the panel for a screen reader; the field's own label. */
   label: string
   selected: Ymd | null
+  /** The other end of a range, when the caller is `RangeField`. Left out by
+      every other caller, and then nothing about the grid changes. */
+  rangeEnd?: Ymd | null
   today: Ymd
   min: Ymd
   max: Ymd
@@ -40,6 +43,7 @@ export default function Calendar({
   id,
   label,
   selected,
+  rangeEnd,
   today,
   min,
   max,
@@ -219,6 +223,7 @@ export default function Calendar({
           <DayGrid
             cursor={cursor}
             selected={selected}
+            rangeEnd={rangeEnd ?? null}
             today={today}
             min={min}
             max={max}

@@ -223,6 +223,21 @@
     }
   }
 
+  /* The days between the two ends of a range: a wash, so the two ink cells
+     that bound it stay the only things that read as chosen. */
+  .cal-day[data-range="mid"] {
+    background: var(--color-wash);
+    border-radius: 0;
+  }
+  .cal-day[data-range="start"] {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .cal-day[data-range="end"] {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
   /* Today, when it is not the selection: an ochre dot. Ochre is the yellow
      that survives on a light background. */
   .cal-day[data-today="true"]:not([aria-pressed="true"])::after {

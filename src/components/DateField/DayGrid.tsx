@@ -13,6 +13,10 @@ type Props = {
   onPick: (day: Ymd) => void
   /** Put on the cursor's cell so the arrow keys can carry focus with them. */
   cursorRef: RefObject<HTMLButtonElement | null>
+  /** The other end of a range, when this grid is picking one. Absent for a
+      single-day field — every caller but `RangeField` leaves it out, and the
+      grid then behaves exactly as it did before ranges existed. */
+  rangeEnd?: Ymd | null
 }
 
 /**
@@ -29,6 +33,7 @@ export default function DayGrid({
   fmt,
   onPick,
   cursorRef,
+  rangeEnd = null,
 }: Props) {
   const lead = (firstWeekday(cursor.y, cursor.m) - fmt.weekStart + 7) % 7
 
@@ -53,6 +58,19 @@ export default function DayGrid({
           const day: Ymd = { y: cursor.y, m: cursor.m, d: i + 1 }
           const out = compare(day, min) < 0 || compare(day, max) > 0
           const isCursor = day.d === cursor.d
+          /* Which end of a range this cell is, if any. Only asked when both
+             ends are known — a lone `selected` is a single-day pick, not a
+             range whose second end has not arrived yet. */
+          const range =
+            selected && rangeEnd
+              ? isSame(day, selected)
+                ? 'start'
+                : isSame(day, rangeEnd)
+                  ? 'end'
+                  : compare(day, selected) > 0 && compare(day, rangeEnd) < 0
+                    ? 'mid'
+                    : undefined
+              : undefined
           return (
             <button
               key={day.d}
@@ -62,7 +80,8 @@ export default function DayGrid({
               disabled={out}
               tabIndex={isCursor ? 0 : -1}
               data-today={isSame(day, today)}
-              aria-pressed={isSame(day, selected)}
+              data-range={range}
+              aria-pressed={isSame(day, selected) || isSame(day, rangeEnd)}
               aria-current={isSame(day, today) ? 'date' : undefined}
               aria-label={fmt.full.format(utc(day))}
               onClick={() => onPick(day)}
