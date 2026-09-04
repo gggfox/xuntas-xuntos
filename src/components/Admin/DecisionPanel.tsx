@@ -4,7 +4,7 @@ import { checkDecision, type Decision, type NoticeStatus, type RegistrationStatu
 import type { Permission } from '../../lib/permissions'
 import { describeConvexError, errorMessage } from '../../lib/registrationErrors'
 import { useDateFormats } from '../DateField/format'
-import { NoticeChip, StatusChip } from './StatusChip'
+import { NoticeChip, StatusChip, decisionLabel } from './StatusChip'
 
 type LogEntry = { status: Decision; at: number; byName: string; note?: string }
 
@@ -18,12 +18,28 @@ type Props = {
   onSendRejection: () => Promise<void>
 }
 
-const BUTTONS: Array<{ decision: Decision; label: () => string; cls: string }> = [
-  { decision: 'validated', label: m.detail_validate, cls: 'btn' },
-  { decision: 'rejected', label: m.detail_reject, cls: 'btn btn-ghost hover:border-bad hover:text-bad' },
-  { decision: 'selected', label: m.detail_select, cls: 'btn' },
-  { decision: 'not_selected', label: m.detail_not_select, cls: 'btn btn-ghost' },
+const BUTTONS: Array<{ decision: Decision; label: () => string }> = [
+  { decision: 'validated', label: m.detail_validate },
+  { decision: 'rejected', label: m.detail_reject },
+  { decision: 'selected', label: m.detail_select },
+  { decision: 'not_selected', label: m.detail_not_select },
 ]
+
+/**
+ * Which decisions the policy allows can change with the status and the
+ * actor's permissions, so no decision may own `.btn`'s solid yellow by name
+ * — a status can legally offer two at once (a master_admin looking at a
+ * `not_selected` row may re-validate or re-select it), and both would have
+ * claimed the screen's one yellow if the class were pinned per decision.
+ * The screen has one yellow, and the first thing offered is what it
+ * belongs to: only the first button in the *allowed* list is solid, every
+ * button after it is ghost, and rejection keeps its destructive-hover
+ * treatment regardless of which slot it lands in.
+ */
+function classFor(decision: Decision, isPrimary: boolean): string {
+  const base = isPrimary ? 'btn' : 'btn btn-ghost'
+  return decision === 'rejected' ? `${base} hover:border-bad hover:text-bad` : base
+}
 
 /**
  * The buttons are the rules made visible: a button is drawn only if the same
@@ -79,8 +95,14 @@ export default function DecisionPanel({ status, guardianConfirmed, notice, permi
           <p className="mt-1 text-[11.5px] text-soft">{m.detail_note_help()}</p>
           <p className="min-h-[1.45em] text-[11.5px] leading-[1.45] text-bad">{error}</p>
           <div className="flex flex-wrap gap-2">
-            {allowed.map((b) => (
-              <button key={b.decision} type="button" className={b.cls} disabled={busy} onClick={() => void decide(b.decision)}>
+            {allowed.map((b, i) => (
+              <button
+                key={b.decision}
+                type="button"
+                className={classFor(b.decision, i === 0)}
+                disabled={busy}
+                onClick={() => void decide(b.decision)}
+              >
                 {b.label()}
               </button>
             ))}
@@ -114,7 +136,7 @@ export default function DecisionPanel({ status, guardianConfirmed, notice, permi
         {[...log].reverse().map((e, i) => (
           <li key={i} className="text-[12.5px]">
             <span className="font-mono text-[11px] text-soft">
-              {m.detail_log_entry({ status: e.status, name: e.byName, when: fmt.full.format(new Date(e.at)) })}
+              {m.detail_log_entry({ status: decisionLabel(e.status), name: e.byName || m.detail_empty(), when: fmt.full.format(new Date(e.at)) })}
             </span>
             {e.note && <p className="mt-0.5 font-light">{e.note}</p>}
           </li>

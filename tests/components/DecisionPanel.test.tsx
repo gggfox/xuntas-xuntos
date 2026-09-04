@@ -52,4 +52,13 @@ describe('DecisionPanel', () => {
     renderPanel({ status: 'rejected', notice: 'sent' })
     expect(screen.getAllByRole('button', { name: m.detail_send_rejection() })).toHaveLength(1)
   })
+
+  it('never shows two solid-yellow buttons at once, even when a master admin can both re-validate and re-select a not_selected registration', () => {
+    renderPanel({ status: 'not_selected', permissions: [...MASTER] })
+    const solid = screen.getAllByRole('button').filter((el) => {
+      const classes = el.className.split(/\s+/)
+      return classes.includes('btn') && !classes.includes('btn-ghost')
+    })
+    expect(solid).toHaveLength(1)
+  })
 })

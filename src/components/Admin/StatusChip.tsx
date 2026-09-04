@@ -1,6 +1,6 @@
 import * as m from '../../paraglide/messages.js'
 import Pill, { type PillTone } from '../Pill'
-import type { NoticeStatus, RegistrationStatus } from '../../../convex/lib/decisionRules'
+import type { Decision, NoticeStatus, RegistrationStatus } from '../../../convex/lib/decisionRules'
 
 /**
  * Three small readouts the table repeats on every row: the registration's
@@ -23,6 +23,11 @@ const STATUS: Record<RegistrationStatus, { label: () => string; tone: PillTone }
 export function StatusChip({ status }: { status: RegistrationStatus }) {
   const s = STATUS[status]
   return <Pill tone={s.tone}>{s.label()}</Pill>
+}
+
+/** The same word `StatusChip` draws, as plain text — for the decision log, which reports a `Decision` inline in a sentence rather than in its own chip. */
+export function decisionLabel(decision: Decision): string {
+  return STATUS[decision].label()
 }
 
 const NOTICE: Record<NoticeStatus, { label: () => string; tone: PillTone }> = {
