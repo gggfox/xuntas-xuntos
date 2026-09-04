@@ -9,9 +9,14 @@ Last reviewed: September 3, 2026.
 
 ## Product
 
-**The window runs September 4–18, 2026.** The 4th, not the 1st: the prototypes
-said both things and XUNTAS confirmed the 4th. The constants live in
-`convex/lib/cycle.ts` and nowhere else.
+**The window lives in the `cycles` table, one row per call, exactly one
+active.** A `master_admin` edits opens/closes/review from
+`/administracion/convocatorias`; every change lands in `cycleChanges` with who
+and when. The 2026–2027 row was seeded from the old constants (September 4–18,
+review the 23rd). The arithmetic — Mexico City days to instants, UTC-6 all
+year — is `convex/lib/cycleRules.ts`, shared with the client. There is no
+development hatch anymore: to test before September, set dev dates on the dev
+row.
 
 **The launch scope is registration and data capture.** The admin table comes
 later: nobody reads a registration before September 23, so it does not block
@@ -125,8 +130,7 @@ UI.
 The Council starts reviewing on the 23rd. If registrations kept changing
 after that, they would be grading a moving target.
 
-Mexico has not observed daylight saving time since 2022, so
-`America/Mexico_City` is UTC-6 all year and the constants are stored in UTC.
+Mexico has not observed daylight saving time since 2022, so `America/Mexico_City` is UTC-6 all year and `cycleRules.ts` turns the stored days into instants with that fixed offset.
 
 ---
 

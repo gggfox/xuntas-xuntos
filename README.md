@@ -31,6 +31,14 @@ URL it prints into `VITE_CONVEX_URL` in `.env.local`.
 Leave it running in a terminal while you develop: it hot-syncs functions and
 schema.
 
+Then seed the call for applications, once per deployment:
+
+```bash
+npx convex run cycles:seed
+```
+
+Without an active cycle every registration query fails with `no_active_cycle`.
+
 ### 2. Clerk
 
 In the Clerk dashboard:

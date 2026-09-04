@@ -70,17 +70,6 @@ About two of them, the ones that fail silently:
 - **`APP_URL`.** It is the base for the links in the emails. If it is left
   pointing at `localhost`, the link the guardian receives opens nothing.
 
-And one that must **NOT exist in production**:
-
-```bash
-npx convex env list --prod | grep WINDOW_ALWAYS_OPEN   # must print nothing
-```
-
-`WINDOW_ALWAYS_OPEN` is the development hatch. In production it would let
-registrations in outside the call window. Watch out: it has a client-side
-twin, `VITE_WINDOW_ALWAYS_OPEN`, which is a **build arg** and must only exist
-in the staging environment.
-
 ### Webhooks pointing at production
 
 The webhook URL is the **production** deployment's
@@ -154,6 +143,21 @@ to know the webhooks and the emails are right:
 If step 3 fails and everything else works, suspect number one is
 `RESEND_TEST_MODE`.
 
+### Seeding the call for applications
+
+The window lives in the `cycles` table, so a deployment with no row has no
+window and every registration query fails with `no_active_cycle`. Seed it
+once per deployment, before the frontend that reads it goes out:
+
+```bash
+npx convex run cycles:seed --prod
+```
+
+It is idempotent: `{ inserted: true }` the first time, `{ inserted: false }`
+after. From then on the dates are edited from
+`/administracion/convocatorias` by a `master_admin`, and every change is
+recorded in `cycleChanges` with who made it.
+
 ---
 
 ## 4. Council review
@@ -181,7 +185,7 @@ Before September 4:
 **Convex**
 - [ ] `npx convex env list --prod` has the 6 variables from §1
 - [ ] `RESEND_TEST_MODE=false` in prod
-- [ ] `WINDOW_ALWAYS_OPEN` does **not** show up in prod
+- [ ] `npx convex run cycles:seed --prod` run; the `cycles` table shows 2026-2027 active
 - [ ] `CONVEX_PROD_DEPLOY_KEY` secret loaded in the repo
 - [ ] The `convex-production` workflow finished green and the `preSignups`
       table shows up in the prod dashboard
@@ -193,7 +197,6 @@ Before September 4:
 
 **Container**
 - [ ] Production environment build args with the `pk_live_` keys
-- [ ] `VITE_WINDOW_ALWAYS_OPEN` **empty** in production
 - [ ] `CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` in the Dokploy runtime
 - [ ] The three routes from §3 answer 200 on `app.xuntas.org`
 
