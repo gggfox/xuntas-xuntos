@@ -7,6 +7,9 @@ import Pill from '../Pill'
 import { useDateFormats } from '../DateField/format'
 import { describeConvexError } from '../../lib/registrationErrors'
 
+/** What the strip under the heading reports: a confirmation or a failure. */
+type Notice = { text: string; tone: 'ok' | 'bad' }
+
 /**
  * Every call for applications: create one, edit its window, make one the
  * current call, and read the trail of who moved which date. `manage_cycles`
@@ -19,7 +22,7 @@ export default function CyclesPanel() {
   const setActive = useMutation(api.cycles.setActive)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<Notice | null>(null)
   const fmt = useDateFormats()
 
   if (cycles === undefined) return <p className="mt-8 text-soft">{m.common_loading()}</p>
@@ -31,7 +34,9 @@ export default function CyclesPanel() {
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCreating((c) => !c)}>
           {m.cycles_new()}
         </button>
-        {notice && <span className="text-[12.5px] text-soft">{notice}</span>}
+        {notice && (
+          <span className={`text-[12.5px] ${notice.tone === 'bad' ? 'text-bad' : 'text-soft'}`}>{notice.text}</span>
+        )}
       </div>
 
       {creating && (
@@ -39,7 +44,7 @@ export default function CyclesPanel() {
           submitLabel={m.cycles_create()}
           onSubmit={async (input) => {
             await create(input)
-            setNotice(m.cycles_created())
+            setNotice({ text: m.cycles_created(), tone: 'ok' })
           }}
           onDone={() => setCreating(false)}
         />
@@ -50,7 +55,7 @@ export default function CyclesPanel() {
           <li key={c.cycle} className="card px-[21px] py-[15px]">
             <div className="flex flex-wrap items-center gap-3">
               <b className="font-disp text-[15px]">{c.cycle}</b>
-              {c.isActive && <Pill tone="brand">{m.cycles_active()}</Pill>}
+              {c.isActive && <Pill tone="ok">{m.cycles_active()}</Pill>}
               <span className="font-mono text-[11px] text-soft">
                 {c.opensOn} → {c.closesOn} · {m.cycles_review()}: {c.reviewOn}
               </span>
@@ -65,9 +70,9 @@ export default function CyclesPanel() {
                     onClick={async () => {
                       try {
                         await setActive({ cycle: c.cycle })
-                        setNotice(m.cycles_activated())
+                        setNotice({ text: m.cycles_activated(), tone: 'ok' })
                       } catch (err) {
-                        setNotice(describeConvexError(err))
+                        setNotice({ text: describeConvexError(err), tone: 'bad' })
                       }
                     }}
                   >
@@ -84,7 +89,7 @@ export default function CyclesPanel() {
                   submitLabel={m.cycles_save()}
                   onSubmit={async (input) => {
                     await update(input)
-                    setNotice(m.cycles_saved())
+                    setNotice({ text: m.cycles_saved(), tone: 'ok' })
                   }}
                   onDone={() => setEditing(null)}
                 />
