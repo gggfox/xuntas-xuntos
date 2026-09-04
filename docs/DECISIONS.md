@@ -27,13 +27,14 @@ holds `athlete | admin | master_admin | coach | finance | health`;
 permission. Clerk's `publicMetadata.role` is no longer read. `master_admin` is
 a superset. `coach`, `finance` and `health` exist so they can be invited now;
 their screens come later. Design: `docs/superpowers/specs/2026-09-03-admin-roles-cycles-review-design.md`.
+The legacy `role` column stays optional in the schema until `users:dropLegacyRole` has run everywhere; it leaves in a later PR.
 
 **Staff are invited by the app, not from Clerk.** `staffInvites` binds an
 invitation to an email; the `user.created` webhook redeems it by matching the
 account's primary address. Removal revokes roles and never deletes the
 account: `validatedBy` must keep pointing at a person, and deletion is the
 person's own LFPDPPP right. Nobody can remove their own `master_admin`, and
-the last one cannot be removed by anyone. The legacy `role` column stays optional in the schema until `users:dropLegacyRole` has run everywhere; it leaves in a later PR.
+the last one cannot be removed by anyone.
 
 ---
 
