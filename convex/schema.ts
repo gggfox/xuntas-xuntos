@@ -60,6 +60,13 @@ const vCalendarEvent = v.object({
   date: v.string(),
 })
 
+const vCycleFields = v.object({
+  opensOn: v.string(),
+  closesOn: v.string(),
+  reviewOn: v.string(),
+  isActive: v.boolean(),
+})
+
 export default defineSchema({
   /**
    * Age gate resolved ON THE SERVER, before the account exists.
@@ -111,6 +118,38 @@ export default defineSchema({
   })
     .index('by_token', ['token'])
     .index('by_email', ['email']),
+
+  /**
+   * One row per call for applications; exactly one is active. Registrations
+   * and guardian authorizations already carry `cycle`, so this is the table
+   * that string was always pointing at. Dates are Mexico City days — see
+   * convex/lib/cycleRules.ts for how they become instants.
+   */
+  cycles: defineTable({
+    cycle: v.string(),
+    opensOn: v.string(),
+    closesOn: v.string(),
+    reviewOn: v.string(),
+    isActive: v.boolean(),
+    /** Optional only so the seed can run before any staff row exists. */
+    createdBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_cycle', ['cycle'])
+    .index('by_active', ['isActive']),
+
+  /**
+   * Who moved the window, when, from what to what. The dates decide whether
+   * a family's registration gets in; changing them leaves a trail.
+   */
+  cycleChanges: defineTable({
+    cycle: v.string(),
+    changedBy: v.id('users'),
+    changedAt: v.number(),
+    before: v.union(v.null(), vCycleFields),
+    after: vCycleFields,
+  }).index('by_cycle', ['cycle']),
 
   /**
    * Mirror of the Clerk account. The MIRRORED fields (email, name,

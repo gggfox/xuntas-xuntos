@@ -9,10 +9,12 @@
  */
 
 import type * as crons from "../crons.js";
+import type * as cycles from "../cycles.js";
 import type * as emails from "../emails.js";
 import type * as guardian from "../guardian.js";
 import type * as http from "../http.js";
 import type * as lib_cycle from "../lib/cycle.js";
+import type * as lib_cycleRules from "../lib/cycleRules.js";
 import type * as lib_errorCodes from "../lib/errorCodes.js";
 import type * as lib_guardianRules from "../lib/guardianRules.js";
 import type * as lib_html from "../lib/html.js";
@@ -36,10 +38,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
+  cycles: typeof cycles;
   emails: typeof emails;
   guardian: typeof guardian;
   http: typeof http;
   "lib/cycle": typeof lib_cycle;
+  "lib/cycleRules": typeof lib_cycleRules;
   "lib/errorCodes": typeof lib_errorCodes;
   "lib/guardianRules": typeof lib_guardianRules;
   "lib/html": typeof lib_html;
