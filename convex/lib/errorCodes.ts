@@ -68,6 +68,14 @@ export type ActionErrorCode =
   | 'cycle_not_found'
   | 'no_active_cycle'
   | 'window_open'
+  // Decisions and notices.
+  | 'decision_invalid'
+  | 'note_required'
+  | 'guardian_unconfirmed'
+  | 'decision_locked'
+  | 'notice_not_pending'
+  | 'registration_not_found'
+  | 'nothing_to_send'
   /** Nothing more specific survived the trip. Renders as `err_generic`. */
   | 'generic'
 

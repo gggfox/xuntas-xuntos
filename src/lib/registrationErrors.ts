@@ -72,6 +72,14 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   cycle_not_found: m.err_cycle_not_found,
   no_active_cycle: m.err_no_active_cycle,
   window_open: m.err_window_open,
+  // Decisions and notices.
+  decision_invalid: m.err_decision_invalid,
+  note_required: m.err_note_required,
+  guardian_unconfirmed: m.err_guardian_unconfirmed,
+  decision_locked: m.err_decision_locked,
+  notice_not_pending: m.err_notice_not_pending,
+  registration_not_found: m.err_registration_not_found,
+  nothing_to_send: m.err_nothing_to_send,
   generic: m.err_generic,
 }
 

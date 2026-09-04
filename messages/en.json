@@ -303,5 +303,12 @@
   "invite_expired_title": "This invitation expired",
   "invite_revoked_title": "This invitation was cancelled",
   "invite_accepted_title": "This invitation was already used",
-  "invite_closed_text": "Ask whoever invited you to send another one."
+  "invite_closed_text": "Ask whoever invited you to send another one.",
+  "err_decision_invalid": "That status change isn't allowed.",
+  "err_note_required": "Write a note explaining the reason.",
+  "err_guardian_unconfirmed": "A minor can't be selected without their guardian's authorization.",
+  "err_decision_locked": "The email for this decision was already sent. Only a master admin can change it, with a note.",
+  "err_notice_not_pending": "That email was already sent.",
+  "err_registration_not_found": "We couldn't find that registration.",
+  "err_nothing_to_send": "There are no pending emails in the selection."
 }

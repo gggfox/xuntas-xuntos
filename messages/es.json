@@ -303,5 +303,12 @@
   "invite_expired_title": "Esta invitación venció",
   "invite_revoked_title": "Esta invitación fue cancelada",
   "invite_accepted_title": "Esta invitación ya fue usada",
-  "invite_closed_text": "Pide a quien te invitó que te envíe otra."
+  "invite_closed_text": "Pide a quien te invitó que te envíe otra.",
+  "err_decision_invalid": "Ese cambio de estado no está permitido.",
+  "err_note_required": "Escribe una nota: explica el motivo.",
+  "err_guardian_unconfirmed": "No se puede seleccionar a una persona menor de edad sin la autorización de su tutor.",
+  "err_decision_locked": "Ya se envió el correo con esta decisión. Solo administración maestra puede cambiarla, con nota.",
+  "err_notice_not_pending": "Ese correo ya se envió.",
+  "err_registration_not_found": "No encontramos ese registro.",
+  "err_nothing_to_send": "No hay correos pendientes en la selección."
 }
