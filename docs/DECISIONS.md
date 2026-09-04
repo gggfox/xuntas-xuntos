@@ -222,6 +222,36 @@ and clubs are the person's own content, and no library translates those.
   minors.
 - **Clerk's `esMX` localization is community-made**, not official. The
   sign-up screens have to be read before launch.
+- **No Convex function is covered by a test.** Every test in this repo runs
+  over a pure function or a React component, so the rules modules are well
+  covered and the mutations are not. Two facts the administration work rests
+  on are held only by reading the code: that a batch of decision emails
+  refuses while its cycle's window is open, and that a decision email goes to
+  the account's verified address rather than the one typed into the form.
+  `convex-test` runs under the existing vitest setup and would close this.
+  Worth doing before the first batch send, not before the merge.
+- **`guardianState` in `convex/registrations.ts` is untested.** It decides
+  whether a minor's registration reports its guardian as pending, which is
+  what stops a selection without consent. It is a pure function and would be
+  trivial to test once exported.
+- **A returning minor has no guardian record for the new cycle.** Rows are
+  created at signup only, so from the second cycle onwards the reviewer's
+  screen relies on the conservative fallback above rather than on a real
+  authorization. The design doc's §7 opens one per cycle; until that lands,
+  a returning minor is flagged rather than cleared.
+- **An athlete sees the generic error screen when no cycle is active.**
+  `no_active_cycle` is thrown from the queries the panel reads, so the
+  specific sentence — which exists and is translated — never reaches anyone.
+  Only reachable on a deployment that was never seeded.
+- **The form's editability reads a cached clock.** `registrations.mine`
+  computes `editable` from `Date.now()` inside a reactive query, so a page
+  left open across the closing instant can still offer to save. The server
+  refuses the write, so nothing gets in late; the screen is what lies.
+- **One solid-yellow element per screen is enforced by review, not by CI.**
+  The rule was broken three times while this work was written, each time
+  caught by a reviewer. `DecisionPanel` now derives the class from position
+  so the rule holds by construction; a lint rule or a per-screen test would
+  generalise that.
 
 Resolved since then:
 
