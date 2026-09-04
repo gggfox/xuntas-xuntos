@@ -12,8 +12,9 @@ import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage } from './lib/cycle'
 import { validateBirthDateDeclaration } from './lib/guardianRules'
 import type { AppErrorCode } from './lib/errorCodes'
 import { newToken } from './lib/tokens'
+import { inviteStatus } from './lib/staffRules'
 import { vThemePreference } from './schema'
-import { can, permissionsOf, type Permission } from './lib/permissions'
+import { can, permissionsOf, type Permission, type Role } from './lib/permissions'
 
 /**
  * Errors cross the wire as codes so the browser can say them in the reader's
@@ -212,11 +213,29 @@ export const create = internalMutation({
       )
     }
 
+    /**
+     * A staff invitation is redeemed by the account's primary email, not by
+     * a token: a forwarded link is worth nothing to a different address, and
+     * a Google sign-up that picks another address simply lands as an athlete
+     * (the invite stays pending, and a master_admin can grant directly).
+     */
+    const invite = (
+      await ctx.db
+        .query('staffInvites')
+        .withIndex('by_email', (q) => q.eq('email', args.email.trim().toLowerCase()))
+        .collect()
+    ).find((i) => inviteStatus(i, now) === 'pending')
+
+    const roles: Role[] = invite ? [...invite.roles] : ['athlete']
+    if (invite) {
+      await ctx.db.patch(invite._id, { acceptedAt: now, acceptedBy: args.clerkId })
+    }
+
     const userId = await ctx.db.insert('users', {
       clerkId: args.clerkId,
       email: args.email,
       name: args.name,
-      roles: ['athlete'],
+      roles,
       emailVerified: args.emailVerified,
       birthDate: preSignup?.birthDate,
       wasMinorAtSignup: preSignup?.isMinor,

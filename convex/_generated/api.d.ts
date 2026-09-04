@@ -25,6 +25,7 @@ import type * as lib_staffRules from "../lib/staffRules.js";
 import type * as lib_tokens from "../lib/tokens.js";
 import type * as preSignups from "../preSignups.js";
 import type * as registrations from "../registrations.js";
+import type * as staff from "../staff.js";
 import type * as users from "../users.js";
 
 import type {
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   "lib/tokens": typeof lib_tokens;
   preSignups: typeof preSignups;
   registrations: typeof registrations;
+  staff: typeof staff;
   users: typeof users;
 }>;
 
