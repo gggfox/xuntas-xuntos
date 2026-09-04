@@ -289,3 +289,51 @@
     font-weight: 600;
   }
 }
+
+/*
+ * Two date fields standing side by side, with their parts on the same lines.
+ *
+ * Every date field is the same four stacked parts: its label, the box or
+ * boxes it is answered in, the calendar, and the line that says what is
+ * wrong or what to do next. Left to themselves the two columns stack
+ * separately, so the field whose boxes carry their own small headings pushes
+ * its calendar a line below its neighbour's and the two grids read as though
+ * one of them slipped.
+ *
+ * `subgrid` hands both fields the parent's rows instead, so each part sits on
+ * the row it shares with its opposite number and the calendars land level
+ * however much chrome either field grows above them. It depends on both
+ * children having those four parts and no more — a fifth would want a row
+ * the parent has not drawn.
+ *
+ * In `@layer utilities`, and with the class named twice, because the fields
+ * set `flex` on themselves through a Tailwind utility: a rule in the
+ * components layer loses to that whatever its specificity, and inside the
+ * utilities layer the doubled class is what settles it without depending on
+ * which of the two the bundler happens to emit first.
+ *
+ * One column below the breakpoint, where there is no neighbour to line up
+ * with and each field is free to stack in its own way.
+ */
+@layer utilities {
+  .cal-pair {
+    display: grid;
+    gap: 20px;
+  }
+
+  @media (min-width: 1024px) {
+    .cal-pair.cal-pair {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto auto;
+      column-gap: 28px;
+      row-gap: 0;
+    }
+    .cal-pair.cal-pair > * {
+      display: grid;
+      grid-row: span 4;
+      grid-template-rows: subgrid;
+      /* The 6px the fields already stack their own parts with. */
+      row-gap: 6px;
+    }
+  }
+}

@@ -71,10 +71,10 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
       />
       <p className="mt-1 mb-5 text-[11.5px] text-soft">{m.cycles_name_help()}</p>
 
-      {/* Top-aligned: the two fields carry different numbers of lines above
-          their grids, and centring them would leave the calendars on
-          different baselines. */}
-      <div className="grid items-start gap-x-7 gap-y-5 lg:grid-cols-2">
+      {/* `cal-pair` puts the two fields on shared rows, so the calendars sit
+          level even though the window's boxes carry their own headings and
+          the review date's does not. See the comment in calendar.css. */}
+      <div className="cal-pair">
         <RangeField
           id="cycle-window"
           label={m.cycles_window()}
