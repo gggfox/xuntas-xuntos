@@ -39,7 +39,16 @@ export const sendRejection = mutation({
 /**
  * The Council's results. Refused while the cycle's window is open — nobody
  * gets "selected" while others are still submitting — and skips anything
- * not pending, so pressing the button twice sends nothing twice.
+ * not pending, so pressing the button twice sends nothing twice. Rejections
+ * are excluded: `sendRejection` is the path for those precisely so they need
+ * not wait for the window to close, and folding one into a batch here would
+ * silently gate it behind that wait instead.
+ *
+ * The count this returns is `scheduled`, not `sent` — Resend hasn't been
+ * asked to do anything yet when this mutation returns; each `sendDecisionNotice`
+ * still runs its own not-yet-sent check before it actually sends. What a row
+ * actually got is `decisionNotice.status`, which only reaches `sent` after
+ * Resend has accepted the message.
  */
 export const sendBatch = mutation({
   args: { cycle: v.string(), ids: v.array(v.id('registrations')) },
@@ -56,11 +65,21 @@ export const sendBatch = mutation({
     // window.
     if (isWindowOpenFor(cycle)) fail('window_open')
 
-    let sent = 0
+    // A stale selection Set or a double-fired handler can repeat an id; one
+    // schedule per registration, however many times it was listed.
+    const uniqueIds = new Set(args.ids)
+
+    let scheduled = 0
     let skipped = 0
-    for (const id of args.ids) {
+    for (const id of uniqueIds) {
       const r = await ctx.db.get(id)
-      if (!r || r.cycle !== args.cycle || !r.decisionNotice || r.decisionNotice.status !== 'not_sent') {
+      if (
+        !r ||
+        r.cycle !== args.cycle ||
+        !r.decisionNotice ||
+        r.decisionNotice.decision === 'rejected' ||
+        r.decisionNotice.status !== 'not_sent'
+      ) {
         skipped++
         continue
       }
@@ -68,10 +87,10 @@ export const sendBatch = mutation({
         registrationId: r._id,
         sentBy: actor._id,
       })
-      sent++
+      scheduled++
     }
-    if (sent === 0) fail('nothing_to_send')
-    return { sent, skipped }
+    if (scheduled === 0) fail('nothing_to_send')
+    return { scheduled, skipped }
   },
 })
 
