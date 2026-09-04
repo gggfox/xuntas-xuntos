@@ -23,6 +23,7 @@ const rows = [
   row({ _id: 'b', status: 'draft', sectionsComplete: 3 }),
   row({ _id: 'c', status: 'validated', branch: 'mens', guardianRequired: true, guardianConfirmed: false }),
   row({ _id: 'd', status: 'rejected', notice: 'not_sent', decision: 'rejected' }),
+  row({ _id: 'e', status: 'selected', notice: 'not_sent', decision: 'selected' }),
 ]
 
 describe('view presets', () => {
@@ -34,7 +35,7 @@ describe('view presets', () => {
     expect(VIEWS.incomplete.sort).toEqual({ id: 'sectionsComplete', desc: false })
   })
   it('all shows everything and is the only selectable view', () => {
-    expect(applyFilters(rows, VIEWS.all.filters)).toHaveLength(4)
+    expect(applyFilters(rows, VIEWS.all.filters)).toHaveLength(5)
     expect(VIEWS.all.selectable).toBe(true)
     expect(VIEWS.pending.selectable).toBe(false)
   })
@@ -44,15 +45,18 @@ describe('applyFilters', () => {
   it('filters by branch, guardian and minimum sections', () => {
     expect(applyFilters(rows, { ...VIEWS.all.filters, branch: 'mens' }).map((r) => r._id)).toEqual(['c'])
     expect(applyFilters(rows, { ...VIEWS.all.filters, guardian: 'pending' }).map((r) => r._id)).toEqual(['c'])
-    expect(applyFilters(rows, { ...VIEWS.all.filters, minSections: 5 })).toHaveLength(3)
+    expect(applyFilters(rows, { ...VIEWS.all.filters, minSections: 5 })).toHaveLength(4)
   })
   it('filters by notice state', () => {
-    expect(applyFilters(rows, { ...VIEWS.all.filters, notice: 'not_sent' }).map((r) => r._id)).toEqual(['d'])
+    expect(applyFilters(rows, { ...VIEWS.all.filters, notice: 'not_sent' }).map((r) => r._id)).toEqual(['d', 'e'])
   })
 })
 
 describe('batchable', () => {
   it('keeps only rows with a pending notice', () => {
-    expect(batchable(rows).map((r) => r._id)).toEqual(['d'])
+    expect(batchable(rows).map((r) => r._id)).toEqual(['e'])
+  })
+  it('excludes rejections even with a pending notice — those go out individually via sendRejection', () => {
+    expect(batchable(rows).map((r) => r._id)).not.toContain('d')
   })
 })

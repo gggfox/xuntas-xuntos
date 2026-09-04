@@ -52,7 +52,13 @@ export function applyFilters(rows: AdminRow[], f: Filters): AdminRow[] {
   )
 }
 
-/** What a batch may send: rows whose notice is waiting. */
+/**
+ * What a batch may send: rows whose notice is waiting, excluding rejections.
+ * A rejection goes out individually through `sendRejection` precisely so it
+ * need not wait for the window to close — offering it here would let it
+ * inflate the count the dialog promises before `sendBatch` silently skips
+ * it, which is a promise the screen cannot keep.
+ */
 export function batchable(rows: AdminRow[]): AdminRow[] {
-  return rows.filter((r) => r.notice === 'not_sent')
+  return rows.filter((r) => r.notice === 'not_sent' && r.decision !== 'rejected')
 }

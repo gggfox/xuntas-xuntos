@@ -22,8 +22,12 @@ const rows: AdminRow[] = [
     decision: null,
   },
   {
+    // Rejected + a pending notice is deliberately not this fixture's shape:
+    // `batchable()` excludes rejections (they go out individually via
+    // `sendRejection`), so a rejected row here would make the "one enabled
+    // row" premise below false. `not_selected` is a real batch decision.
     _id: 'b',
-    status: 'rejected',
+    status: 'not_selected',
     submittedAt: 2,
     updatedAt: 2,
     name: 'Bea',
@@ -35,7 +39,7 @@ const rows: AdminRow[] = [
     guardianConfirmed: true,
     sectionsComplete: 5,
     notice: 'not_sent',
-    decision: 'rejected',
+    decision: 'not_selected',
   },
 ]
 

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useMemo, useState } from 'react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
+import type { NoticeDecision } from '../../convex/lib/decisionRules'
 import * as m from '../paraglide/messages.js'
 import BatchSendDialog from '../components/Admin/BatchSendDialog'
 import NoTools from '../components/Admin/NoTools'
@@ -57,6 +58,17 @@ function RegistrationsPage() {
 
   const shown = useMemo(() => (rows ? applyFilters(rows, filters) : []), [rows, filters])
 
+  // What a test send should preview. Drawn from `rows`, not `shown`, so a
+  // selection survives a filter change made after selecting; batchable rows
+  // always carry a `selected` or `not_selected` decision (never `null` —
+  // `batchable()` requires a notice — and never `rejected`, which
+  // `batchable()` excludes), so this is never empty while the dialog can
+  // open.
+  const selectedDecisions = useMemo(
+    () => new Set((rows ?? []).filter((r) => selected.has(r._id) && r.decision).map((r) => r.decision as NoticeDecision)),
+    [rows, selected],
+  )
+
   if (!me) return null
   if (!can(me.roles, 'review_registrations')) return <NoTools />
   if (rows === undefined || !cycle) return <p className="mt-8 text-soft">{m.common_loading()}</p>
@@ -64,8 +76,13 @@ function RegistrationsPage() {
   const canBatch = can(me.roles, 'send_batch')
   // The batch's own cycle gates it, not whichever cycle happens to be active
   // right now — a reviewer looking at a past cycle must not be told its
-  // window is open just because this year's is.
-  const windowOpen = active?.cycle === cycle ? (active?.isOpen ?? true) : false
+  // window is open just because this year's is. But a safety check must
+  // fail closed: while `active` is still loading we do not yet know
+  // whether this is that cycle, so treat the window as open (sending
+  // disabled) rather than assume it's safe. The server refuses to send
+  // while the window is open regardless — this is only about not inviting
+  // a send the dialog is about to be told it cannot make.
+  const windowOpen = active === undefined ? true : !!active && active.cycle === cycle && active.isOpen
 
   function switchView(v: ViewId) {
     setFilters(VIEWS[v].filters)
@@ -130,7 +147,10 @@ function RegistrationsPage() {
             }
           }}
           onTest={async () => {
-            await sendTest({ cycle, decision: 'selected' })
+            // A mixed selection sends one preview per distinct decision, so
+            // the reviewer sees the actual copy for every template the
+            // batch is about to send — never a stand-in for one of them.
+            await Promise.all([...selectedDecisions].map((decision) => sendTest({ cycle, decision })))
           }}
           onClose={() => setDialog(false)}
         />
