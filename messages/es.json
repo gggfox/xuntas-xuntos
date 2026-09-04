@@ -266,5 +266,13 @@
   "invite_status_pending": "pendiente",
   "invite_status_expired": "vencida",
   "invite_status_accepted": "aceptada",
-  "invite_status_revoked": "cancelada"
+  "invite_status_revoked": "cancelada",
+  "invite_eyebrow": "Invitación al panel",
+  "invite_title": "Te invitaron al panel",
+  "invite_lede": "{name} te invitó como {roles}. Crea tu cuenta con el correo {email}: la invitación está ligada a ese correo.",
+  "invite_invalid_title": "Esta invitación no existe",
+  "invite_expired_title": "Esta invitación venció",
+  "invite_revoked_title": "Esta invitación fue cancelada",
+  "invite_accepted_title": "Esta invitación ya fue usada",
+  "invite_closed_text": "Pide a quien te invitó que te envíe otra."
 }

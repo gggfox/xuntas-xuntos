@@ -266,5 +266,13 @@
   "invite_status_pending": "pending",
   "invite_status_expired": "expired",
   "invite_status_accepted": "accepted",
-  "invite_status_revoked": "cancelled"
+  "invite_status_revoked": "cancelled",
+  "invite_eyebrow": "Panel invitation",
+  "invite_title": "You've been invited to the panel",
+  "invite_lede": "{name} invited you as {roles}. Create your account with the email {email}: the invitation is bound to that address.",
+  "invite_invalid_title": "This invitation doesn't exist",
+  "invite_expired_title": "This invitation expired",
+  "invite_revoked_title": "This invitation was cancelled",
+  "invite_accepted_title": "This invitation was already used",
+  "invite_closed_text": "Ask whoever invited you to send another one."
 }

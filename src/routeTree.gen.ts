@@ -22,6 +22,8 @@ import { Route as CrearCuentaIndexRouteImport } from './routes/crear-cuenta.inde
 import { Route as CrearCuentaSplatRouteImport } from './routes/crear-cuenta.$'
 import { Route as EntrarIndexRouteImport } from './routes/entrar.index'
 import { Route as EntrarSplatRouteImport } from './routes/entrar.$'
+import { Route as InvitacionTokenRouteImport } from './routes/invitacion.$token'
+import { Route as InvitacionTokenSplatRouteImport } from './routes/invitacion.$token.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +90,16 @@ const EntrarSplatRoute = EntrarSplatRouteImport.update({
   path: '/entrar/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvitacionTokenRoute = InvitacionTokenRouteImport.update({
+  id: '/invitacion/$token',
+  path: '/invitacion/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitacionTokenSplatRoute = InvitacionTokenSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => InvitacionTokenRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,9 +112,11 @@ export interface FileRoutesByFullPath {
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
+  '/invitacion/$token': typeof InvitacionTokenRouteWithChildren
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
+  '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,9 +128,11 @@ export interface FileRoutesByTo {
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
+  '/invitacion/$token': typeof InvitacionTokenRouteWithChildren
   '/administracion': typeof AdministracionIndexRoute
   '/crear-cuenta': typeof CrearCuentaIndexRoute
   '/entrar': typeof EntrarIndexRoute
+  '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,9 +146,11 @@ export interface FileRoutesById {
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
+  '/invitacion/$token': typeof InvitacionTokenRouteWithChildren
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
+  '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,9 +165,11 @@ export interface FileRouteTypes {
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
+    | '/invitacion/$token'
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
+    | '/invitacion/$token/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -161,9 +181,11 @@ export interface FileRouteTypes {
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
+    | '/invitacion/$token'
     | '/administracion'
     | '/crear-cuenta'
     | '/entrar'
+    | '/invitacion/$token/$'
   id:
     | '__root__'
     | '/'
@@ -176,9 +198,11 @@ export interface FileRouteTypes {
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
+    | '/invitacion/$token'
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
+    | '/invitacion/$token/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -191,6 +215,7 @@ export interface RootRouteChildren {
   AutorizarTokenRoute: typeof AutorizarTokenRoute
   CrearCuentaSplatRoute: typeof CrearCuentaSplatRoute
   EntrarSplatRoute: typeof EntrarSplatRoute
+  InvitacionTokenRoute: typeof InvitacionTokenRouteWithChildren
   CrearCuentaIndexRoute: typeof CrearCuentaIndexRoute
   EntrarIndexRoute: typeof EntrarIndexRoute
 }
@@ -288,6 +313,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EntrarSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invitacion/$token': {
+      id: '/invitacion/$token'
+      path: '/invitacion/$token'
+      fullPath: '/invitacion/$token'
+      preLoaderRoute: typeof InvitacionTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitacion/$token/$': {
+      id: '/invitacion/$token/$'
+      path: '/$'
+      fullPath: '/invitacion/$token/$'
+      preLoaderRoute: typeof InvitacionTokenSplatRouteImport
+      parentRoute: typeof InvitacionTokenRoute
+    }
   }
 }
 
@@ -305,6 +344,18 @@ const AdministracionRouteWithChildren = AdministracionRoute._addFileChildren(
   AdministracionRouteChildren,
 )
 
+interface InvitacionTokenRouteChildren {
+  InvitacionTokenSplatRoute: typeof InvitacionTokenSplatRoute
+}
+
+const InvitacionTokenRouteChildren: InvitacionTokenRouteChildren = {
+  InvitacionTokenSplatRoute: InvitacionTokenSplatRoute,
+}
+
+const InvitacionTokenRouteWithChildren = InvitacionTokenRoute._addFileChildren(
+  InvitacionTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdministracionRoute: AdministracionRouteWithChildren,
@@ -315,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutorizarTokenRoute: AutorizarTokenRoute,
   CrearCuentaSplatRoute: CrearCuentaSplatRoute,
   EntrarSplatRoute: EntrarSplatRoute,
+  InvitacionTokenRoute: InvitacionTokenRouteWithChildren,
   CrearCuentaIndexRoute: CrearCuentaIndexRoute,
   EntrarIndexRoute: EntrarIndexRoute,
 }
