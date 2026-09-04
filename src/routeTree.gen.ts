@@ -18,6 +18,7 @@ import { Route as MiRegistroRouteImport } from './routes/mi-registro'
 import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
 import { Route as AdministracionConvocatoriasRouteImport } from './routes/administracion.convocatorias'
 import { Route as AdministracionEquipoRouteImport } from './routes/administracion.equipo'
+import { Route as AdministracionRegistrosRouteImport } from './routes/administracion.registros'
 import { Route as AutorizarTokenRouteImport } from './routes/autorizar.$token'
 import { Route as CrearCuentaIndexRouteImport } from './routes/crear-cuenta.index'
 import { Route as CrearCuentaSplatRouteImport } from './routes/crear-cuenta.$'
@@ -72,6 +73,11 @@ const AdministracionEquipoRoute = AdministracionEquipoRouteImport.update({
   path: '/equipo',
   getParentRoute: () => AdministracionRoute,
 } as any)
+const AdministracionRegistrosRoute = AdministracionRegistrosRouteImport.update({
+  id: '/registros',
+  path: '/registros',
+  getParentRoute: () => AdministracionRoute,
+} as any)
 const AutorizarTokenRoute = AutorizarTokenRouteImport.update({
   id: '/autorizar/$token',
   path: '/autorizar/$token',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/mi-registro': typeof MiRegistroRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
+  '/administracion/registros': typeof AdministracionRegistrosRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/mi-registro': typeof MiRegistroRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
+  '/administracion/registros': typeof AdministracionRegistrosRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/mi-registro': typeof MiRegistroRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
+  '/administracion/registros': typeof AdministracionRegistrosRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/mi-registro'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
+    | '/administracion/registros'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/mi-registro'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
+    | '/administracion/registros'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/mi-registro'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
+    | '/administracion/registros'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
     | '/entrar/$'
@@ -298,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministracionEquipoRouteImport
       parentRoute: typeof AdministracionRoute
     }
+    '/administracion/registros': {
+      id: '/administracion/registros'
+      path: '/registros'
+      fullPath: '/administracion/registros'
+      preLoaderRoute: typeof AdministracionRegistrosRouteImport
+      parentRoute: typeof AdministracionRoute
+    }
     '/autorizar/$token': {
       id: '/autorizar/$token'
       path: '/autorizar/$token'
@@ -353,12 +372,14 @@ declare module '@tanstack/react-router' {
 interface AdministracionRouteChildren {
   AdministracionConvocatoriasRoute: typeof AdministracionConvocatoriasRoute
   AdministracionEquipoRoute: typeof AdministracionEquipoRoute
+  AdministracionRegistrosRoute: typeof AdministracionRegistrosRoute
   AdministracionIndexRoute: typeof AdministracionIndexRoute
 }
 
 const AdministracionRouteChildren: AdministracionRouteChildren = {
   AdministracionConvocatoriasRoute: AdministracionConvocatoriasRoute,
   AdministracionEquipoRoute: AdministracionEquipoRoute,
+  AdministracionRegistrosRoute: AdministracionRegistrosRoute,
   AdministracionIndexRoute: AdministracionIndexRoute,
 }
 

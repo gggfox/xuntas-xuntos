@@ -15,6 +15,7 @@ export const Route = createFileRoute('/administracion/')({
 function AdminIndex() {
   const me = useMe()
   if (!me) return null
+  if (can(me.roles, 'review_registrations')) return <Navigate to="/administracion/registros" replace />
   if (can(me.roles, 'view_staff')) return <Navigate to="/administracion/equipo" replace />
   return <NoTools />
 }
