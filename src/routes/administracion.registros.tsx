@@ -112,15 +112,7 @@ function RegistrationsPage() {
         canSelect={canBatch}
         selected={selected}
         onSelectedChange={setSelected}
-        onOpen={(id) =>
-          // The detail route (`/administracion/registros/$id`) is the next
-          // task's file, so today's generated route tree does not know its
-          // path or its `id` param and cannot type-check a call to it. The
-          // cast is narrowly scoped to this one navigation and goes away
-          // the moment that route file exists and `generate-routes` picks
-          // it up.
-          void navigate({ to: '/administracion/registros/$id', params: { id } } as never)
-        }
+        onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
       />
 
       {dialog && (

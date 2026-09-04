@@ -25,6 +25,7 @@ import { Route as CrearCuentaSplatRouteImport } from './routes/crear-cuenta.$'
 import { Route as EntrarIndexRouteImport } from './routes/entrar.index'
 import { Route as EntrarSplatRouteImport } from './routes/entrar.$'
 import { Route as InvitacionTokenRouteImport } from './routes/invitacion.$token'
+import { Route as AdministracionRegistrosIdRouteImport } from './routes/administracion.registros.$id'
 import { Route as InvitacionTokenSplatRouteImport } from './routes/invitacion.$token.$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -108,6 +109,12 @@ const InvitacionTokenRoute = InvitacionTokenRouteImport.update({
   path: '/invitacion/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdministracionRegistrosIdRoute =
+  AdministracionRegistrosIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AdministracionRegistrosRoute,
+  } as any)
 const InvitacionTokenSplatRoute = InvitacionTokenSplatRouteImport.update({
   id: '/$',
   path: '/$',
@@ -123,7 +130,7 @@ export interface FileRoutesByFullPath {
   '/mi-registro': typeof MiRegistroRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
-  '/administracion/registros': typeof AdministracionRegistrosRoute
+  '/administracion/registros': typeof AdministracionRegistrosRouteWithChildren
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
+  '/administracion/registros/$id': typeof AdministracionRegistrosIdRoute
   '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
 export interface FileRoutesByTo {
@@ -141,7 +149,7 @@ export interface FileRoutesByTo {
   '/mi-registro': typeof MiRegistroRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
-  '/administracion/registros': typeof AdministracionRegistrosRoute
+  '/administracion/registros': typeof AdministracionRegistrosRouteWithChildren
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
@@ -149,6 +157,7 @@ export interface FileRoutesByTo {
   '/administracion': typeof AdministracionIndexRoute
   '/crear-cuenta': typeof CrearCuentaIndexRoute
   '/entrar': typeof EntrarIndexRoute
+  '/administracion/registros/$id': typeof AdministracionRegistrosIdRoute
   '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
 export interface FileRoutesById {
@@ -161,7 +170,7 @@ export interface FileRoutesById {
   '/mi-registro': typeof MiRegistroRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
-  '/administracion/registros': typeof AdministracionRegistrosRoute
+  '/administracion/registros': typeof AdministracionRegistrosRouteWithChildren
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
@@ -169,6 +178,7 @@ export interface FileRoutesById {
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
+  '/administracion/registros/$id': typeof AdministracionRegistrosIdRoute
   '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
 export interface FileRouteTypes {
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
+    | '/administracion/registros/$id'
     | '/invitacion/$token/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/administracion'
     | '/crear-cuenta'
     | '/entrar'
+    | '/administracion/registros/$id'
     | '/invitacion/$token/$'
   id:
     | '__root__'
@@ -227,6 +239,7 @@ export interface FileRouteTypes {
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
+    | '/administracion/registros/$id'
     | '/invitacion/$token/$'
   fileRoutesById: FileRoutesById
 }
@@ -359,6 +372,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvitacionTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/administracion/registros/$id': {
+      id: '/administracion/registros/$id'
+      path: '/$id'
+      fullPath: '/administracion/registros/$id'
+      preLoaderRoute: typeof AdministracionRegistrosIdRouteImport
+      parentRoute: typeof AdministracionRegistrosRoute
+    }
     '/invitacion/$token/$': {
       id: '/invitacion/$token/$'
       path: '/$'
@@ -369,17 +389,31 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdministracionRegistrosRouteChildren {
+  AdministracionRegistrosIdRoute: typeof AdministracionRegistrosIdRoute
+}
+
+const AdministracionRegistrosRouteChildren: AdministracionRegistrosRouteChildren =
+  {
+    AdministracionRegistrosIdRoute: AdministracionRegistrosIdRoute,
+  }
+
+const AdministracionRegistrosRouteWithChildren =
+  AdministracionRegistrosRoute._addFileChildren(
+    AdministracionRegistrosRouteChildren,
+  )
+
 interface AdministracionRouteChildren {
   AdministracionConvocatoriasRoute: typeof AdministracionConvocatoriasRoute
   AdministracionEquipoRoute: typeof AdministracionEquipoRoute
-  AdministracionRegistrosRoute: typeof AdministracionRegistrosRoute
+  AdministracionRegistrosRoute: typeof AdministracionRegistrosRouteWithChildren
   AdministracionIndexRoute: typeof AdministracionIndexRoute
 }
 
 const AdministracionRouteChildren: AdministracionRouteChildren = {
   AdministracionConvocatoriasRoute: AdministracionConvocatoriasRoute,
   AdministracionEquipoRoute: AdministracionEquipoRoute,
-  AdministracionRegistrosRoute: AdministracionRegistrosRoute,
+  AdministracionRegistrosRoute: AdministracionRegistrosRouteWithChildren,
   AdministracionIndexRoute: AdministracionIndexRoute,
 }
 
