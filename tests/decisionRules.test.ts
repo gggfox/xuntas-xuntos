@@ -75,6 +75,35 @@ describe('checkDecision', () => {
   it('treats not_sent as not locked', () => {
     expect(checkDecision({ ...base, noticeStatus: 'not_sent', from: 'rejected', to: 'validated', note: 'x' })).toBeNull()
   })
+
+  it('wants a note for a reversal out of selection', () => {
+    expect(checkDecision({ ...base, permissions: MASTER, from: 'selected', to: 'validated' })).toBe('note_required')
+    expect(checkDecision({ ...base, permissions: MASTER, from: 'selected', to: 'validated', note: 'x' })).toBeNull()
+  })
+
+  it('wants a note when the Council reverses itself', () => {
+    expect(checkDecision({ ...base, permissions: MASTER, from: 'not_selected', to: 'selected' })).toBe('note_required')
+  })
+
+  it('wants a note when a selection is pulled all the way back to rejected', () => {
+    expect(checkDecision({ ...base, permissions: MASTER, from: 'not_selected', to: 'rejected' })).toBe('note_required')
+  })
+
+  it('locks validated → selected too, once the notice is out — a note is not optional here', () => {
+    expect(
+      checkDecision({
+        permissions: MASTER,
+        guardianConfirmed: true,
+        noticeStatus: 'sent',
+        from: 'validated',
+        to: 'selected',
+      }),
+    ).toBe('note_required')
+  })
+
+  it('still asks nothing extra for validated → selected while unlocked', () => {
+    expect(checkDecision({ ...base, permissions: MASTER, from: 'validated', to: 'selected' })).toBeNull()
+  })
 })
 
 describe('noticeDecisionFor', () => {

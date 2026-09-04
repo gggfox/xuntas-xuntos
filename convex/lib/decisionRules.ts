@@ -73,8 +73,15 @@ export function checkDecision(input: {
 
   if (to === 'selected' && !input.guardianConfirmed) return 'guardian_unconfirmed'
 
+  // `locked` is its own trigger, not folded into `changesAPriorDecision`:
+  // once the notice went out, *any* further change to this decision needs a
+  // reason on file, even a validated → selected that would otherwise be the
+  // first, note-free selection decision. Without this the module would have
+  // to trust an unstated invariant it cannot check for itself — that nobody
+  // ever sets a notice while the row still reads `validated` — instead of
+  // enforcing "a sent notice locks the decision" on its own terms.
   const hasNote = (input.note ?? '').trim().length > 0
-  if ((to === 'rejected' || changesAPriorDecision(from, to)) && !hasNote) return 'note_required'
+  if ((to === 'rejected' || locked || changesAPriorDecision(from, to)) && !hasNote) return 'note_required'
 
   return null
 }
