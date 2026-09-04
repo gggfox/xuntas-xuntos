@@ -2,7 +2,6 @@ import { Resend, vOnEmailEventArgs } from '@convex-dev/resend'
 import { components, internal } from './_generated/api'
 import { internalMutation } from './_generated/server'
 import { v } from 'convex/values'
-import { REVIEW_DATE } from './lib/cycle'
 import { textForEmail } from './lib/html'
 
 /**
@@ -70,6 +69,8 @@ export const sendAthleteConfirmation = internalMutation({
     to: v.string(),
     name: v.string(),
     guardianMissing: v.boolean(),
+    closesOnText: v.string(),
+    reviewOnText: v.string(),
   },
   handler: async (ctx, args) => {
     // Escaped: the name comes from the form and ends up inside the HTML.
@@ -95,8 +96,8 @@ export const sendAthleteConfirmation = internalMutation({
         `<p style="margin:0 0 14px;">Hola, ${firstName}:</p>
          <p style="margin:0 0 14px;">Tu registro al Programa de Desarrollo quedó guardado.</p>
          ${guardianNotice}
-         <p style="margin:0 0 14px;"><b>Qué sigue.</b> Revisamos tu registro antes del ${REVIEW_DATE}.
-         Puedes editar tus datos hasta el 18 de septiembre a las 23:59, hora del centro de México.</p>
+         <p style="margin:0 0 14px;"><b>Qué sigue.</b> Revisamos tu registro antes del ${textForEmail(args.reviewOnText)}.
+         Puedes editar tus datos hasta el ${textForEmail(args.closesOnText)} a las 23:59, hora del centro de México.</p>
          <p style="margin:0 0 14px;">Recuerda que el registro no garantiza la admisión ni la obtención de una beca.</p>
          ${button(`${appUrl()}/es/mi-registro`, 'Ver mi registro')}`,
         'Tu registro al Programa de Desarrollo quedó guardado.',
@@ -116,6 +117,7 @@ export const sendGuardianAuthorization = internalMutation({
     athleteName: v.string(),
     token: v.string(),
     isResend: v.boolean(),
+    closesOnText: v.string(),
   },
   handler: async (ctx, args) => {
     // The token is hex we generate, but it gets encoded anyway: the URL is
@@ -149,7 +151,7 @@ export const sendGuardianAuthorization = internalMutation({
          </p>
          ${button(href, 'Autorizo la cuenta')}
          <p style="margin:0 0 14px;font-size:13px;color:rgba(17,17,17,.58);">
-           El enlace vence el 18 de septiembre de 2026. Si no reconoces este registro,
+           El enlace vence el ${textForEmail(args.closesOnText)}. Si no reconoces este registro,
            ignora este correo y responde para avisarnos: la cuenta no quedará autorizada.
          </p>`,
         `${athleteName} necesita tu autorización para completar su registro.`,

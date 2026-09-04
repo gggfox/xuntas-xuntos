@@ -13,7 +13,7 @@ import {
   validateInvite,
 } from './lib/staffRules'
 import { newToken } from './lib/tokens'
-import { requirePermission } from './users'
+import { requirePermission } from './auth'
 
 /**
  * Errors cross the wire as codes so the browser can say them in the reader's

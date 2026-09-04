@@ -139,7 +139,6 @@ commit.
 | `VITE_CLERK_SIGN_UP_URL` | build arg | same |
 | `VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | build arg | same |
 | `VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | build arg | same |
-| `VITE_WINDOW_ALWAYS_OPEN` | build arg | **staging only**, never production |
 | `CLERK_SECRET_KEY` | runtime | an `ARG` ends up in `docker history` |
 | `CLERK_PUBLISHABLE_KEY` | runtime | Clerk's SSR reads it from `process.env`, **without** the `VITE_` prefix. Same value as the one above |
 | `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`, `APP_URL` | Convex | `npx convex env set` — they don't go through Docker |

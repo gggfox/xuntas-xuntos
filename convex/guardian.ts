@@ -1,8 +1,10 @@
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
-import { CURRENT_CYCLE, CLOSES_AT_MS } from './lib/cycle'
-import { requireUser, newToken } from './users'
+import { activeCycle } from './cycles'
+import { formatDay, windowOf } from './lib/cycleRules'
+import { requireUser } from './auth'
+import { newToken } from './lib/tokens'
 import { isValidEmail } from './lib/html'
 import type { AppErrorCode } from './lib/errorCodes'
 
@@ -85,10 +87,11 @@ export const resend = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx)
+    const cycle = await activeCycle(ctx)
 
     const auth = await ctx.db
       .query('guardianAuth')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
 
     if (!auth) fail('guardian_not_required')
@@ -106,7 +109,7 @@ export const resend = mutation({
     const token = newToken()
     await ctx.db.patch(auth._id, {
       token,
-      expiresAt: CLOSES_AT_MS,
+      expiresAt: windowOf(cycle).closesAtMs,
       sentAt: now,
       timesSent: auth.timesSent + 1,
     })
@@ -117,6 +120,7 @@ export const resend = mutation({
       athleteName: user.name ?? user.email,
       token,
       isResend: true,
+      closesOnText: formatDay(cycle.closesOn, 'es'),
     })
 
     return { ok: true as const, reason: 'sent' as const }
@@ -135,6 +139,7 @@ export const correctEmail = mutation({
   args: { guardianName: v.string(), guardianEmail: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx)
+    const cycle = await activeCycle(ctx)
 
     const guardianName = args.guardianName.trim()
     const guardianEmail = args.guardianEmail.trim().toLowerCase()
@@ -145,7 +150,7 @@ export const correctEmail = mutation({
 
     const auth = await ctx.db
       .query('guardianAuth')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
 
     if (!auth) fail('guardian_not_required')
@@ -171,7 +176,7 @@ export const correctEmail = mutation({
       guardianName,
       guardianEmail,
       token,
-      expiresAt: CLOSES_AT_MS,
+      expiresAt: windowOf(cycle).closesAtMs,
       sentAt: now,
       timesSent: auth.timesSent + 1,
     })
@@ -182,6 +187,7 @@ export const correctEmail = mutation({
       athleteName: user.name ?? user.email,
       token,
       isResend: false,
+      closesOnText: formatDay(cycle.closesOn, 'es'),
     })
 
     return { ok: true as const, reason: 'sent' as const }

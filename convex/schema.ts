@@ -1,13 +1,6 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
-/**
- * Current cycle. Every registration and every guardian authorization hangs off
- * a cycle, so the call for applications can run again in 2027 without
- * migrating anything.
- */
-export const CURRENT_CYCLE = '2026-2027'
-
 /** Program branch. XUNTAS = women's, XUNTOS = men's. */
 export const vBranch = v.union(v.literal('womens'), v.literal('mens'))
 

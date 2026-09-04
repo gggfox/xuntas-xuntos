@@ -1,57 +1,29 @@
-import { ConvexError, v } from 'convex/values'
+import { v } from 'convex/values'
 import {
   internalMutation,
   mutation,
   query,
   type MutationCtx,
-  type QueryCtx,
 } from './_generated/server'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
-import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage } from './lib/cycle'
+import { activeCycle } from './cycles'
+import { fail, currentUser, requireUser } from './auth'
+import { formatDay, windowOf } from './lib/cycleRules'
+import { isUnderage } from './lib/cycle'
 import { validateBirthDateDeclaration } from './lib/guardianRules'
-import type { AppErrorCode } from './lib/errorCodes'
 import { newToken } from './lib/tokens'
 import { inviteStatus } from './lib/staffRules'
 import { vThemePreference } from './schema'
-import { can, permissionsOf, type Permission, type Role } from './lib/permissions'
-
-/**
- * Errors cross the wire as codes so the browser can say them in the reader's
- * language. A plain `Error` message arrives wrapped in Convex's own framing
- * and is whatever language the server happened to be written in.
- */
-function fail(code: AppErrorCode): never {
-  throw new ConvexError({ code })
-}
+import { permissionsOf, type Role } from './lib/permissions'
 
 export { newToken }
 
-/** Authenticated user, or null. Never throws — the UI decides what to show. */
-export async function currentUser(ctx: QueryCtx): Promise<Doc<'users'> | null> {
-  const identity = await ctx.auth.getUserIdentity()
-  if (!identity) return null
-  return await ctx.db
-    .query('users')
-    .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
-    .unique()
-}
-
-/** Same as `currentUser`, but requires a session. For mutations. */
-export async function requireUser(ctx: QueryCtx): Promise<Doc<'users'>> {
-  const user = await currentUser(ctx)
-  if (!user) fail('not_signed_in')
-  return user
-}
-
-export async function requirePermission(
-  ctx: QueryCtx,
-  permission: Permission,
-): Promise<Doc<'users'>> {
-  const user = await requireUser(ctx)
-  if (!can(user.roles, permission)) fail('permission_required')
-  return user
-}
+// `cycles.ts` needs `requirePermission` and this module needs `activeCycle`
+// from `cycles.ts` — see `convex/auth.ts` for why `currentUser`,
+// `requireUser` and `requirePermission` moved there. Re-exported so every
+// other import of them from `./users` keeps resolving.
+export { currentUser, requireUser, requirePermission } from './auth'
 
 /**
  * Full account status for the athlete's panel: the three axes together.
@@ -63,14 +35,16 @@ export const myStatus = query({
     const user = await currentUser(ctx)
     if (!user) return null
 
+    const cycle = await activeCycle(ctx)
+
     const guardian = await ctx.db
       .query('guardianAuth')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
 
     const registration = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
 
     return {
@@ -118,6 +92,7 @@ export const myStatus = query({
  */
 async function openGuardianAuthorization(
   ctx: MutationCtx,
+  cycle: Doc<'cycles'>,
   args: {
     userId: Id<'users'>
     guardianName: string
@@ -127,7 +102,7 @@ async function openGuardianAuthorization(
 ): Promise<void> {
   const alreadyExists = await ctx.db
     .query('guardianAuth')
-    .withIndex('by_user_cycle', (q) => q.eq('userId', args.userId).eq('cycle', CURRENT_CYCLE))
+    .withIndex('by_user_cycle', (q) => q.eq('userId', args.userId).eq('cycle', cycle.cycle))
     .unique()
   if (alreadyExists) return
 
@@ -135,11 +110,11 @@ async function openGuardianAuthorization(
   const token = newToken()
   await ctx.db.insert('guardianAuth', {
     userId: args.userId,
-    cycle: CURRENT_CYCLE,
+    cycle: cycle.cycle,
     guardianName: args.guardianName,
     guardianEmail: args.guardianEmail,
     token,
-    expiresAt: CLOSES_AT_MS,
+    expiresAt: windowOf(cycle).closesAtMs,
     sentAt: now,
     timesSent: 1,
   })
@@ -149,6 +124,7 @@ async function openGuardianAuthorization(
     athleteName: args.athleteName,
     token,
     isResend: false,
+    closesOnText: formatDay(cycle.closesOn, 'es'),
   })
 }
 
@@ -251,7 +227,8 @@ export const create = internalMutation({
     // Minor: the guardian email goes out immediately. It does not block the
     // signup, but the account stays incomplete until they confirm.
     if (preSignup?.isMinor && preSignup.guardianEmail && preSignup.guardianName) {
-      await openGuardianAuthorization(ctx, {
+      const cycle = await activeCycle(ctx)
+      await openGuardianAuthorization(ctx, cycle, {
         userId,
         guardianName: preSignup.guardianName,
         guardianEmail: preSignup.guardianEmail,
@@ -310,7 +287,8 @@ export const declareBirthDate = mutation({
     })
 
     if (isMinor && guardianName && guardianEmail) {
-      await openGuardianAuthorization(ctx, {
+      const cycle = await activeCycle(ctx)
+      await openGuardianAuthorization(ctx, cycle, {
         userId: user._id,
         guardianName,
         guardianEmail,

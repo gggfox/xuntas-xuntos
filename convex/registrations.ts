@@ -1,12 +1,13 @@
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
-import { CURRENT_CYCLE, CLOSES_AT_MS, isWindowOpen } from './lib/cycle'
+import { activeCycle, requireWindowOpen } from './cycles'
+import { formatDay, isWindowOpenFor, windowOf } from './lib/cycleRules'
 import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
 import { LETTER_LIMIT } from './lib/registrationSchema'
 import { validateRegistration } from './lib/registrationRules'
 import type { ActionErrorCode } from './lib/errorCodes'
-import { requirePermission, requireUser, currentUser } from './users'
+import { requirePermission, requireUser, currentUser } from './auth'
 import type { Doc } from './_generated/dataModel'
 import { vBranch } from './schema'
 
@@ -115,13 +116,6 @@ function requireReasonableSizes(data: typeof vRegistrationData.type) {
   }
 }
 
-/** Frozen after the window closes. Applies to draft and to submitted alike. */
-function requireWindowOpen() {
-  if (!isWindowOpen()) {
-    fail('window_closed')
-  }
-}
-
 /** The signed-in user's registration, with the window and the lock resolved. */
 export const mine = query({
   args: {},
@@ -129,15 +123,17 @@ export const mine = query({
     const user = await currentUser(ctx)
     if (!user) return null
 
+    const cycle = await activeCycle(ctx)
     const registration = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
-
+    const { closesAtMs } = windowOf(cycle)
     return {
       registration,
-      editable: isWindowOpen(),
-      closesAt: CLOSES_AT_MS,
+      editable: isWindowOpenFor(cycle),
+      closesAt: closesAtMs,
+      cycle: cycle.cycle,
     }
   },
 })
@@ -151,12 +147,12 @@ export const saveDraft = mutation({
   args: { data: vRegistrationData },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx)
-    requireWindowOpen()
+    const cycle = await requireWindowOpen(ctx)
     requireReasonableSizes(args.data)
 
     const existing = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
 
     const now = Date.now()
@@ -181,7 +177,7 @@ export const saveDraft = mutation({
 
     return await ctx.db.insert('registrations', {
       userId: user._id,
-      cycle: CURRENT_CYCLE,
+      cycle: cycle.cycle,
       ...args.data,
       status: 'draft',
       updatedAt: now,
@@ -200,7 +196,7 @@ export const submit = mutation({
   args: { data: vRegistrationData },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx)
-    requireWindowOpen()
+    const cycle = await requireWindowOpen(ctx)
     requireReasonableSizes(args.data)
 
     /**
@@ -223,7 +219,7 @@ export const submit = mutation({
 
     const existing = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
       .unique()
 
     if (existing && (existing.status === 'validated' || existing.status === 'rejected')) {
@@ -241,7 +237,7 @@ export const submit = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, fields)
     } else {
-      await ctx.db.insert('registrations', { userId: user._id, cycle: CURRENT_CYCLE, ...fields })
+      await ctx.db.insert('registrations', { userId: user._id, cycle: cycle.cycle, ...fields })
     }
 
     // Only the first submission is confirmed; later edits do not re-send.
@@ -249,7 +245,7 @@ export const submit = mutation({
     if (isFirstSubmit) {
       const guardian = await ctx.db
         .query('guardianAuth')
-        .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+        .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
         .unique()
 
       // It goes to the ACCOUNT email, which Clerk already verified — not to
@@ -260,6 +256,8 @@ export const submit = mutation({
         to: user.email,
         name: args.data.personal.name,
         guardianMissing: guardian !== null && guardian.confirmedAt === undefined,
+        closesOnText: formatDay(cycle.closesOn, 'es'),
+        reviewOnText: formatDay(cycle.reviewOn, 'es'),
       })
     }
 
@@ -276,23 +274,25 @@ export const listForAdmin = query({
   args: { status: v.optional(v.string()) },
   handler: async (ctx, args) => {
     await requirePermission(ctx, 'review_registrations')
+    // Plan 3 gives this its own `cycle` argument; for now it is the active one.
+    const cycle = (await activeCycle(ctx)).cycle
 
     const registrations = args.status
       ? await ctx.db
           .query('registrations')
-          .withIndex('by_cycle_status', (q) => q.eq('cycle', CURRENT_CYCLE).eq('status', args.status as never))
+          .withIndex('by_cycle_status', (q) => q.eq('cycle', cycle).eq('status', args.status as never))
           .collect()
       : await ctx.db
           .query('registrations')
           .withIndex('by_user_cycle', (q) => q)
-          .filter((q) => q.eq(q.field('cycle'), CURRENT_CYCLE))
+          .filter((q) => q.eq(q.field('cycle'), cycle))
           .collect()
 
     return await Promise.all(
       registrations.map(async (r) => {
         const guardian = await ctx.db
           .query('guardianAuth')
-          .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', CURRENT_CYCLE))
+          .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', cycle))
           .unique()
         return {
           ...r,

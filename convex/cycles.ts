@@ -14,7 +14,7 @@ import {
   windowOf,
   type CycleFields,
 } from './lib/cycleRules'
-import { currentUser, requirePermission } from './users'
+import { currentUser, requirePermission } from './auth'
 import { can } from './lib/permissions'
 
 function fail(code: AppErrorCode): never {

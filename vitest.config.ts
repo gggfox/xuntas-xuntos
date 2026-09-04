@@ -9,12 +9,6 @@ import { defineConfig } from 'vitest/config'
  */
 export default defineConfig({
   test: {
-    /**
-     * The development escape hatch opens the registration window no matter
-     * what. If someone has it set in their shell, the `isWindowOpen` tests
-     * would fail because of the environment and not because of the code.
-     */
-    env: { WINDOW_ALWAYS_OPEN: '' },
     projects: [
       {
         // Pure logic. No DOM, so it stays fast.
@@ -22,7 +16,6 @@ export default defineConfig({
           name: 'unit',
           include: ['tests/**/*.test.ts'],
           environment: 'node',
-          env: { WINDOW_ALWAYS_OPEN: '' },
         },
       },
       {
@@ -38,7 +31,6 @@ export default defineConfig({
           include: ['tests/components/**/*.test.tsx'],
           environment: 'jsdom',
           setupFiles: ['./tests/setup.ts'],
-          env: { WINDOW_ALWAYS_OPEN: '' },
         },
       },
     ],

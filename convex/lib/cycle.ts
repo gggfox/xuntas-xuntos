@@ -1,54 +1,9 @@
 /**
- * Window of the 2026–2027 General Call for Applications.
- *
- * Mexico no longer observes daylight saving time (since 2022), so
- * America/Mexico_City is UTC-6 all year round. The constants are stored in UTC
- * so they do not depend on the server's or the browser's time zone.
+ * Age arithmetic for the age gate. The window itself lives in the `cycles`
+ * table now — see `convex/lib/cycleRules.ts` and `convex/cycles.ts`.
  */
 
-export const CURRENT_CYCLE = '2026-2027'
-
-/** September 4, 2026, 00:00 America/Mexico_City. */
-export const OPENS_AT_MS = Date.parse('2026-09-04T06:00:00.000Z')
-
-/** September 18, 2026, 23:59:59 America/Mexico_City. */
-export const CLOSES_AT_MS = Date.parse('2026-09-19T05:59:59.999Z')
-
-/** Date promised to registrants for the review. */
-export const REVIEW_DATE = '23 de septiembre de 2026'
-
-/**
- * Development hatch: opens the window even when it is not September.
- *
- * Without this there is no way to test the form before September 4, which is
- * exactly when nothing can be tested anymore. In Convex it is enabled with
- * `npx convex env set WINDOW_ALWAYS_OPEN true`; on the client with
- * VITE_WINDOW_ALWAYS_OPEN in .env.local.
- *
- * Do NOT enable it in production: it would let registrations in outside the
- * call for applications and the Council would be grading people who arrived
- * in October.
- */
-function isWindowForced(): boolean {
-  if (typeof process !== 'undefined' && process.env?.WINDOW_ALWAYS_OPEN === 'true') {
-    return true
-  }
-  try {
-    const env = (import.meta as unknown as { env?: Record<string, string> }).env
-    if (env?.VITE_WINDOW_ALWAYS_OPEN === 'true') return true
-  } catch {
-    // import.meta.env does not exist in every runtime; that's fine.
-  }
-  return false
-}
-
-export function isWindowOpen(now: number = Date.now()): boolean {
-  if (isWindowForced()) return true
-  return now >= OPENS_AT_MS && now <= CLOSES_AT_MS
-}
-
-/** America/Mexico_City is UTC-6 all year round since 2022. */
-const OFFSET_MX_MS = 6 * 60 * 60 * 1000
+import { MX_OFFSET_MS } from './cycleRules'
 
 /** A `yyyy-mm-dd` date to its three numbers. `null` if it lacks that shape. */
 function isoParts(iso: string): { year: number; month: number; day: number } | null {
@@ -91,7 +46,7 @@ export function ageAt(birthDateISO: string, now: number = Date.now()): number {
   const birth = isoParts(birthDateISO)
   if (!birth) return -1
 
-  const today = new Date(now - OFFSET_MX_MS)
+  const today = new Date(now - MX_OFFSET_MS)
   const todayYear = today.getUTCFullYear()
   const todayMonth = today.getUTCMonth() + 1
   const todayDay = today.getUTCDate()
