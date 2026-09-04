@@ -11,15 +11,21 @@ import * as m from '../../src/paraglide/messages.js'
  */
 let authState: { isLoading: boolean; isAuthenticated: boolean }
 let queryResult: unknown
+let statusResult: unknown
 
 vi.mock('convex/react', () => ({
   useConvexAuth: () => authState,
-  useQuery: () => queryResult,
+  useQuery: (fn: unknown) => (fn === 'users:myStatus' ? statusResult : queryResult),
   useMutation: () => vi.fn(),
 }))
 
 vi.mock('@clerk/tanstack-react-start', () => ({
   useUser: () => ({ user: { fullName: 'Ana Gómez' } }),
+}))
+
+vi.mock('@tanstack/react-router', async (orig) => ({
+  ...(await orig<typeof import('@tanstack/react-router')>()),
+  Navigate: ({ to }: { to: string }) => <div data-testid="navigate">{to}</div>,
 }))
 
 vi.mock('../../convex/_generated/api', () => ({
@@ -36,12 +42,14 @@ const { default: RegistrationPanel } = await import(
 beforeEach(() => {
   authState = { isLoading: false, isAuthenticated: true }
   queryResult = undefined
+  statusResult = undefined
 })
 
 describe('RegistrationPanel null states', () => {
   it('waits while Convex is still deciding whether the session is valid', () => {
     authState = { isLoading: true, isAuthenticated: false }
     queryResult = null
+    statusResult = null
     render(<RegistrationPanel />)
     expect(screen.getByText(m.common_loading())).toBeInTheDocument()
     expect(screen.queryByText(m.session_title())).not.toBeInTheDocument()
@@ -50,6 +58,7 @@ describe('RegistrationPanel null states', () => {
   it('says the session never reached the server when Convex rejects it', () => {
     authState = { isLoading: false, isAuthenticated: false }
     queryResult = null
+    statusResult = null
     render(<RegistrationPanel />)
     expect(screen.getByText(m.session_title())).toBeInTheDocument()
     // The bug: this is what it used to say, and the account already existed.
@@ -59,8 +68,22 @@ describe('RegistrationPanel null states', () => {
   it('still reports a genuinely missing row as the webhook running late', () => {
     authState = { isLoading: false, isAuthenticated: true }
     queryResult = null
+    statusResult = null
     render(<RegistrationPanel />)
     expect(screen.getByText(m.sync_title())).toBeInTheDocument()
     expect(screen.queryByText(m.session_title())).not.toBeInTheDocument()
+  })
+})
+
+describe('staff accounts', () => {
+  it('sends an account without the athlete role to the admin panel', () => {
+    statusResult = {
+      account: { roles: ['admin'], emailVerified: true, ageDeclared: false, isMinor: false },
+      guardian: { required: false, confirmed: true },
+      registration: null,
+    }
+    queryResult = { registration: null, editable: true, closesAt: 0 }
+    render(<RegistrationPanel />)
+    expect(screen.getByTestId('navigate')).toHaveTextContent('/administracion')
   })
 })

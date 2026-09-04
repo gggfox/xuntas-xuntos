@@ -1,4 +1,5 @@
 import { useUser } from '@clerk/tanstack-react-start'
+import { Navigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { useCallback } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -86,6 +87,16 @@ export default function RegistrationPanel({
   // yet. That one really does resolve on its own, in a few seconds.
   if (status === null || mine === null) {
     return <SyncingFrame />
+  }
+
+  /**
+   * Staff have no registration. Clerk's fallback redirect still points at this
+   * page (a build arg, not worth a rebuild), so the page itself sends them on.
+   * Before the birth-date step, on purpose: a staff account has no date and
+   * must never be asked for one.
+   */
+  if (!status.account.roles.includes('athlete')) {
+    return <Navigate to="/administracion" />
   }
 
   /**

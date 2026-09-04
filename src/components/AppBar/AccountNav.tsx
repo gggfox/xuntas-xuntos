@@ -1,6 +1,8 @@
 import { Show, SignOutButton } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 import * as m from '../../paraglide/messages.js'
+import { useMe } from '../../hooks/useMe'
+import { isStaff } from '../../lib/permissions'
 import ThemeToggle from './ThemeToggle'
 
 /**
@@ -12,10 +14,16 @@ import ThemeToggle from './ThemeToggle'
  * to action.
  */
 export default function AccountNav() {
+  const me = useMe()
   return (
     <nav className="flex items-center gap-4 text-[13px]">
       <ThemeToggle />
       <Show when="signed-in">
+        {me && isStaff(me.roles) && (
+          <Link to="/administracion" className="text-white/72 no-underline hover:text-white">
+            {m.nav_admin()}
+          </Link>
+        )}
         <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
           {m.nav_my_registration()}
         </Link>
