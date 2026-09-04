@@ -51,10 +51,22 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   birth_date_locked: m.err_birth_date_locked,
   not_signed_in: m.err_not_signed_in,
   admin_required: m.err_admin_required,
+  permission_required: m.err_permission_required,
   guardian_not_required: m.err_guardian_not_required,
   guardian_already_confirmed: m.err_guardian_already_confirmed,
   field_too_long: () => m.err_field_too_long({ limit: FIELD_LIMIT }),
   too_many_rows: () => m.err_too_many_rows({ limit: ROW_LIMIT }),
+  // Staff and invitations.
+  invite_email_invalid: m.err_invite_email_invalid,
+  invite_roles_invalid: m.err_invite_roles_invalid,
+  invite_invalid: m.err_invite_invalid,
+  invite_expired: m.err_invite_expired,
+  invite_revoked: m.err_invite_revoked,
+  invite_accepted: m.err_invite_accepted,
+  invite_wait: m.err_invite_wait,
+  cannot_remove_own_master_admin: m.err_cannot_remove_own_master_admin,
+  cannot_remove_last_master_admin: m.err_cannot_remove_last_master_admin,
+  user_not_found: m.err_user_not_found,
   generic: m.err_generic,
 }
 

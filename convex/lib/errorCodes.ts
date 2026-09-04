@@ -45,11 +45,23 @@ export type ActionErrorCode =
   | 'birth_date_locked'
   | 'not_signed_in'
   | 'admin_required'
+  | 'permission_required'
   | 'guardian_not_required'
   | 'guardian_already_confirmed'
   | 'field_too_long'
   | 'too_many_rows'
   | 'letter_too_long'
+  // Staff and invitations.
+  | 'invite_email_invalid'
+  | 'invite_roles_invalid'
+  | 'invite_invalid'
+  | 'invite_expired'
+  | 'invite_revoked'
+  | 'invite_accepted'
+  | 'invite_wait'
+  | 'cannot_remove_own_master_admin'
+  | 'cannot_remove_last_master_admin'
+  | 'user_not_found'
   /** Nothing more specific survived the trip. Renders as `err_generic`. */
   | 'generic'
 
