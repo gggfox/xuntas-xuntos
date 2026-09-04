@@ -18,9 +18,21 @@ year — is `convex/lib/cycleRules.ts`, shared with the client. There is no
 development hatch anymore: to test before September, set dev dates on the dev
 row.
 
-**The launch scope is registration and data capture.** The admin table comes
-later: nobody reads a registration before September 23, so it does not block
-the release.
+**Two decision stages, four terminal states.** Administration screens
+(`validated` / `rejected`); the Council's selection is recorded by a
+`master_admin` (`selected` / `not_selected`). The acceptance email is about
+selection — "accepted" to two hundred screened people who then do not make
+twenty-five is the worst email this system could send. Rules:
+`convex/lib/decisionRules.ts`.
+
+**A guardian who never confirms holds the registration, never rejects it —
+and never lets it be selected.** A submitted registration without the
+guardian's confirmation may be validated (it stays flagged) but cannot be
+`selected`: a minor does not enter the program without consent. This closes
+the open item below.
+
+**Decisions lock once their email is sent.** Changing one needs a
+`master_admin` and a note, resets the notice, and never re-sends on its own.
 
 **The form is the one from `registro_xuntas.html`, field by field.** XUNTAS
 already approved that shape. Changing fields or copy reopens a conversation
@@ -195,10 +207,7 @@ and clubs are the person's own content, and no library translates those.
    a **blocker**: the routes and the links from the checkboxes already exist,
    but with the scaffolding, not the text. While `ready` is `false` in
    `src/lib/documents.ts`, the pages come out marked as drafts.
-2. **Policy for when the guardian never confirms.** The recommendation is to
-   hold for manual follow-up, never auto-reject. The formal decision is still
-   missing.
-3. **XUNTOS in the Shopify store.** `xuntas.org` only talks about the women's
+2. **XUNTOS in the Shopify store.** `xuntas.org` only talks about the women's
    program. Out of scope for this work, but if it is not updated, a male
    registrant never reaches the form.
 

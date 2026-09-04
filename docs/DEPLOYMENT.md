@@ -187,19 +187,20 @@ If step 3 fails and everything else works, suspect number one is
 
 ## 4. Council review
 
-There is **no admin screen yet** — it gets added after the infrastructure is
-closed out. In the meantime, the September 23 review is done from the Convex
-dashboard (Functions → run by hand):
+The review happens in the app: `/administracion/registros` (an account with
+`review_registrations`). *Pendientes* is what is left to screen; each row
+opens on one page with the decision panel.
 
-- `registrations:listForAdmin` with `{}` to see the whole cycle, or
-  `{"status": "submitted"}` for what is left to review. Each row carries
-  `guardianRequired` and `guardianConfirmed`.
-- `registrations:review` with
-  `{"registrationId": "...", "status": "validated" | "rejected", "note": "..."}`.
+- Administration validates or rejects. A rejection needs a note and may be
+  emailed individually at any time.
+- A `master_admin` marks the Council's `selected` / `not_selected` from the
+  validated ones, then sends the batch from *Todos* — refused while the
+  window is open, with a "send me a test" button beside it.
+- Once a notice is sent the decision is locked; only a `master_admin` can
+  change it, with a note, and the corrected email is never sent on its own.
 
-Both require an account whose `users.roles` grants `review_registrations`
-(`admin` or `master_admin`). Roles are granted from the CLI
-(`staff:grantRoles`, see the README) or from `/administracion/equipo`.
+Delivery shows per row (`enviado` → `entregado` / `rebotó`) from the Resend
+webhook; a bounce means the family did not hear, and someone calls.
 
 ---
 

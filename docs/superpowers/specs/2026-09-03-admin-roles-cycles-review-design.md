@@ -13,8 +13,8 @@ Four things, one subsystem: who may do what.
 
 1. **Nobody can administer from the app.** `registrations.listForAdmin` and
    `registrations.review` exist ([`convex/registrations.ts:275`](../../../convex/registrations.ts))
-   but have no screen; `docs/DEPLOYMENT.md` §4 tells XUNTAS to run them from
-   the Convex dashboard. The Council reviews on September 23.
+   but have no screen; without the app, the review must run from the Convex
+   dashboard by hand. The Council reviews on September 23.
 2. **Roles are a single Clerk-owned enum.** `users.role` is `'athlete' | 'admin'`,
    mirrored from `publicMetadata.role` on every webhook. Adding a person means
    editing JSON in Clerk's dashboard; adding a role means a schema change and
@@ -333,8 +333,11 @@ any decided → any other decided         same permission as the target, note re
 
 - `draft` is never decided.
 - `rejected`, `validated`, `selected`, `not_selected` may be changed; the
-  mutation appends to `decisionLog` and a **note is required** on any change
-  and on every `rejected`.
+  mutation appends to `decisionLog` and a **note is required** on every
+  rejection, on any change within a stage, on any reversal back to an earlier
+  stage, and whenever an email has already been sent — but not on the forward
+  move from screening to selection (`validated → selected` / `validated → not_selected`),
+  which is the next stage rather than a change of mind.
 - **Guardian:** a submitted registration whose guardian has not confirmed may
   be `validated` (it stays flagged) but may **not** be `selected`
   (`guardian_unconfirmed`). This closes DECISIONS open item 2.
