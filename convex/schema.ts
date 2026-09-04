@@ -25,6 +25,24 @@ export const vRegistrationStatus = v.union(
   v.literal('submitted'),
   v.literal('validated'),
   v.literal('rejected'),
+  v.literal('selected'),
+  v.literal('not_selected'),
+)
+
+/** The decisions administration and the Council may record, as opposed to the states a draft passes through on its own. */
+export const vDecision = v.union(
+  v.literal('validated'),
+  v.literal('rejected'),
+  v.literal('selected'),
+  v.literal('not_selected'),
+)
+
+const vNoticeDecision = v.union(v.literal('rejected'), v.literal('selected'), v.literal('not_selected'))
+const vNoticeStatus = v.union(
+  v.literal('not_sent'),
+  v.literal('sent'),
+  v.literal('delivered'),
+  v.literal('bounced'),
 )
 
 /**
@@ -279,8 +297,37 @@ export default defineSchema({
     validatedBy: v.optional(v.id('users')),
     validatedAt: v.optional(v.number()),
     validationNote: v.optional(v.string()),
+
+    /** Every decision ever made on this registration, newest last. */
+    decisionLog: v.optional(
+      v.array(
+        v.object({
+          status: vDecision,
+          by: v.id('users'),
+          at: v.number(),
+          note: v.optional(v.string()),
+        }),
+      ),
+    ),
+    /**
+     * The email that tells the athlete. `not_sent` until someone presses the
+     * button; then the Resend webhook moves it to delivered or bounced. A
+     * decision whose notice went out is locked — see decisionRules.ts.
+     */
+    decisionNotice: v.optional(
+      v.object({
+        decision: vNoticeDecision,
+        status: vNoticeStatus,
+        emailId: v.optional(v.string()),
+        sentAt: v.optional(v.number()),
+        sentBy: v.optional(v.id('users')),
+      }),
+    ),
+    /** Age at the cycle's opening day. Written by the first save in a cycle (see users.wasMinorAtSignup for the frozen signup value). */
+    wasMinorAtCycleStart: v.optional(v.boolean()),
   })
     .index('by_user_cycle', ['userId', 'cycle'])
     .index('by_cycle_status', ['cycle', 'status'])
-    .index('by_cycle_branch', ['cycle', 'personal.branch']),
+    .index('by_cycle_branch', ['cycle', 'personal.branch'])
+    .index('by_notice_email', ['decisionNotice.emailId']),
 })

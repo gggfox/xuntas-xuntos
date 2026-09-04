@@ -6,10 +6,12 @@ import { formatDay, isWindowOpenFor, windowOf } from './lib/cycleRules'
 import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
 import { LETTER_LIMIT } from './lib/registrationSchema'
 import { validateRegistration } from './lib/registrationRules'
-import type { ActionErrorCode } from './lib/errorCodes'
+import { checkDecision, noticeDecisionFor, sectionsComplete } from './lib/decisionRules'
+import { permissionsOf } from './lib/permissions'
+import type { AppErrorCode } from './lib/errorCodes'
 import { requirePermission, requireUser, currentUser } from './auth'
 import type { Doc } from './_generated/dataModel'
-import { vBranch } from './schema'
+import { vBranch, vDecision } from './schema'
 
 /**
  * Form payload. The fields of registro_xuntas.html, with one departure:
@@ -80,7 +82,7 @@ function isUnchanged(
  * language. A plain `Error` message cannot: it arrives wrapped in Convex's
  * own framing and is whatever language the server happened to be written in.
  */
-function fail(code: ActionErrorCode): never {
+function fail(code: AppErrorCode): never {
   throw new ConvexError({ code })
 }
 
@@ -267,57 +269,127 @@ export const submit = mutation({
 })
 
 // ---------------------------------------------------------------------------
-// Administration. The table UI lands after launch; these functions exist so
-// the XUNTAS admins can validate on the fly.
+// Administration.
 // ---------------------------------------------------------------------------
 
+/** Every registration of one cycle, with the columns the table sorts on. */
 export const listForAdmin = query({
-  args: { status: v.optional(v.string()) },
+  args: { cycle: v.string() },
   handler: async (ctx, args) => {
     await requirePermission(ctx, 'review_registrations')
-    // Plan 3 gives this its own `cycle` argument; for now it is the active one.
-    const cycle = (await activeCycle(ctx)).cycle
 
-    const registrations = args.status
-      ? await ctx.db
-          .query('registrations')
-          .withIndex('by_cycle_status', (q) => q.eq('cycle', cycle).eq('status', args.status as never))
-          .collect()
-      : await ctx.db
-          .query('registrations')
-          .withIndex('by_user_cycle', (q) => q)
-          .filter((q) => q.eq(q.field('cycle'), cycle))
-          .collect()
+    const rows = await ctx.db
+      .query('registrations')
+      .withIndex('by_cycle_status', (q) => q.eq('cycle', args.cycle))
+      .collect()
 
-    return await Promise.all(
-      registrations.map(async (r) => {
-        const guardian = await ctx.db
-          .query('guardianAuth')
-          .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', cycle))
-          .unique()
-        return {
-          ...r,
-          guardianRequired: guardian !== null,
-          guardianConfirmed: guardian === null || guardian.confirmedAt !== undefined,
-        }
-      }),
-    )
+    const out = []
+    for (const r of rows) {
+      const user = await ctx.db.get(r.userId)
+      const guardian = await ctx.db
+        .query('guardianAuth')
+        .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', args.cycle))
+        .unique()
+      out.push({
+        _id: r._id,
+        status: r.status,
+        submittedAt: r.submittedAt,
+        updatedAt: r.updatedAt,
+        name: r.personal.name || user?.name || user?.email || '',
+        email: user?.email ?? '',
+        branch: r.personal.branch,
+        state: r.personal.state,
+        isMinor: r.wasMinorAtCycleStart ?? user?.wasMinorAtSignup ?? false,
+        guardianRequired: guardian !== null,
+        guardianConfirmed: guardian === null || guardian.confirmedAt !== undefined,
+        sectionsComplete: sectionsComplete(r),
+        notice: r.decisionNotice?.status ?? null,
+        decision: r.decisionNotice?.decision ?? null,
+      })
+    }
+    return out
   },
 })
 
-export const review = mutation({
-  args: {
-    registrationId: v.id('registrations'),
-    status: v.union(v.literal('validated'), v.literal('rejected')),
-    note: v.optional(v.string()),
-  },
+export const detail = query({
+  args: { id: v.id('registrations') },
   handler: async (ctx, args) => {
-    const admin = await requirePermission(ctx, 'review_registrations')
-    await ctx.db.patch(args.registrationId, {
-      status: args.status,
-      validatedBy: admin._id,
-      validatedAt: Date.now(),
-      validationNote: args.note,
+    await requirePermission(ctx, 'review_registrations')
+    const r = await ctx.db.get(args.id)
+    if (!r) fail('registration_not_found')
+    const user = await ctx.db.get(r.userId)
+    const guardian = await ctx.db
+      .query('guardianAuth')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', r.cycle))
+      .unique()
+
+    const log = []
+    for (const entry of r.decisionLog ?? []) {
+      const by = await ctx.db.get(entry.by)
+      log.push({ status: entry.status, at: entry.at, byName: by?.name ?? by?.email ?? '', note: entry.note })
+    }
+
+    return {
+      registration: r,
+      account: {
+        email: user?.email ?? '',
+        emailVerified: user?.emailVerified ?? false,
+        birthDate: user?.birthDate,
+        wasMinorAtSignup: user?.wasMinorAtSignup,
+      },
+      guardian: guardian
+        ? {
+            required: true,
+            confirmed: guardian.confirmedAt !== undefined,
+            guardianName: guardian.guardianName,
+            guardianEmail: guardian.guardianEmail,
+            timesSent: guardian.timesSent,
+          }
+        : { required: false, confirmed: true },
+      log,
+      sectionsComplete: sectionsComplete(r),
+    }
+  },
+})
+
+/**
+ * One mutation for every decision. The rules decide whether this actor may
+ * make this move; this only writes what they allow. A change that lands on a
+ * state with an email resets the notice to `not_sent` and never sends — a
+ * correction email deserves a human pressing the button.
+ */
+export const decide = mutation({
+  args: { id: v.id('registrations'), decision: vDecision, note: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const actor = await requireUser(ctx)
+    const r = await ctx.db.get(args.id)
+    if (!r) fail('registration_not_found')
+    const guardian = await ctx.db
+      .query('guardianAuth')
+      .withIndex('by_user_cycle', (q) => q.eq('userId', r.userId).eq('cycle', r.cycle))
+      .unique()
+
+    const problem = checkDecision({
+      from: r.status,
+      to: args.decision,
+      note: args.note,
+      guardianConfirmed: guardian === null || guardian.confirmedAt !== undefined,
+      noticeStatus: r.decisionNotice?.status ?? null,
+      permissions: permissionsOf(actor.roles),
     })
+    if (problem) fail(problem)
+
+    const now = Date.now()
+    const note = args.note?.trim() || undefined
+    const nextNotice = noticeDecisionFor(args.decision)
+    await ctx.db.patch(r._id, {
+      status: args.decision,
+      validatedBy: actor._id,
+      validatedAt: now,
+      validationNote: note,
+      decisionLog: [...(r.decisionLog ?? []), { status: args.decision, by: actor._id, at: now, note }],
+      decisionNotice: nextNotice ? { decision: nextNotice, status: 'not_sent' } : undefined,
+    })
+    return { ok: true as const }
   },
 })
