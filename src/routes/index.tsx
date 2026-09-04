@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
-import { OPENS_AT_MS, isWindowOpen } from '../lib/cycle'
+import { useActiveCycle } from '../hooks/useActiveCycle'
 import RegistrationActions from '../components/Home/RegistrationActions'
 import RegistrationBrief from '../components/Home/RegistrationBrief'
 import RegistrationClosedNotice from '../components/Home/RegistrationClosedNotice'
@@ -11,8 +11,7 @@ export const Route = createFileRoute('/')({
 })
 
 function HomePage() {
-  const isOpen = isWindowOpen()
-  const beforeOpening = Date.now() < OPENS_AT_MS
+  const c = useActiveCycle()
 
   return (
     /*
@@ -22,10 +21,22 @@ function HomePage() {
      * lede and the two cards inherit it instead of each capping itself.
      */
     <main className="col col-560 pt-[46px] pb-[90px]">
-      <RegistrationLede />
+      <RegistrationLede title={c?.title ?? ''} />
       <RegistrationBrief />
-      {isOpen ? <RegistrationActions /> : <RegistrationClosedNotice beforeOpening={beforeOpening} />}
-      <p className="eyebrow mt-8">{m.reg_closing()}</p>
+      {/* `undefined` while the query is in flight, `null` if no cycle is
+          active (a configuration fault): either way, nothing renders here
+          rather than a guess at whether the window is open. */}
+      {!c ? null : c.isOpen ? (
+        <RegistrationActions />
+      ) : (
+        <RegistrationClosedNotice
+          beforeOpening={c.beforeOpening}
+          title={c.title}
+          opensOnText={c.opensOnText}
+          closesOnText={c.closesOnText}
+        />
+      )}
+      <p className="eyebrow mt-8">{m.reg_closing({ date: c?.closesOnText ?? '' })}</p>
     </main>
   )
 }

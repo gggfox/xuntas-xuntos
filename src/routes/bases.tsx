@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
 import { DOCUMENTS } from '../lib/documents'
-import { REVIEW_DATE } from '../lib/cycle'
+import { useActiveCycle } from '../hooks/useActiveCycle'
 
 export const Route = createFileRoute('/bases')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.rules_title() }) }] }),
@@ -15,9 +15,10 @@ export const Route = createFileRoute('/bases')({
  * accepting anything.
  */
 function Rules() {
+  const c = useActiveCycle()
   return (
     <main className="col col-720 pt-[46px] pb-[90px]">
-      <p className="eyebrow">{m.brand_cycle()}</p>
+      <p className="eyebrow">{m.brand_cycle({ cycle: c?.cycle ?? '' })}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.rules_title()}</h1>
 
       {!DOCUMENTS.rules.ready && (
@@ -38,9 +39,9 @@ function Rules() {
 
         <h2 className="h-display mt-8 text-[18px] text-ink">Fechas</h2>
         <p>
-          El registro abre el 4 de septiembre y cierra el 18 de septiembre de 2026 a
-          las 23:59, hora del centro de México. Las solicitudes se revisan antes del{' '}
-          {REVIEW_DATE}.
+          {c
+            ? m.rules_dates({ opens: c.opensOnText, closes: c.closesOnText, review: c.reviewOnText })
+            : m.common_loading()}
         </p>
 
         <h2 className="h-display mt-8 text-[18px] text-ink">Cómo se evalúa</h2>

@@ -6,11 +6,13 @@ import { localizeHref } from '../paraglide/runtime.js'
 import { readPreSignupToken } from '../lib/preSignup'
 import { clerkAppearance } from '../lib/clerkAppearance'
 import { useThemeContext } from './ThemeProvider'
+import { useActiveCycle } from '../hooks/useActiveCycle'
 
 export default function SignUpScreen() {
   const [token, setToken] = useState<string | null | undefined>(undefined)
   const { pathname } = useLocation()
   const { resolved } = useThemeContext()
+  const cycle = useActiveCycle()
 
   /**
    * The token: sessionStorage does not exist on the server, so it is read
@@ -67,7 +69,9 @@ export default function SignUpScreen() {
     <main className="col col-560 pt-[46px] pb-[90px]">
       <p className="eyebrow">{m.account_eyebrow()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.account_title()}</h1>
-      <p className="mt-3 max-w-[52ch] font-light text-soft">{m.account_lede()}</p>
+      <p className="mt-3 max-w-[52ch] font-light text-soft">
+        {m.account_lede({ date: cycle?.closesOnText ?? '' })}
+      </p>
       <p className="mt-2 max-w-[52ch] text-[13px] font-light text-soft">{m.account_no_password()}</p>
 
       <div className="mt-8">

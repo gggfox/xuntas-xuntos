@@ -1,4 +1,5 @@
 import * as m from '../../paraglide/messages.js'
+import { useActiveCycle } from '../../hooks/useActiveCycle'
 
 /**
  * Clerk considers the reader signed in, but Convex rejected the session, so
@@ -10,9 +11,10 @@ import * as m from '../../paraglide/messages.js'
  * reader their account was being prepared while it had existed for days.
  */
 export default function SessionFrame() {
+  const c = useActiveCycle()
   return (
     <main className="col col-560 pt-[46px] pb-[90px]">
-      <p className="eyebrow">{m.brand_cycle()}</p>
+      <p className="eyebrow">{m.brand_cycle({ cycle: c?.cycle ?? '' })}</p>
       <h1 className="h-display mt-[7px] text-[clamp(24px,4vw,32px)]">{m.session_title()}</h1>
       <p className="mt-3 max-w-[52ch] font-light text-soft">{m.session_text()}</p>
       <p className="mt-6 text-[12.5px] text-soft">{m.session_help()}</p>

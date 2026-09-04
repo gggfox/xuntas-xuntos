@@ -28,6 +28,8 @@ type Props = {
   onSaveDraft: (data: RegistrationData) => void
   onSubmit: (data: RegistrationData) => Promise<RegistrationError[]>
   alreadySubmitted: boolean
+  /** The window's closing date, already in the page's locale. For the footer eyebrow. */
+  closesOnText: string
   /** What the reader had already done before this form opened. For the bar. */
   account: AccountMilestones
   /** The step the URL asked for. Treated as a request, not an instruction. */
@@ -90,6 +92,7 @@ export default function RegistrationForm({
   onSaveDraft,
   onSubmit,
   alreadySubmitted,
+  closesOnText,
   account,
   initialStep,
   onStepChange,
@@ -323,7 +326,9 @@ export default function RegistrationForm({
         onNext={onNext}
       />
 
-      <p className="eyebrow mt-4">{editable ? m.reg_closing() : m.reg_closed()}</p>
+      <p className="eyebrow mt-4">
+        {editable ? m.reg_closing({ date: closesOnText }) : m.reg_closed({ date: closesOnText })}
+      </p>
     </form>
   )
 }

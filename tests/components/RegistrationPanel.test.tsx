@@ -12,10 +12,19 @@ import * as m from '../../src/paraglide/messages.js'
 let authState: { isLoading: boolean; isAuthenticated: boolean }
 let queryResult: unknown
 let statusResult: unknown
+/**
+ * `RegistrationPanel` also calls `useActiveCycle`, unconditionally, before
+ * any of its early returns — so every test here needs an answer for it, not
+ * just the ones that reach the form. `null` reads as "no active cycle",
+ * which `useActiveCycle` treats the same as still loading: it returns early
+ * without touching `.cycle`.
+ */
+let cycleResult: unknown
 
 vi.mock('convex/react', () => ({
   useConvexAuth: () => authState,
-  useQuery: (fn: unknown) => (fn === 'users:myStatus' ? statusResult : queryResult),
+  useQuery: (fn: unknown) =>
+    fn === 'users:myStatus' ? statusResult : fn === 'cycles:active' ? cycleResult : queryResult,
   useMutation: () => vi.fn(),
 }))
 
@@ -32,6 +41,7 @@ vi.mock('../../convex/_generated/api', () => ({
   api: {
     users: { myStatus: 'users:myStatus' },
     registrations: { mine: 'registrations:mine', saveDraft: 'x', submit: 'y' },
+    cycles: { active: 'cycles:active' },
   },
 }))
 
@@ -43,6 +53,7 @@ beforeEach(() => {
   authState = { isLoading: false, isAuthenticated: true }
   queryResult = undefined
   statusResult = undefined
+  cycleResult = null
 })
 
 describe('RegistrationPanel null states', () => {

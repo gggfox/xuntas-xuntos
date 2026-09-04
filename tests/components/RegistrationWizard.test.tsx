@@ -47,6 +47,7 @@ function renderWizard(overrides: Partial<Parameters<typeof RegistrationForm>[0]>
       editable
       account={SIGNED_UP}
       alreadySubmitted={false}
+      closesOnText="18 de septiembre de 2026"
       onSaveDraft={onSaveDraft}
       onSubmit={onSubmit}
       onStepChange={onStepChange}

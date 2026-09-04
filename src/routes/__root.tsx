@@ -8,6 +8,7 @@ import * as m from '../paraglide/messages.js'
 import AppBar from '../components/AppBar'
 import ThemeProvider, { useThemeContext } from '../components/ThemeProvider'
 import { clerkAppearance } from '../lib/clerkAppearance'
+import { useActiveCycle } from '../hooks/useActiveCycle'
 
 import appCss from '../styles.css?url'
 
@@ -107,6 +108,25 @@ function ThemedProviders({ children }: { children: React.ReactNode }) {
   )
 }
 
+/**
+ * The window's dates come from `useActiveCycle`, which needs the Convex
+ * client — so this has to sit inside `ThemedProviders`, not beside it.
+ * `undefined` while loading is rendered as nothing rather than a flash of
+ * placeholder text.
+ */
+function Footer() {
+  const c = useActiveCycle()
+  return (
+    <footer className="relative mt-auto border-t border-line">
+      <div className="band py-[15px]">
+        <p className="eyebrow">
+          {c ? `${m.brand_cycle({ cycle: c.cycle })} · ${m.reg_closing({ date: c.closesOnText })}` : null}
+        </p>
+      </div>
+    </footer>
+  )
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang={getLocale()} suppressHydrationWarning>
@@ -125,13 +145,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               paper underneath it. On a long page the margin collapses to nothing
               and the page's own bottom padding does the spacing.
             */}
-            <footer className="relative mt-auto border-t border-line">
-              <div className="band py-[15px]">
-                <p className="eyebrow">
-                  {m.brand_cycle()} · {m.reg_closing()}
-                </p>
-              </div>
-            </footer>
+            <Footer />
             <Scripts />
           </ThemedProviders>
         </ThemeProvider>

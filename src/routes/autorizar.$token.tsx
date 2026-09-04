@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
+import { useActiveCycle } from '../hooks/useActiveCycle'
 
 export const Route = createFileRoute('/autorizar/$token')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.authorize_title() }) }] }),
@@ -17,6 +18,7 @@ function Authorize() {
   const { token } = Route.useParams()
   const request = useQuery(api.guardian.getRequest, { token })
   const confirm = useMutation(api.guardian.confirm)
+  const c = useActiveCycle()
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<string | null>(null)
 
@@ -69,7 +71,7 @@ function Authorize() {
     <Frame title={m.authorize_title()}>
       <p className="font-light text-soft">
         <b className="font-medium text-ink">{request.athleteName}</b> se registró a la{' '}
-        {m.brand_cycle()} del Programa de Desarrollo de {m.brand_name()} y te señaló como su
+        {m.brand_cycle({ cycle: c?.cycle ?? '' })} del Programa de Desarrollo de {m.brand_name()} y te señaló como su
         padre, madre o tutor.
       </p>
       <p className="mt-3 font-light text-soft">
