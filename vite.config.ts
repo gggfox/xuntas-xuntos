@@ -37,7 +37,15 @@ const config = defineConfig(({ command }) => {
     server: { port: Number(process.env.PORT) || 3000 },
     resolve: { tsconfigPaths: true },
     plugins: [
-      devtools(),
+      /*
+       * Console piping is off. With it on, the plugin forwards browser
+       * console output to the terminal AND terminal output to the browser,
+       * so one client warning (Clerk's development-keys notice) comes back
+       * as "[Server] …", gets forwarded again, and nests until Vite runs out
+       * of heap — about a minute after a tab connects. The devtools panel
+       * itself does not need it.
+       */
+      devtools({ consolePiping: { enabled: false } }),
       tailwindcss(),
       // Compiles the messages into typed functions before the bundle. Runs
       // before TanStack Start so the routes already see src/paraglide. The
