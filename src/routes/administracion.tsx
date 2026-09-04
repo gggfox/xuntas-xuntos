@@ -8,6 +8,10 @@ import { isStaff } from '../lib/permissions'
 
 export const Route = createFileRoute('/administracion')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.admin_title() }) }] }),
+  // Which call the admin pages look at. A bare cycle name only — anything
+  // else in `?ciclo=` is dropped rather than trusted.
+  validateSearch: (search: Record<string, unknown>): { ciclo?: string } =>
+    typeof search.ciclo === 'string' && /^\d{4}-\d{4}$/.test(search.ciclo) ? { ciclo: search.ciclo } : {},
   component: AdminLayout,
 })
 

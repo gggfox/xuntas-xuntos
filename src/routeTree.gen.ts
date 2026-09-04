@@ -16,6 +16,7 @@ import { Route as BasesRouteImport } from './routes/bases'
 import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
 import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
+import { Route as AdministracionConvocatoriasRouteImport } from './routes/administracion.convocatorias'
 import { Route as AdministracionEquipoRouteImport } from './routes/administracion.equipo'
 import { Route as AutorizarTokenRouteImport } from './routes/autorizar.$token'
 import { Route as CrearCuentaIndexRouteImport } from './routes/crear-cuenta.index'
@@ -60,6 +61,12 @@ const AdministracionIndexRoute = AdministracionIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdministracionRoute,
 } as any)
+const AdministracionConvocatoriasRoute =
+  AdministracionConvocatoriasRouteImport.update({
+    id: '/convocatorias',
+    path: '/convocatorias',
+    getParentRoute: () => AdministracionRoute,
+  } as any)
 const AdministracionEquipoRoute = AdministracionEquipoRouteImport.update({
   id: '/equipo',
   path: '/equipo',
@@ -108,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
@@ -124,6 +132,7 @@ export interface FileRoutesByTo {
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
@@ -142,6 +151,7 @@ export interface FileRoutesById {
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/bases'
     | '/empezar'
     | '/mi-registro'
+    | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/bases'
     | '/empezar'
     | '/mi-registro'
+    | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
@@ -194,6 +206,7 @@ export interface FileRouteTypes {
     | '/bases'
     | '/empezar'
     | '/mi-registro'
+    | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministracionIndexRouteImport
       parentRoute: typeof AdministracionRoute
     }
+    '/administracion/convocatorias': {
+      id: '/administracion/convocatorias'
+      path: '/convocatorias'
+      fullPath: '/administracion/convocatorias'
+      preLoaderRoute: typeof AdministracionConvocatoriasRouteImport
+      parentRoute: typeof AdministracionRoute
+    }
     '/administracion/equipo': {
       id: '/administracion/equipo'
       path: '/equipo'
@@ -331,11 +351,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdministracionRouteChildren {
+  AdministracionConvocatoriasRoute: typeof AdministracionConvocatoriasRoute
   AdministracionEquipoRoute: typeof AdministracionEquipoRoute
   AdministracionIndexRoute: typeof AdministracionIndexRoute
 }
 
 const AdministracionRouteChildren: AdministracionRouteChildren = {
+  AdministracionConvocatoriasRoute: AdministracionConvocatoriasRoute,
   AdministracionEquipoRoute: AdministracionEquipoRoute,
   AdministracionIndexRoute: AdministracionIndexRoute,
 }

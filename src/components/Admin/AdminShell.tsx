@@ -2,15 +2,21 @@ import { Link } from '@tanstack/react-router'
 import * as m from '../../paraglide/messages.js'
 import { can, type Permission } from '../../lib/permissions'
 import type { Role } from '../../lib/permissions'
+import CycleSelect from './CycleSelect'
 
 type Props = {
   roles: readonly Role[]
   children: React.ReactNode
 }
 
-// registros and convocatorias join this list with their plans.
-const NAV: ReadonlyArray<{ to: '/administracion/equipo'; label: () => string; needs: Permission }> = [
+// registros joins this list with its plan.
+const NAV: ReadonlyArray<{
+  to: '/administracion/equipo' | '/administracion/convocatorias'
+  label: () => string
+  needs: Permission
+}> = [
   { to: '/administracion/equipo', label: m.admin_nav_staff, needs: 'view_staff' },
+  { to: '/administracion/convocatorias', label: m.admin_nav_cycles, needs: 'manage_cycles' },
 ]
 
 /**
@@ -25,18 +31,21 @@ export default function AdminShell({ roles, children }: Props) {
       <p className="eyebrow">{m.admin_eyebrow()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.admin_title()}</h1>
       {links.length > 0 && (
-        <nav className="mt-6 flex flex-wrap gap-2 border-b border-line pb-3" aria-label={m.admin_title()}>
-          {links.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              className="rounded-ctl border border-transparent px-3 py-1.5 font-mono text-[11.5px] tracking-[.08em] uppercase text-soft no-underline hover:text-ink [&.active]:border-line-2 [&.active]:text-ink"
-              activeProps={{ className: 'active' }}
-            >
-              {n.label()}
-            </Link>
-          ))}
-        </nav>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+          <nav className="flex flex-wrap gap-2" aria-label={m.admin_title()}>
+            {links.map((n) => (
+              <Link
+                key={n.to}
+                to={n.to}
+                className="rounded-ctl border border-transparent px-3 py-1.5 font-mono text-[11.5px] tracking-[.08em] uppercase text-soft no-underline hover:text-ink [&.active]:border-line-2 [&.active]:text-ink"
+                activeProps={{ className: 'active' }}
+              >
+                {n.label()}
+              </Link>
+            ))}
+          </nav>
+          <CycleSelect />
+        </div>
       )}
       {children}
     </main>

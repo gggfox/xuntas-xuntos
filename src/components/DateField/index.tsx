@@ -55,6 +55,8 @@ type Props = {
   /** ISO bounds. Defaults: 1930-01-01 to today in central Mexico time. */
   min?: string
   max?: string
+  /** Month the grid opens on while nothing is selected. Defaults to eighteen years back — right for a date of birth, wrong for anything else. */
+  openAt?: string
 }
 
 const FLOOR: Ymd = { y: 1930, m: 1, d: 1 }
@@ -72,6 +74,7 @@ export default function DateField({
   showAge = false,
   min,
   max,
+  openAt,
 }: Props) {
   const fmt = useDateFormats()
 
@@ -211,7 +214,7 @@ export default function DateField({
             today={today}
             min={lo}
             max={hi}
-            openAt={{ y: today.y - 18, m: today.m, d: today.d }}
+            openAt={parseISO(openAt ?? '') ?? { y: today.y - 18, m: today.m, d: today.d }}
             fmt={fmt}
             onPick={pick}
           />
