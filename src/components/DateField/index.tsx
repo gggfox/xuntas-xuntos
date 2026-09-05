@@ -57,6 +57,12 @@ type Props = {
   max?: string
   /** Month the grid opens on while nothing is selected. Defaults to eighteen years back — right for a date of birth, wrong for anything else. */
   openAt?: string
+  /**
+   * Keeps the grid open and drops the button that would fold it away. For a
+   * screen laid out around the calendar, where hiding it leaves a hole rather
+   * than reclaiming anything.
+   */
+  pinned?: boolean
 }
 
 const FLOOR: Ymd = { y: 1930, m: 1, d: 1 }
@@ -75,6 +81,7 @@ export default function DateField({
   min,
   max,
   openAt,
+  pinned = false,
 }: Props) {
   const fmt = useDateFormats()
 
@@ -184,7 +191,7 @@ export default function DateField({
           id={id}
           type="text"
           inputMode="numeric"
-          className="fld-input pr-[44px] font-mono tracking-[0.04em] tabular-nums"
+          className={`fld-input font-mono tracking-[0.04em] tabular-nums ${pinned ? '' : 'pr-[44px]'}`}
           placeholder={m.date_placeholder()}
           value={text}
           onChange={(e) => onType(e.target.value)}
@@ -193,16 +200,21 @@ export default function DateField({
           autoComplete={autoComplete}
           maxLength={10}
         />
-        <button
-          type="button"
-          className="cal-nav absolute top-1/2 right-[7px] h-[30px] w-[30px] -translate-y-1/2"
-          onClick={() => setOpen((o) => !o)}
-          aria-expanded={open}
-          aria-controls={panelId}
-          aria-label={open ? m.date_close() : m.date_open()}
-        >
-          <Icons.Calendar />
-        </button>
+        {/* No toggle where the grid is the point of the screen: a button whose
+            only power is to take the calendar away is a way to break the row
+            it stands in, and there is nothing under it worth uncovering. */}
+        {!pinned && (
+          <button
+            type="button"
+            className="cal-nav absolute top-1/2 right-[7px] h-[30px] w-[30px] -translate-y-1/2"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-controls={panelId}
+            aria-label={open ? m.date_close() : m.date_open()}
+          >
+            <Icons.Calendar />
+          </button>
+        )}
       </div>
 
       <div className="cal-reveal" data-open={open}>

@@ -97,6 +97,7 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
           min={closesOn || undefined}
           max={`${new Date().getUTCFullYear() + 5}-12-31`}
           openAt={closesOn || undefined}
+          pinned
         />
       </div>
 
