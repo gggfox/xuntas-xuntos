@@ -16,10 +16,12 @@ export type CycleFields = {
   closesOn: string
   reviewOn: string
   isActive: boolean
+  title?: string
 }
 
 export type CycleInput = {
   cycle: string
+  title: string
   opensOn: string
   closesOn: string
   reviewOn: string
@@ -89,11 +91,18 @@ export function windowStatusAt(
   return { isOpen: now >= opensAtMs && now <= closesAtMs, beforeOpening: now < opensAtMs }
 }
 
-const NAME_RE = /^(\d{4})-(\d{4})$/
+/**
+ * The key a call for applications is filed under — every `registrations` and
+ * `guardianAuth` row points at one of these, so it stays a key: short,
+ * unique, and locked once a row exists. It no longer has to be a date range:
+ * an organisation running more than one call a year needs names like
+ * `2026-2027-verano` or `beca-invierno`, not just `2026-2027`.
+ */
+const KEY_RE = /^[a-z0-9-]{2,40}$/i
 
 export function validateCycle(input: CycleInput): AppErrorCode | null {
-  const name = NAME_RE.exec(input.cycle.trim())
-  if (!name || Number(name[2]) !== Number(name[1]) + 1) return 'cycle_name_invalid'
+  if (!KEY_RE.test(input.cycle.trim())) return 'cycle_key_invalid'
+  if (!input.title.trim()) return 'cycle_title_required'
 
   const opens = dayStartMs(input.opensOn)
   const closes = dayEndMs(input.closesOn)
@@ -105,12 +114,29 @@ export function validateCycle(input: CycleInput): AppErrorCode | null {
   return null
 }
 
-/** Derived, never typed: fewer free-text fields means fewer ways for two pages to disagree. */
+/**
+ * The title before this change existed: derived from the key, never typed.
+ * A row written before titles existed has no `title` of its own, so this is
+ * what `cycleTitle` falls back to for it — and what `cycles.seed` writes as
+ * the 2026–2027 row's actual title, since a seeded row needs something to
+ * start with.
+ */
 export function titleOf(cycle: string, locale: 'es' | 'en'): string {
   const pretty = cycle.replace('-', '–')
   return locale === 'es'
     ? `Convocatoria General ${pretty}`
     : `${pretty} General Call for Applications`
+}
+
+/**
+ * What a call is actually called, for display: the title an admin typed, or
+ * — for a row written before titles existed — the key dressed up the way
+ * `titleOf` always formatted it. Everything that shows a call's name to a
+ * reader goes through this rather than reading `title` or `cycle` directly,
+ * so the one row still missing a title does not render blank.
+ */
+export function cycleTitle(row: { cycle: string; title?: string }, locale: 'es' | 'en'): string {
+  return row.title?.trim() || titleOf(row.cycle, locale)
 }
 
 const MONTHS_ES = [

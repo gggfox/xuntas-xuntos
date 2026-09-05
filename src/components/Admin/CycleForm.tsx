@@ -8,7 +8,7 @@ import { describeConvexError, errorMessage } from '../../lib/registrationErrors'
 
 type Props = {
   initial?: CycleInput
-  /** The name is the key; editing an existing row keeps it read-only. */
+  /** The key never changes once a row exists; editing one keeps it read-only. */
   lockName?: boolean
   submitLabel: string
   onSubmit: (input: CycleInput) => Promise<void>
@@ -16,13 +16,16 @@ type Props = {
 }
 
 /**
- * Create or edit one call for applications: its name, its registration
- * window, and the day results are reviewed. Shared by `CyclesPanel` for both
- * "Nueva convocatoria" and "Editar" — only whether the name is locked and
- * what the submit does differ.
+ * Create or edit one call for applications: the key every registration is
+ * filed under, the title families actually read, the registration window,
+ * and the day results are reviewed. Shared by `CyclesPanel` for both "Nueva
+ * convocatoria" and "Editar" — only whether the key is locked and what the
+ * submit does differ. The title is never locked: it is free text, and
+ * renaming a call does not change what it is filed under.
  */
 export default function CycleForm({ initial, lockName, submitLabel, onSubmit, onDone }: Props) {
   const [cycle, setCycle] = useState(initial?.cycle ?? '')
+  const [title, setTitle] = useState(initial?.title ?? '')
   const [opensOn, setOpensOn] = useState(initial?.opensOn ?? '')
   const [closesOn, setClosesOn] = useState(initial?.closesOn ?? '')
   const [reviewOn, setReviewOn] = useState(initial?.reviewOn ?? '')
@@ -31,7 +34,7 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault()
-    const input = { cycle: cycle.trim(), opensOn, closesOn, reviewOn }
+    const input = { cycle: cycle.trim(), title, opensOn, closesOn, reviewOn }
     const problem = validateCycle(input)
     if (problem) {
       setError(errorMessage(problem))
@@ -67,9 +70,23 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
         value={cycle}
         onChange={(e) => setCycle(e.target.value)}
         disabled={lockName}
-        placeholder="2027-2028"
+        placeholder="2026-2027-verano"
       />
       <p className="mt-1 mb-5 text-[11.5px] text-soft">{m.cycles_name_help()}</p>
+
+      {/* Free text, and never locked: unlike the key above, the title is
+          what a family reads, and it is normal to want to fix its wording
+          without touching anything the site already filed under the key. */}
+      <label htmlFor="cycle-title" className="text-[12.5px] font-medium">
+        {m.cycles_title_label()} <span className="text-bad">*</span>
+      </label>
+      <input
+        id="cycle-title"
+        className="fld-input mt-1.5"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <p className="mt-1 mb-5 text-[11.5px] text-soft">{m.cycles_title_help()}</p>
 
       {/* `cal-pair` puts the two fields on shared rows, so the calendars sit
           level even though the window's boxes carry their own headings and

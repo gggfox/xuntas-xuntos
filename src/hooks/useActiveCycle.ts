@@ -1,7 +1,7 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { getLocale } from '../paraglide/runtime.js'
-import { formatDay, titleOf, windowStatusAt } from '../lib/cycle'
+import { formatDay, windowStatusAt } from '../lib/cycle'
 
 /**
  * The active call, with its dates already spelled out in the page's locale.
@@ -9,9 +9,9 @@ import { formatDay, titleOf, windowStatusAt } from '../lib/cycle'
  * fault, not a state the UI designs for).
  */
 export function useActiveCycle() {
-  const c = useQuery(api.cycles.active)
-  if (!c) return c
   const locale = getLocale() as 'es' | 'en'
+  const c = useQuery(api.cycles.active, { locale })
+  if (!c) return c
   return {
     ...c,
     // `c.isOpen` / `c.beforeOpening` came out of a reactive query that ran
@@ -20,7 +20,9 @@ export function useActiveCycle() {
     // true when the query last executed, so recompute from the raw instants
     // on every render instead of trusting the snapshot.
     ...windowStatusAt(c.opensAtMs, c.closesAtMs),
-    title: titleOf(c.cycle, locale),
+    // `c.title` is already resolved server-side, through `cycleTitle` —
+    // typed by an admin, or `titleOf`'s fallback for a row that predates
+    // titles. Nothing here derives it a second time.
     opensOnText: formatDay(c.opensOn, locale),
     closesOnText: formatDay(c.closesOn, locale),
     reviewOnText: formatDay(c.reviewOn, locale),

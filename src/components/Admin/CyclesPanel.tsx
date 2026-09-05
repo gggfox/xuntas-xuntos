@@ -54,7 +54,12 @@ export default function CyclesPanel() {
         {cycles.map((c) => (
           <li key={c.cycle} className="card px-[21px] py-[15px]">
             <div className="flex flex-wrap items-center gap-3">
-              <b className="font-disp text-[15px]">{c.cycle}</b>
+              {/* The title is what a reader recognizes a call by; the key
+                  beside it in the eyebrow voice is there for whoever needs
+                  to match it against a registration row, not for anyone
+                  reading the list top to bottom. */}
+              <b className="font-disp text-[15px]">{c.displayTitle}</b>
+              <span className="eyebrow">{c.cycle}</span>
               {c.isActive && <Pill tone="ok">{m.cycles_active()}</Pill>}
               <span className="font-mono text-[11px] text-soft">
                 {c.opensOn} → {c.closesOn} · {m.cycles_review()}: {c.reviewOn}
@@ -84,7 +89,11 @@ export default function CyclesPanel() {
             {editing === c.cycle && (
               <>
                 <CycleForm
-                  initial={c}
+                  // The raw, possibly-absent `title` — not `displayTitle` — so
+                  // editing a row from before titles existed shows an empty
+                  // box to fill in, rather than pre-filling the fallback text
+                  // as if it had been typed.
+                  initial={{ ...c, title: c.title ?? '' }}
                   lockName
                   submitLabel={m.cycles_save()}
                   onSubmit={async (input) => {

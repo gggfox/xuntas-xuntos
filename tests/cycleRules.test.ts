@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  cycleTitle,
   dayEndMs,
   dayStartMs,
   formatDay,
@@ -10,7 +11,13 @@ import {
   windowStatusAt,
 } from '../convex/lib/cycleRules'
 
-const C2026 = { cycle: '2026-2027', opensOn: '2026-09-04', closesOn: '2026-09-18', reviewOn: '2026-09-23' }
+const C2026 = {
+  cycle: '2026-2027',
+  title: 'Convocatoria General 2026–2027',
+  opensOn: '2026-09-04',
+  closesOn: '2026-09-18',
+  reviewOn: '2026-09-23',
+}
 
 describe('day boundaries in Mexico City', () => {
   /** The values the constants used to hold, so nothing moves when the row replaces them. */
@@ -73,9 +80,26 @@ describe('validateCycle', () => {
     expect(validateCycle(C2026)).toBeNull()
   })
 
-  it('wants two consecutive years as the name', () => {
-    expect(validateCycle({ ...C2026, cycle: '2026' })).toBe('cycle_name_invalid')
-    expect(validateCycle({ ...C2026, cycle: '2026-2028' })).toBe('cycle_name_invalid')
+  it('accepts a key that is not a date range at all', () => {
+    expect(validateCycle({ ...C2026, cycle: '2026-2027-verano' })).toBeNull()
+    expect(validateCycle({ ...C2026, cycle: 'beca-invierno' })).toBeNull()
+  })
+
+  it('is case-insensitive and stores the key as typed', () => {
+    expect(validateCycle({ ...C2026, cycle: 'BECA-INVIERNO' })).toBeNull()
+  })
+
+  it('refuses spaces, punctuation, and lengths outside 2-40', () => {
+    expect(validateCycle({ ...C2026, cycle: '2026 2027' })).toBe('cycle_key_invalid')
+    expect(validateCycle({ ...C2026, cycle: '2026_2027' })).toBe('cycle_key_invalid')
+    expect(validateCycle({ ...C2026, cycle: '2026/2027' })).toBe('cycle_key_invalid')
+    expect(validateCycle({ ...C2026, cycle: 'a' })).toBe('cycle_key_invalid')
+    expect(validateCycle({ ...C2026, cycle: 'a'.repeat(41) })).toBe('cycle_key_invalid')
+  })
+
+  it('wants a title that is not blank or only whitespace', () => {
+    expect(validateCycle({ ...C2026, title: '' })).toBe('cycle_title_required')
+    expect(validateCycle({ ...C2026, title: '   ' })).toBe('cycle_title_required')
   })
 
   it('refuses a close before the open, and unreadable days', () => {
@@ -101,5 +125,22 @@ describe('copy helpers', () => {
   it('spells a day out the way the copy already did', () => {
     expect(formatDay('2026-09-18', 'es')).toBe('18 de septiembre de 2026')
     expect(formatDay('2026-09-18', 'en')).toBe('September 18, 2026')
+  })
+})
+
+/**
+ * `cycleTitle` is what every screen and email shows for a call's name now —
+ * a typed title when there is one, `titleOf`'s derivation for a row written
+ * before titles existed.
+ */
+describe('cycleTitle', () => {
+  it('prefers the typed title', () => {
+    expect(cycleTitle({ cycle: 'beca-invierno', title: 'Beca de Invierno' }, 'es')).toBe('Beca de Invierno')
+  })
+
+  it('falls back to titleOf when the title is missing, empty, or blank', () => {
+    expect(cycleTitle({ cycle: '2026-2027' }, 'es')).toBe(titleOf('2026-2027', 'es'))
+    expect(cycleTitle({ cycle: '2026-2027', title: '' }, 'en')).toBe(titleOf('2026-2027', 'en'))
+    expect(cycleTitle({ cycle: '2026-2027', title: '   ' }, 'es')).toBe(titleOf('2026-2027', 'es'))
   })
 })

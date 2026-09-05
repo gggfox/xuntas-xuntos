@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { activeCycle } from './cycles'
-import { formatDay, windowOf } from './lib/cycleRules'
+import { cycleTitle, formatDay, windowOf } from './lib/cycleRules'
 import { requireUser } from './auth'
 import { newToken } from './lib/tokens'
 import { isValidEmail } from './lib/html'
@@ -131,7 +131,7 @@ export const resend = mutation({
       token,
       isResend: true,
       closesOnText: formatDay(cycle.closesOn, 'es'),
-      cycle: cycle.cycle,
+      cycleTitle: cycleTitle(cycle, 'es'),
     })
 
     return { ok: true as const, reason: 'sent' as const }
@@ -199,7 +199,7 @@ export const correctEmail = mutation({
       token,
       isResend: false,
       closesOnText: formatDay(cycle.closesOn, 'es'),
-      cycle: cycle.cycle,
+      cycleTitle: cycleTitle(cycle, 'es'),
     })
 
     return { ok: true as const, reason: 'sent' as const }

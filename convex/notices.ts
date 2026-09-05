@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation } from './_generated/server'
 import { internal } from './_generated/api'
 import type { AppErrorCode } from './lib/errorCodes'
-import { isWindowOpenFor } from './lib/cycleRules'
+import { cycleTitle, isWindowOpenFor } from './lib/cycleRules'
 import { requirePermission } from './auth'
 
 /**
@@ -28,10 +28,17 @@ export const sendRejection = mutation({
     if (!r) fail('registration_not_found')
     if (r.decisionNotice?.decision !== 'rejected') fail('decision_invalid')
     if (r.decisionNotice.status !== 'not_sent') fail('notice_not_pending')
+    // The registration only carries the cycle's KEY; the title a family
+    // reads lives on the cycles row, resolved the same way everywhere else.
+    const cycle = await ctx.db
+      .query('cycles')
+      .withIndex('by_cycle', (q) => q.eq('cycle', r.cycle))
+      .unique()
     await ctx.scheduler.runAfter(0, internal.emails.sendDecisionNotice, {
       registrationId: r._id,
       decision: r.decisionNotice.decision,
       sentBy: actor._id,
+      cycleTitle: cycleTitle(cycle ?? { cycle: r.cycle }, 'es'),
     })
     return { ok: true as const }
   },
@@ -66,6 +73,10 @@ export const sendBatch = mutation({
     // window.
     if (isWindowOpenFor(cycle)) fail('window_open')
 
+    // Resolved once for the whole batch: every notice in it is for the same
+    // cycle, so there is no reason to resolve its title a second time per row.
+    const title = cycleTitle(cycle, 'es')
+
     // A stale selection Set or a double-fired handler can repeat an id; one
     // schedule per registration, however many times it was listed.
     const uniqueIds = new Set(args.ids)
@@ -88,6 +99,7 @@ export const sendBatch = mutation({
         registrationId: r._id,
         decision: r.decisionNotice.decision,
         sentBy: actor._id,
+        cycleTitle: title,
       })
       scheduled++
     }
@@ -101,10 +113,15 @@ export const sendTest = mutation({
   args: { cycle: v.string(), decision: vNoticeDecision },
   handler: async (ctx, args) => {
     const actor = await requirePermission(ctx, args.decision === 'rejected' ? 'send_rejection' : 'send_batch')
+    const cycle = await ctx.db
+      .query('cycles')
+      .withIndex('by_cycle', (q) => q.eq('cycle', args.cycle))
+      .unique()
+    if (!cycle) fail('cycle_not_found')
     await ctx.scheduler.runAfter(0, internal.emails.sendDecisionTest, {
       to: actor.email,
       decision: args.decision,
-      cycle: args.cycle,
+      cycleTitle: cycleTitle(cycle, 'es'),
     })
     return { ok: true as const }
   },

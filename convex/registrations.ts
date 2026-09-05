@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { activeCycle, requireWindowOpen } from './cycles'
-import { formatDay, isWindowOpenFor, windowOf } from './lib/cycleRules'
+import { cycleTitle, formatDay, isWindowOpenFor, windowOf } from './lib/cycleRules'
 import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
 import { LETTER_LIMIT } from './lib/registrationSchema'
 import { validateRegistration } from './lib/registrationRules'
@@ -266,7 +266,7 @@ export const submit = mutation({
         guardianMissing: guardian !== null && guardian.confirmedAt === undefined,
         closesOnText: formatDay(cycle.closesOn, 'es'),
         reviewOnText: formatDay(cycle.reviewOn, 'es'),
-        cycle: cycle.cycle,
+        cycleTitle: cycleTitle(cycle, 'es'),
       })
     }
 

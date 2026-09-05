@@ -9,7 +9,7 @@ import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import { activeCycle } from './cycles'
 import { fail, currentUser, requireUser } from './auth'
-import { formatDay, windowOf } from './lib/cycleRules'
+import { cycleTitle, formatDay, windowOf } from './lib/cycleRules'
 import { isUnderage } from './lib/cycle'
 import { validateBirthDateDeclaration } from './lib/guardianRules'
 import { newToken } from './lib/tokens'
@@ -125,7 +125,7 @@ async function openGuardianAuthorization(
     token,
     isResend: false,
     closesOnText: formatDay(cycle.closesOn, 'es'),
-    cycle: cycle.cycle,
+    cycleTitle: cycleTitle(cycle, 'es'),
   })
 }
 

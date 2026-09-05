@@ -9,7 +9,9 @@ import {
 import type { Doc } from './_generated/dataModel'
 import type { AppErrorCode } from './lib/errorCodes'
 import {
+  cycleTitle,
   isWindowOpenFor,
+  titleOf,
   validateCycle,
   windowOf,
   type CycleFields,
@@ -43,6 +45,7 @@ const fieldsOf = (c: Doc<'cycles'>): CycleFields => ({
   closesOn: c.closesOn,
   reviewOn: c.reviewOn,
   isActive: c.isActive,
+  title: c.title,
 })
 
 /** One `cycleChanges` row per write, so every move of the window leaves a trail. */
@@ -92,6 +95,7 @@ export const seed = internalMutation({
     const now = Date.now()
     await ctx.db.insert('cycles', {
       cycle: '2026-2027',
+      title: titleOf('2026-2027', 'es'),
       opensOn: '2026-09-04',
       closesOn: '2026-09-18',
       reviewOn: '2026-09-23',
@@ -105,8 +109,8 @@ export const seed = internalMutation({
 
 /** Public: the landing page reads it signed out. */
 export const active = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { locale: v.union(v.literal('es'), v.literal('en')) },
+  handler: async (ctx, args) => {
     const row = await ctx.db
       .query('cycles')
       .withIndex('by_active', (q) => q.eq('isActive', true))
@@ -116,6 +120,10 @@ export const active = query({
     const now = Date.now()
     return {
       cycle: row.cycle,
+      // Resolved here rather than by the client: the fallback for a row
+      // written before titles existed lives in one place, not in every
+      // screen that reads this query.
+      title: cycleTitle(row, args.locale),
       opensOn: row.opensOn,
       closesOn: row.closesOn,
       reviewOn: row.reviewOn,
@@ -127,7 +135,13 @@ export const active = query({
   },
 })
 
-/** Staff list: reviewers need to see the window even though they cannot move it. */
+/**
+ * Staff list: reviewers need to see the window even though they cannot move
+ * it. `title` is the raw, possibly-absent field so the edit form can show
+ * what is actually stored (and let an admin fill it in); `displayTitle` is
+ * what a reader sees on this same row today, resolved through `cycleTitle`
+ * so the one row still missing a title does not render blank here either.
+ */
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -141,6 +155,8 @@ export const list = query({
       .map((c) => ({
         _id: c._id,
         cycle: c.cycle,
+        title: c.title,
+        displayTitle: cycleTitle(c, 'es'),
         opensOn: c.opensOn,
         closesOn: c.closesOn,
         reviewOn: c.reviewOn,
@@ -174,6 +190,7 @@ export const changes = query({
 
 const vInput = {
   cycle: v.string(),
+  title: v.string(),
   opensOn: v.string(),
   closesOn: v.string(),
   reviewOn: v.string(),
@@ -194,6 +211,7 @@ export const create = mutation({
 
     const now = Date.now()
     const fields: CycleFields = {
+      title: args.title.trim(),
       opensOn: args.opensOn,
       closesOn: args.closesOn,
       reviewOn: args.reviewOn,
@@ -224,8 +242,11 @@ export const update = mutation({
       .unique()
     if (!row) fail('cycle_not_found')
 
+    // The title may change; the key it is filed under never does — `update`
+    // takes `cycle` only to find the row, the same as it always has.
     const after: CycleFields = {
       ...fieldsOf(row),
+      title: args.title.trim(),
       opensOn: args.opensOn,
       closesOn: args.closesOn,
       reviewOn: args.reviewOn,

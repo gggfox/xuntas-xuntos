@@ -3,7 +3,6 @@ import { components, internal } from './_generated/api'
 import { internalMutation } from './_generated/server'
 import { v } from 'convex/values'
 import { textForEmail } from './lib/html'
-import { titleOf } from './lib/cycleRules'
 
 /**
  * Resend client with durable execution: queue, retries and idempotency. It
@@ -24,13 +23,17 @@ const REPLY_TO = 'hola@xuntas.org'
 const appUrl = () => process.env.APP_URL ?? 'https://app.xuntas.org'
 
 /**
- * The header chrome's short form of a cycle's name ("Convocatoria
- * 2026–2027") — shorter than `titleOf`'s body-copy phrasing, which spells
- * out "Convocatoria General". Derived from the cycle name we already have on
- * hand, never typed, so a new call for applications needs no email edit.
+ * The header chrome's line naming the call: the resolved title, exactly as
+ * the caller worked it out (through `cycleTitle`, at the call site that has
+ * the cycle row in hand) — "Convocatoria General 2026–2027" for a row that
+ * still falls back to `titleOf`, or whatever else an admin has typed as its
+ * title since a title no longer needs "Convocatoria" prepended to make
+ * sense on its own.
  */
-function headerLineFor(cycle: string): string {
-  return `Convocatoria ${cycle.replace('-', '–')}`
+function headerLineFor(cycleTitle: string): string {
+  // Escaped: unlike the key it used to be built from, a title is free text
+  // an admin typed, and it ends up inside the header banner's HTML.
+  return textForEmail(cycleTitle)
 }
 
 /**
@@ -89,12 +92,12 @@ export const sendAthleteConfirmation = internalMutation({
     guardianMissing: v.boolean(),
     closesOnText: v.string(),
     reviewOnText: v.string(),
-    cycle: v.string(),
+    cycleTitle: v.string(),
   },
   handler: async (ctx, args) => {
     // Escaped: the name comes from the form and ends up inside the HTML.
     const firstName = textForEmail(args.name.trim().split(/\s+/)[0] || args.name, 60)
-    const headerLine = headerLineFor(args.cycle)
+    const headerLine = headerLineFor(args.cycleTitle)
 
     const guardianNotice = args.guardianMissing
       ? `<div style="background:#F8FBD4;border:1px solid #C9D42B;border-radius:9px;padding:16px 19px;margin:22px 0;">
@@ -139,7 +142,7 @@ export const sendGuardianAuthorization = internalMutation({
     token: v.string(),
     isResend: v.boolean(),
     closesOnText: v.string(),
-    cycle: v.string(),
+    cycleTitle: v.string(),
   },
   handler: async (ctx, args) => {
     // The token is hex we generate, but it gets encoded anyway: the URL is
@@ -155,10 +158,11 @@ export const sendGuardianAuthorization = internalMutation({
     // Escaped: both come from forms.
     const guardianName = textForEmail(args.guardianName)
     const athleteName = textForEmail(args.athleteName)
-    // The full body-copy title ("Convocatoria General 2026–2027"), not the
-    // header chrome's shorter form — derived, so it does not need escaping,
-    // but running it through costs nothing.
-    const cycleTitle = textForEmail(titleOf(args.cycle, 'es'))
+    // The RESOLVED title ("Convocatoria General 2026–2027", or whatever an
+    // admin has since typed) — the caller worked this out through
+    // `cycleTitle`, so a renamed call reads correctly here too. Escaped: a
+    // title is free text now, and this ends up inside the HTML.
+    const cycleTitle = textForEmail(args.cycleTitle)
 
     await resend.sendEmail(ctx, {
       from: FROM,
@@ -181,7 +185,7 @@ export const sendGuardianAuthorization = internalMutation({
            ignora este correo y responde para avisarnos: la cuenta no quedará autorizada.
          </p>`,
         `${athleteName} necesita tu autorización para completar su registro.`,
-        headerLineFor(args.cycle),
+        headerLineFor(args.cycleTitle),
       ),
     })
   },
@@ -308,9 +312,10 @@ type NoticeDecisionArg = 'rejected' | 'selected' | 'not_selected'
 /**
  * The three decisions a family hears about. Fixed copy, drafted for XUNTAS
  * to approve: no internal note ever reaches a body, and no name beyond the
- * athlete's own. `cycleTitle` is the long, body-copy form (`titleOf`) — the
- * caller derives it from the same `cycle` string it also uses for the
- * header chrome, so a 2027 email says 2027 in both places.
+ * athlete's own. `cycleTitle` is the resolved title — the caller works it
+ * out with `cycleTitle` from `lib/cycleRules.ts` and passes the same string
+ * on to the header chrome, so a renamed call says the same thing in both
+ * places.
  */
 function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle: string) {
   const name = textForEmail(firstName, 60)
@@ -368,7 +373,12 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
  * sent on its own.
  */
 export const sendDecisionNotice = internalMutation({
-  args: { registrationId: v.id('registrations'), decision: vNoticeDecision, sentBy: v.id('users') },
+  args: {
+    registrationId: v.id('registrations'),
+    decision: vNoticeDecision,
+    sentBy: v.id('users'),
+    cycleTitle: v.string(),
+  },
   handler: async (ctx, args) => {
     const r = await ctx.db.get(args.registrationId)
     if (!r || !r.decisionNotice || r.decisionNotice.status !== 'not_sent') return
@@ -377,14 +387,14 @@ export const sendDecisionNotice = internalMutation({
     if (!user) return
 
     const firstName = r.personal.name.trim().split(/\s+/)[0] || user.name?.trim().split(/\s+/)[0] || ''
-    const body = decisionBody(r.decisionNotice.decision, firstName, titleOf(r.cycle, 'es'))
+    const body = decisionBody(r.decisionNotice.decision, firstName, args.cycleTitle)
     // The ACCOUNT email, which Clerk verified — never the one typed into the form.
     const emailId = await resend.sendEmail(ctx, {
       from: FROM,
       to: user.email,
       replyTo: [REPLY_TO],
       subject: body.subject,
-      html: template(body.html, body.preheader, headerLineFor(r.cycle)),
+      html: template(body.html, body.preheader, headerLineFor(args.cycleTitle)),
     })
     await ctx.db.patch(r._id, {
       decisionNotice: { ...r.decisionNotice, status: 'sent', emailId, sentAt: Date.now(), sentBy: args.sentBy },
@@ -394,15 +404,15 @@ export const sendDecisionNotice = internalMutation({
 
 /** The same copy, to any address, with no row to patch. What a staff member checks before a batch goes out. */
 export const sendDecisionTest = internalMutation({
-  args: { to: v.string(), decision: vNoticeDecision, cycle: v.string() },
+  args: { to: v.string(), decision: vNoticeDecision, cycleTitle: v.string() },
   handler: async (ctx, args) => {
-    const body = decisionBody(args.decision, 'Prueba', titleOf(args.cycle, 'es'))
+    const body = decisionBody(args.decision, 'Prueba', args.cycleTitle)
     await resend.sendEmail(ctx, {
       from: FROM,
       to: args.to,
       replyTo: [REPLY_TO],
       subject: `[PRUEBA] ${body.subject}`,
-      html: template(body.html, body.preheader, headerLineFor(args.cycle)),
+      html: template(body.html, body.preheader, headerLineFor(args.cycleTitle)),
     })
   },
 })

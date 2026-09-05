@@ -76,6 +76,8 @@ const vCycleFields = v.object({
   closesOn: v.string(),
   reviewOn: v.string(),
   isActive: v.boolean(),
+  /** Optional so a change to a row from before titles existed still audits cleanly. */
+  title: v.optional(v.string()),
 })
 
 export default defineSchema({
@@ -135,9 +137,18 @@ export default defineSchema({
    * and guardian authorizations already carry `cycle`, so this is the table
    * that string was always pointing at. Dates are Mexico City days — see
    * convex/lib/cycleRules.ts for how they become instants.
+   *
+   * `cycle` is the KEY every registration is filed under: short, unique,
+   * locked once the row exists. `title` is the free text families actually
+   * read, on the site and in emails — editable any time, because a renamed
+   * call is still the same call. It is optional only until every row has
+   * one: the dev deployment already holds a row from before titles existed,
+   * and a required field would be rejected on push against it. `cycleTitle`
+   * in convex/lib/cycleRules.ts is what covers that gap for a reader.
    */
   cycles: defineTable({
     cycle: v.string(),
+    title: v.optional(v.string()),
     opensOn: v.string(),
     closesOn: v.string(),
     reviewOn: v.string(),
