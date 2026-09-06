@@ -3,7 +3,7 @@
 **Date:** 2026-09-06
 **Status:** approved in chat, pending review of this document
 **Instance:** `https://infisical.gggfox.com` (self-hosted, v0.162.2, on the same Dokploy VPS)
-**Project:** `xuntas-xuntos`, environments `development` (slug to confirm), `staging`, `production`
+**Project:** `xuntas-xuntos`, slug `xuntas-xuntos-j-k6-i`, environments `dev`, `staging`, `prod`
 
 ## Problem
 
@@ -56,7 +56,7 @@ Its client id and secret live in exactly two places:
   VITE_WINDOW_ALWAYS_OPEN      (staging and development only — never production)
   CLERK_SECRET_KEY             (reference copy; Dokploy still holds its own)
 /ci                    what GitHub Actions reads
-  CONVEX_DEPLOY_KEY            (staging: the staging key; production: the prod key)
+  CONVEX_DEPLOY_KEY            (staging: the staging key; prod: the prod key)
 ```
 
 Changes to today's state:
@@ -80,7 +80,7 @@ Changes to today's state:
   ```json
   {
     "workspaceId": "<project id — to confirm>",
-    "defaultEnvironment": "<development slug — to confirm>",
+    "defaultEnvironment": "dev",
     "domain": "https://infisical.gggfox.com"
   }
   ```
@@ -110,8 +110,8 @@ the official action:
     client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
     client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
     domain: https://infisical.gggfox.com
-    project-slug: <project slug — to confirm>
-    env-slug: staging          # or production
+    project-slug: xuntas-xuntos-j-k6-i
+    env-slug: staging          # or prod
     secret-path: /ci
 ```
 
@@ -122,8 +122,8 @@ found, which is the behaviour we want.
 | Workflow | env-slug | What changes |
 |---|---|---|
 | `ci-main.yml` | `staging` | The "secret missing → warn and skip" branch is **removed**. If the key cannot be fetched or the deploy fails, the job fails and `staging` is not advanced. The Dokploy webhook therefore never fires against a stale schema. |
-| `release.yml` | `production` | Same shape. The push to `production` only happens after Convex production deployed. |
-| `convex-production.yml` | `production` | Same fetch step. Still the safety net for a hand push. |
+| `release.yml` | `prod` | Same shape. The push to `production` only happens after Convex production deployed. |
+| `convex-production.yml` | `prod` | Same fetch step. Still the safety net for a hand push. |
 
 Order is unchanged and now enforced: **Convex first, branch push second,
 container build third (Dokploy, on the push).** A failed Convex deploy stops
@@ -140,7 +140,7 @@ Dokploy, per environment:
 |---|---|---|
 | Build-time Secret | `INFISICAL_CLIENT_ID` | identity client id |
 | Build-time Secret | `INFISICAL_CLIENT_SECRET` | the `dokploy-build` client secret |
-| Build-time Argument | `INFISICAL_ENV` | `staging` or `production` |
+| Build-time Argument | `INFISICAL_ENV` | `staging` or `prod` |
 
 The seven `VITE_*` build args are **removed** from Dokploy. Their values
 come from Infisical from now on, so Dokploy can no longer hold a stale copy.
@@ -191,7 +191,7 @@ builds wait.
 ## Cutover
 
 1. **Infisical** (human): downgrade the identity to Viewer; create the two
-   client secrets; create `/ci` in staging and production and move the
+   client secrets; create `/ci` in staging and prod and move the
    deploy keys there under the name `CONVEX_DEPLOY_KEY`; delete the two
    stray development entries. *Done as of this writing: client secrets
    created; GitHub and Dokploy hold them.*
