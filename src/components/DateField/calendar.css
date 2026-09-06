@@ -293,18 +293,29 @@
 /*
  * Two date fields standing side by side, with their parts on the same lines.
  *
- * Every date field is the same four stacked parts: its label, the box or
- * boxes it is answered in, the calendar, and the line that says what is
- * wrong or what to do next. Left to themselves the two columns stack
- * separately, so the field whose boxes carry their own small headings pushes
- * its calendar a line below its neighbour's and the two grids read as though
- * one of them slipped.
+ * A date field is a stack of parts, and the two fields here do not have the
+ * same ones: the window is answered in two boxes under their own headings,
+ * each with a line under it for what is wrong with what was typed, and the
+ * review date is answered in one box with neither. Left to themselves the
+ * columns stack separately and the calendars end up a heading apart.
  *
- * `subgrid` hands both fields the parent's rows instead, so each part sits on
- * the row it shares with its opposite number and the calendars land level
- * however much chrome either field grows above them. It depends on both
- * children having those four parts and no more — a fifth would want a row
- * the parent has not drawn.
+ * So the pair draws six rows and every part is placed on the row it means,
+ * by name — not by how many parts happen to come before it:
+ *
+ *   1  label            2  box heading      3  the box itself
+ *   4  what is wrong    5  the calendar     6  what is wrong with the pair
+ *
+ * Whichever field has nothing to put on a row leaves it empty and the row
+ * still takes the height its opposite number needs, which is the whole point:
+ * the two boxes land on row 3 together and the two grids on row 5 together,
+ * whatever either field grows above them. Placing by name is also what keeps
+ * this honest when a part is added — an unplaced part sits in row 1 and says
+ * so loudly, where positional rules would have quietly shifted everything
+ * below it by one.
+ *
+ * The 6px row gap is the same figure the fields stack themselves with, and it
+ * is repeated at each level because a subgrid takes its gaps from itself, not
+ * from the grid it borrows rows from.
  *
  * In `@layer utilities`, and with the class named twice, because the fields
  * set `flex` on themselves through a Tailwind utility: a rule in the
@@ -313,7 +324,8 @@
  * which of the two the bundler happens to emit first.
  *
  * One column below the breakpoint, where there is no neighbour to line up
- * with and each field is free to stack in its own way.
+ * with and each field is free to stack in its own way. The slot classes are
+ * inert there, and inert everywhere else the fields are used alone.
  */
 @layer utilities {
   .cal-pair {
@@ -324,15 +336,14 @@
   @media (min-width: 1024px) {
     .cal-pair.cal-pair {
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto auto auto;
+      grid-template-rows: auto auto auto auto auto auto;
       column-gap: 28px;
-      row-gap: 0;
+      row-gap: 6px;
     }
     .cal-pair.cal-pair > * {
       display: grid;
-      grid-row: span 4;
+      grid-row: span 6;
       grid-template-rows: subgrid;
-      /* The 6px the fields already stack their own parts with. */
       row-gap: 6px;
     }
 
@@ -343,19 +354,47 @@
      * height of the two boxes opposite, and the button centres itself on the
      * box, not on the input inside it.
      */
-    .cal-pair.cal-pair > * > * {
+    .cal-pair .cal-slot-label,
+    .cal-pair .cal-slot-input,
+    .cal-pair .cal-slot-cal,
+    .cal-pair .cal-slot-foot,
+    .cal-pair .cal-slot-box > * {
       align-self: start;
     }
 
+    .cal-pair .cal-slot-label {
+      grid-row: 1;
+    }
+    .cal-pair .cal-slot-input {
+      grid-row: 3;
+    }
+    .cal-pair .cal-slot-cal {
+      grid-row: 5;
+    }
+    .cal-pair .cal-slot-foot {
+      grid-row: 6;
+    }
+
     /*
-     * The box a field is answered in sits at the foot of its row. The window
-     * asks in two boxes under their own headings and the review date asks in
-     * one without, so aligning their tops would leave the inputs themselves
-     * a heading apart — it is the boxes a reader compares, not the space
-     * above them.
+     * The window's two boxes hand rows 2 to 4 straight through to each of
+     * them, so its headings, boxes and error lines sit on the same three rows
+     * the review date leaves empty but for its box on row 3.
      */
-    .cal-pair.cal-pair > * > *:nth-child(2) {
-      align-self: end;
+    .cal-pair .cal-slot-boxes {
+      grid-row: 2 / span 3;
+      grid-template-rows: subgrid;
+      row-gap: 6px;
+    }
+    .cal-pair .cal-slot-box {
+      display: grid;
+      grid-row: 1 / span 3;
+      grid-template-rows: subgrid;
+      row-gap: 6px;
+    }
+    /* The row gap is the spacing now; the margins these parts carry for the
+       one-column stack would add to it. */
+    .cal-pair .cal-slot-box > * {
+      margin-top: 0;
     }
   }
 }

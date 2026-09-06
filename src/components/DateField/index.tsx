@@ -182,11 +182,11 @@ export default function DateField({
         onBlur?.()
       }}
     >
-      <label htmlFor={id} className="text-[12.5px] font-medium">
+      <label htmlFor={id} className="cal-slot-label text-[12.5px] font-medium">
         {label} {req && <span className="text-bad">*</span>}
       </label>
 
-      <div className="relative">
+      <div className="cal-slot-input relative">
         <input
           id={id}
           type="text"
@@ -217,7 +217,7 @@ export default function DateField({
         )}
       </div>
 
-      <div className="cal-reveal" data-open={open}>
+      <div className="cal-slot-cal cal-reveal" data-open={open}>
         <div>
           <Calendar
             id={panelId}
@@ -246,7 +246,7 @@ export default function DateField({
           calendar and everything under it down the page. */}
       <p
         id={shown ? errorId : `${id}-help`}
-        className={`min-h-[1.45em] text-[11.5px] leading-[1.45] ${shown ? 'text-bad' : 'text-soft'}`}
+        className={`cal-slot-foot min-h-[1.45em] text-[11.5px] leading-[1.45] ${shown ? 'text-bad' : 'text-soft'}`}
       >
         {shown ?? help ?? null}
       </p>

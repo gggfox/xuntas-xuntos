@@ -138,9 +138,9 @@ export default function RangeField({ id, label, start, end, onChange, min, max, 
 
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="text-[12.5px] font-medium">{label}</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="text-[12.5px]">
+      <p className="cal-slot-label text-[12.5px] font-medium">{label}</p>
+      <div className="cal-slot-boxes grid gap-3 sm:grid-cols-2">
+        <div className="cal-slot-box text-[12.5px]">
           <label htmlFor={`${id}-start`} className="eyebrow block">
             {m.range_start()}
           </label>
@@ -161,7 +161,7 @@ export default function RangeField({ id, label, start, end, onChange, min, max, 
             {startShown}
           </p>
         </div>
-        <div className="text-[12.5px]">
+        <div className="cal-slot-box text-[12.5px]">
           <label htmlFor={`${id}-end`} className="eyebrow block">
             {m.range_end()}
           </label>
@@ -183,21 +183,25 @@ export default function RangeField({ id, label, start, end, onChange, min, max, 
           </p>
         </div>
       </div>
-      <Calendar
-        id={`${id}-cal`}
-        label={label}
-        selected={startDay}
-        rangeEnd={endDay}
-        today={today}
-        min={lo}
-        max={hi}
-        openAt={startDay ?? today}
-        fmt={fmt}
-        onPick={pick}
-      />
-      <p className={`min-h-[1.45em] text-[11.5px] leading-[1.45] ${error ? 'text-bad' : 'text-soft'}`}>
-        {error ?? m.range_hint()}
-      </p>
+      <div className="cal-slot-cal">
+        <Calendar
+          id={`${id}-cal`}
+          label={label}
+          selected={startDay}
+          rangeEnd={endDay}
+          today={today}
+          min={lo}
+          max={hi}
+          openAt={startDay ?? today}
+          fmt={fmt}
+          onPick={pick}
+        />
+      </div>
+      {/* Kept empty when there is nothing wrong: the grid already says how it
+          is answered, and a standing instruction under it was one more line
+          the field opposite had no answer for. The slot stays so an error
+          arriving does not shove the page. */}
+      <p className="cal-slot-foot min-h-[1.45em] text-[11.5px] leading-[1.45] text-bad">{error}</p>
     </div>
   )
 }
