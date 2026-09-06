@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "xuntas-registro",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "run",
         "dev"

@@ -2,10 +2,10 @@
  * Paraglide's compiler options, in one place.
  *
  * `src/paraglide` is generated twice: by the Vite plugin on `dev` and
- * `build`, and by `npm run paraglide` before typecheck and tests. The CLI
+ * `build`, and by `pnpm run paraglide` before typecheck and tests. The CLI
  * cannot take `urlPatterns` on the command line, so while these options lived
  * in vite.config.ts the offline compile produced a DIFFERENT app: no `url`
- * strategy and no `/es/` prefix. Running `npm test` next to a dev server was
+ * strategy and no `/es/` prefix. Running `pnpm test` next to a dev server was
  * enough to leave that version on disk, and then the sign-in went blank —
  * `<SignIn path="/es/entrar">` no longer matched the `/entrar` the browser
  * was on, and Clerk renders nothing when they disagree.

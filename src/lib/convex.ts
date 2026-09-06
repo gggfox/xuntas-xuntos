@@ -4,7 +4,7 @@ const url = import.meta.env.VITE_CONVEX_URL as string | undefined
 
 if (!url) {
   throw new Error(
-    'Missing VITE_CONVEX_URL. Run `npx convex dev` and copy the URL to .env.local (see .env.example).',
+    'Missing VITE_CONVEX_URL. Run `pnpm convex dev` and copy the URL to .env.local (see .env.example).',
   )
 }
 

@@ -417,8 +417,8 @@ export const me = query({
  * `email`, because rows written before the webhook normalized casing still
  * carry Clerk's original casing, which `by_email` lookups miss. Run by hand:
  *
- *   npx convex run users:backfillRoles
- *   npx convex run users:backfillRoles --prod
+ *   pnpm convex run users:backfillRoles
+ *   pnpm convex run users:backfillRoles --prod
  *
  * Removed together with the legacy `role` field in a later PR.
  */
@@ -441,8 +441,8 @@ export const backfillRoles = internalMutation({
  * Unsets the legacy `role` on every row that still carries it. Idempotent.
  * Run AFTER `backfillRoles`, once per deployment:
  *
- *   npx convex run users:dropLegacyRole
- *   npx convex run users:dropLegacyRole --prod
+ *   pnpm convex run users:dropLegacyRole
+ *   pnpm convex run users:dropLegacyRole --prod
  */
 export const dropLegacyRole = internalMutation({
   args: {},

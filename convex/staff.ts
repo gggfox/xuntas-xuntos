@@ -47,8 +47,8 @@ async function grant(ctx: MutationCtx, user: Doc<'users'>, roles: readonly Role[
 /**
  * Bootstrap. Run by hand, once per deployment:
  *
- *   npx convex run staff:grantRoles '{"email":"…","roles":["master_admin"]}'
- *   npx convex run staff:grantRoles '{"email":"…","roles":["master_admin"]}' --prod
+ *   pnpm convex run staff:grantRoles '{"email":"…","roles":["master_admin"]}'
+ *   pnpm convex run staff:grantRoles '{"email":"…","roles":["master_admin"]}' --prod
  */
 export const grantRoles = internalMutation({
   args: { email: v.string(), roles: vRoles },

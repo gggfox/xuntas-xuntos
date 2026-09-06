@@ -75,8 +75,8 @@ async function titleTaken(
  * has no name to look up a duplicate by. Run once per deployment BEFORE the
  * code that reads it deploys:
  *
- *   npx convex run cycles:seed
- *   npx convex run cycles:seed --prod
+ *   pnpm convex run cycles:seed
+ *   pnpm convex run cycles:seed --prod
  */
 export const seed = internalMutation({
   args: {},

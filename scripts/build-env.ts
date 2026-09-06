@@ -37,6 +37,6 @@ export function requireBuildVariables(env: Record<string, string | undefined> = 
   throw new Error(
     `Build variables:\n${problems.map((p) => `  - ${p}`).join('\n')}\n` +
       'The build reads them from Infisical (see README, "Deployment"). ' +
-      'Locally: infisical run --env staging -- npm run build',
+      'Locally: infisical run --env staging -- pnpm run build',
   )
 }

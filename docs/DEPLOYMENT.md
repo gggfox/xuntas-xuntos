@@ -17,7 +17,7 @@ two independent deployments:
 
 | What | Who | How long |
 | --- | --- | --- |
-| Convex backend | `.github/workflows/convex-production.yml` → `npx convex deploy` | seconds |
+| Convex backend | `.github/workflows/convex-production.yml` → `pnpm convex deploy` | seconds |
 | Container (frontend) | Dokploy's GitHub App webhook | minutes |
 
 Both start from the same push and **nothing guarantees the order**; in
@@ -63,7 +63,7 @@ window and every registration query fails with `no_active_cycle`. Seed it
 once per deployment, before the frontend that reads it goes out:
 
 ```bash
-npx convex run cycles:seed --prod
+pnpm convex run cycles:seed --prod
 ```
 
 It is idempotent: `{ inserted: true, activated: true }` the first time,
@@ -85,9 +85,9 @@ data, and **different environment variables**. Almost every configuration
 error comes from here.
 
 ```bash
-npx convex env list                        # dev
-npx convex env list --deployment staging   # staging (joyous-goshawk-857)
-npx convex env list --prod                 # prod   ← the one that matters on September 4
+pnpm convex env list                        # dev
+pnpm convex env list --deployment staging   # staging (joyous-goshawk-857)
+pnpm convex env list --prod                 # prod   ← the one that matters on September 4
 ```
 
 Every `convex env` command below carries `--prod` on purpose.
@@ -98,12 +98,12 @@ Every `convex env` command below carries `--prod` on purpose.
 the environment variables**: those are set once and persist.
 
 ```bash
-npx convex env set --prod CLERK_JWT_ISSUER_DOMAIN https://clerk.xuntas.org
-npx convex env set --prod CLERK_WEBHOOK_SECRET    whsec_...
-npx convex env set --prod RESEND_API_KEY          re_...
-npx convex env set --prod RESEND_WEBHOOK_SECRET   whsec_...
-npx convex env set --prod APP_URL                 https://app.xuntas.org
-npx convex env set --prod RESEND_TEST_MODE        false
+pnpm convex env set --prod CLERK_JWT_ISSUER_DOMAIN https://clerk.xuntas.org
+pnpm convex env set --prod CLERK_WEBHOOK_SECRET    whsec_...
+pnpm convex env set --prod RESEND_API_KEY          re_...
+pnpm convex env set --prod RESEND_WEBHOOK_SECRET   whsec_...
+pnpm convex env set --prod APP_URL                 https://app.xuntas.org
+pnpm convex env set --prod RESEND_TEST_MODE        false
 ```
 
 About two of them, the ones that fail silently:
@@ -132,7 +132,7 @@ Staging needs its own `cycles` row, same as prod — without one every
 registration query answers `no_active_cycle`:
 
 ```bash
-npx convex run cycles:seed --deployment staging
+pnpm convex run cycles:seed --deployment staging
 ```
 
 Still pending, because each one needs a value that only exists once the
@@ -142,14 +142,14 @@ matching thing is created in a dashboard:
 # Clerk → Webhooks → new endpoint at
 #   https://joyous-goshawk-857.convex.site/clerk-webhook
 # with user.created, user.updated, user.deleted. Paste its signing secret:
-npx convex env set --deployment staging CLERK_WEBHOOK_SECRET
+pnpm convex env set --deployment staging CLERK_WEBHOOK_SECRET
 
 # Resend → new webhook at
 #   https://joyous-goshawk-857.convex.site/resend-webhook
-npx convex env set --deployment staging RESEND_WEBHOOK_SECRET
+pnpm convex env set --deployment staging RESEND_WEBHOOK_SECRET
 
 # The staging frontend's URL, once Dokploy has a domain for it.
-npx convex env set --deployment staging APP_URL https://<staging-domain>
+pnpm convex env set --deployment staging APP_URL https://<staging-domain>
 ```
 
 Do **not** set `RESEND_TEST_MODE=false` on staging.
@@ -276,9 +276,9 @@ webhook; a bounce means the family did not hear, and someone calls.
 Before September 4:
 
 **Convex**
-- [ ] `npx convex env list --prod` has the 6 variables from §1
+- [ ] `pnpm convex env list --prod` has the 6 variables from §1
 - [ ] `RESEND_TEST_MODE=false` in prod
-- [ ] `npx convex run cycles:seed --prod` run; the `cycles` table shows 2026-2027 active
+- [ ] `pnpm convex run cycles:seed --prod` run; the `cycles` table shows 2026-2027 active
 - [ ] `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` secrets in the repo, and `CONVEX_DEPLOY_KEY` present in Infisical `prod`
 - [ ] The `convex-production` workflow finished green and the `preSignups`
       table shows up in the prod dashboard
@@ -297,7 +297,7 @@ Before September 4:
 - [ ] Privacy notice and rules with their final text, and `ready: true` in
       `src/lib/documents.ts` (while it is `false`, both pages come out marked
       as drafts and the form says so next to the checkbox)
-- [ ] `npm run check` green (typecheck + tests)
+- [ ] `pnpm run check` green (typecheck + tests)
 - [ ] Full smoke test, with a minor and with an adult
 - [ ] Smoke test with Google in addition to the email code
 - [ ] Someone from XUNTAS read Clerk's sign-up screens in Spanish
@@ -311,12 +311,12 @@ still carry `role`, so the release runs in this order — each step from the
 branch commit named, never out of order:
 
 1. Deploy the schema where `roles` is optional (commit `11f0c3c`), then
-   `npx convex run users:backfillRoles --prod` and confirm `{ updated: N }`
+   `pnpm convex run users:backfillRoles --prod` and confirm `{ updated: N }`
    followed by `{ updated: 0 }` on a second run.
 2. Deploy the branch head (`roles` required, `role` legacy-optional), then
-   `npx convex run users:dropLegacyRole --prod` and confirm `{ updated: 0 }`
+   `pnpm convex run users:dropLegacyRole --prod` and confirm `{ updated: 0 }`
    on a second run.
-3. `npx convex run staff:grantRoles '{"email":"gerardogalangarzafox@gmail.com","roles":["master_admin"]}' --prod`
+3. `pnpm convex run staff:grantRoles '{"email":"gerardogalangarzafox@gmail.com","roles":["master_admin"]}' --prod`
    (the account must already exist in prod — sign up first).
 4. Only then let the container deploy (`production` branch).
 

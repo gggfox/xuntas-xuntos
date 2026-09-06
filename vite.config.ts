@@ -29,7 +29,7 @@ const config = defineConfig(({ command }) => {
       tailwindcss(),
       // Compiles the messages into typed functions before the bundle. Runs
       // before TanStack Start so the routes already see src/paraglide. The
-      // options live in paraglide.config.mjs because `npm run paraglide`
+      // options live in paraglide.config.mjs because `pnpm run paraglide`
       // compiles the same project without Vite and has to agree with this.
       paraglideVitePlugin(paraglideOptions),
       tanstackStart(),
