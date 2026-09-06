@@ -72,12 +72,11 @@ const vCalendarEvent = v.object({
 })
 
 const vCycleFields = v.object({
+  title: v.string(),
   opensOn: v.string(),
   closesOn: v.string(),
   reviewOn: v.string(),
   isActive: v.boolean(),
-  /** Optional so a change to a row from before titles existed still audits cleanly. */
-  title: v.optional(v.string()),
 })
 
 export default defineSchema({
@@ -133,22 +132,18 @@ export default defineSchema({
     .index('by_email', ['email']),
 
   /**
-   * One row per call for applications; exactly one is active. Registrations
-   * and guardian authorizations already carry `cycle`, so this is the table
-   * that string was always pointing at. Dates are Mexico City days — see
-   * convex/lib/cycleRules.ts for how they become instants.
+   * One row per call for applications; exactly one is active. Dates are
+   * Mexico City days — see convex/lib/cycleRules.ts for how they become
+   * instants.
    *
-   * `cycle` is the KEY every registration is filed under: short, unique,
-   * locked once the row exists. `title` is the free text families actually
-   * read, on the site and in emails — editable any time, because a renamed
-   * call is still the same call. It is optional only until every row has
-   * one: the dev deployment already holds a row from before titles existed,
-   * and a required field would be rejected on push against it. `cycleTitle`
-   * in convex/lib/cycleRules.ts is what covers that gap for a reader.
+   * A call has no name: the row's own `_id` is the key every registration
+   * and guardian authorization is filed under, minted by Convex at creation
+   * and never typed. `title` is the only thing an admin types — the free
+   * text families actually read, on the site and in emails, editable any
+   * time because a renamed call is still the same call.
    */
   cycles: defineTable({
-    cycle: v.string(),
-    title: v.optional(v.string()),
+    title: v.string(),
     opensOn: v.string(),
     closesOn: v.string(),
     reviewOn: v.string(),
@@ -158,7 +153,6 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index('by_cycle', ['cycle'])
     .index('by_active', ['isActive']),
 
   /**
@@ -166,7 +160,7 @@ export default defineSchema({
    * a family's registration gets in; changing them leaves a trail.
    */
   cycleChanges: defineTable({
-    cycle: v.string(),
+    cycle: v.id('cycles'),
     changedBy: v.id('users'),
     changedAt: v.number(),
     before: v.union(v.null(), vCycleFields),
@@ -237,7 +231,7 @@ export default defineSchema({
    */
   guardianAuth: defineTable({
     userId: v.id('users'),
-    cycle: v.string(),
+    cycle: v.id('cycles'),
     guardianName: v.string(),
     guardianEmail: v.string(),
     /** Single-use token that travels in the email to the guardian. */
@@ -262,7 +256,7 @@ export default defineSchema({
    */
   registrations: defineTable({
     userId: v.id('users'),
-    cycle: v.string(),
+    cycle: v.id('cycles'),
 
     personal: v.object({
       name: v.string(),

@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
-  cycleTitle,
   dayEndMs,
   dayStartMs,
   formatDay,
   isWindowOpenFor,
-  titleOf,
   validateCycle,
   windowOf,
   windowStatusAt,
 } from '../convex/lib/cycleRules'
 
 const C2026 = {
-  cycle: '2026-2027',
   title: 'Convocatoria General 2026–2027',
   opensOn: '2026-09-04',
   closesOn: '2026-09-18',
@@ -80,21 +77,15 @@ describe('validateCycle', () => {
     expect(validateCycle(C2026)).toBeNull()
   })
 
-  it('accepts a key that is not a date range at all', () => {
-    expect(validateCycle({ ...C2026, cycle: '2026-2027-verano' })).toBeNull()
-    expect(validateCycle({ ...C2026, cycle: 'beca-invierno' })).toBeNull()
-  })
-
-  it('is case-insensitive and stores the key as typed', () => {
-    expect(validateCycle({ ...C2026, cycle: 'BECA-INVIERNO' })).toBeNull()
-  })
-
-  it('refuses spaces, punctuation, and lengths outside 2-40', () => {
-    expect(validateCycle({ ...C2026, cycle: '2026 2027' })).toBe('cycle_key_invalid')
-    expect(validateCycle({ ...C2026, cycle: '2026_2027' })).toBe('cycle_key_invalid')
-    expect(validateCycle({ ...C2026, cycle: '2026/2027' })).toBe('cycle_key_invalid')
-    expect(validateCycle({ ...C2026, cycle: 'a' })).toBe('cycle_key_invalid')
-    expect(validateCycle({ ...C2026, cycle: 'a'.repeat(41) })).toBe('cycle_key_invalid')
+  /**
+   * A call has no key to shape-check any more — its `_id` is minted by
+   * Convex, never typed. `title` is the only thing an admin types, and it
+   * can be any free text at all as long as it is not blank.
+   */
+  it('accepts any non-blank title, not just a date-shaped one', () => {
+    expect(validateCycle({ ...C2026, title: 'Beca de Invierno' })).toBeNull()
+    expect(validateCycle({ ...C2026, title: '2026-2027-verano' })).toBeNull()
+    expect(validateCycle({ ...C2026, title: 'a' })).toBeNull()
   })
 
   it('wants a title that is not blank or only whitespace', () => {
@@ -117,30 +108,8 @@ describe('validateCycle', () => {
 })
 
 describe('copy helpers', () => {
-  it('derives the title from the name', () => {
-    expect(titleOf('2026-2027', 'es')).toBe('Convocatoria General 2026–2027')
-    expect(titleOf('2026-2027', 'en')).toBe('2026–2027 General Call for Applications')
-  })
-
   it('spells a day out the way the copy already did', () => {
     expect(formatDay('2026-09-18', 'es')).toBe('18 de septiembre de 2026')
     expect(formatDay('2026-09-18', 'en')).toBe('September 18, 2026')
-  })
-})
-
-/**
- * `cycleTitle` is what every screen and email shows for a call's name now —
- * a typed title when there is one, `titleOf`'s derivation for a row written
- * before titles existed.
- */
-describe('cycleTitle', () => {
-  it('prefers the typed title', () => {
-    expect(cycleTitle({ cycle: 'beca-invierno', title: 'Beca de Invierno' }, 'es')).toBe('Beca de Invierno')
-  })
-
-  it('falls back to titleOf when the title is missing, empty, or blank', () => {
-    expect(cycleTitle({ cycle: '2026-2027' }, 'es')).toBe(titleOf('2026-2027', 'es'))
-    expect(cycleTitle({ cycle: '2026-2027', title: '' }, 'en')).toBe(titleOf('2026-2027', 'en'))
-    expect(cycleTitle({ cycle: '2026-2027', title: '   ' }, 'es')).toBe(titleOf('2026-2027', 'es'))
   })
 })

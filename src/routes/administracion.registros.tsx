@@ -9,6 +9,9 @@ import BatchSendDialog from '../components/Admin/BatchSendDialog'
 import NoTools from '../components/Admin/NoTools'
 import RegistrationFilters from '../components/Admin/RegistrationFilters'
 import RegistrationsTable from '../components/Admin/RegistrationsTable'
+import PrototypeSwitcher from '../components/PrototypeSwitcher'
+import { VARIANTS } from '../components/Admin/prototype-mobile'
+import { padRows } from '../components/Admin/prototype-mobile/fixtures'
 import { useActiveCycle } from '../hooks/useActiveCycle'
 import { useAdminCycle } from '../hooks/useAdminCycle'
 import { useMe } from '../hooks/useMe'
@@ -17,8 +20,12 @@ import { can } from '../lib/permissions'
 
 export const Route = createFileRoute('/administracion/registros')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.regs_title() }) }] }),
-  validateSearch: (s: Record<string, unknown>): { vista?: ViewId } =>
-    s.vista === 'pending' || s.vista === 'all' || s.vista === 'incomplete' ? { vista: s.vista } : {},
+  validateSearch: (s: Record<string, unknown>): { vista?: ViewId; variant?: string } => ({
+    ...(s.vista === 'pending' || s.vista === 'all' || s.vista === 'incomplete' ? { vista: s.vista } : {}),
+    // PROTOTYPE ONLY — drops out with `prototype-mobile/`. Without it the
+    // router strips `?variant=` before the page ever sees it.
+    ...(import.meta.env.DEV && typeof s.variant === 'string' && /^[OABC]$/.test(s.variant) ? { variant: s.variant } : {}),
+  }),
   component: RegistrationsPage,
 })
 
@@ -42,7 +49,7 @@ function RegistrationsPage() {
   const me = useMe()
   const { cycle } = useAdminCycle()
   const active = useActiveCycle()
-  const { vista } = Route.useSearch()
+  const { vista, variant } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const view: ViewId = vista ?? 'pending'
 
@@ -54,7 +61,12 @@ function RegistrationsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState(false)
 
-  const shown = useMemo(() => (rows ? applyFilters(rows, filters) : []), [rows, filters])
+  // PROTOTYPE ONLY: two real rows hide every density problem the variants
+  // exist to expose, so a variant view pads the list with obvious fakes.
+  const shown = useMemo(
+    () => (rows ? applyFilters(import.meta.env.DEV && variant && variant !== 'O' ? padRows(rows) : rows, filters) : []),
+    [rows, filters, variant],
+  )
 
   // What a test send should preview. Drawn from `rows`, not `shown`, so a
   // selection survives a filter change made after selecting; batchable rows
@@ -80,7 +92,7 @@ function RegistrationsPage() {
   // disabled) rather than assume it's safe. The server refuses to send
   // while the window is open regardless — this is only about not inviting
   // a send the dialog is about to be told it cannot make.
-  const windowOpen = active === undefined ? true : !!active && active.cycle === cycle && active.isOpen
+  const windowOpen = active === undefined ? true : !!active && active._id === cycle && active.isOpen
 
   function switchView(v: ViewId) {
     setFilters(VIEWS[v].filters)
@@ -88,8 +100,27 @@ function RegistrationsPage() {
     void navigate({ search: { vista: v }, replace: true })
   }
 
+  // PROTOTYPE ONLY — `O` is today's screen, kept in the ring so the three
+  // proposals are judged against it rather than against a memory of it.
+  const Proto = VARIANTS.find((v) => v.key === variant)?.Component
+
   return (
     <>
+      {Proto ? (
+        <Proto
+          rows={shown}
+          view={view}
+          onViewChange={switchView}
+          filters={filters}
+          onFiltersChange={setFilters}
+          canBatch={canBatch}
+          selected={selected}
+          onSelectedChange={setSelected}
+          onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
+          onBatch={() => setDialog(true)}
+        />
+      ) : (
+        <>
       <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist">
         {(Object.keys(VIEWS) as ViewId[]).map((v) => (
           <button
@@ -127,6 +158,14 @@ function RegistrationsPage() {
         selected={selected}
         onSelectedChange={setSelected}
         onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
+      />
+        </>
+      )}
+
+      <PrototypeSwitcher
+        variants={[{ key: 'O', name: 'Actual (hoy)' }, ...VARIANTS.map(({ key, name }) => ({ key, name }))]}
+        current={variant ?? 'O'}
+        onChange={(v) => void navigate({ search: (prev) => ({ ...prev, variant: v }), replace: true })}
       />
 
       {dialog && (

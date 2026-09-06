@@ -6,16 +6,9 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from './_generated/server'
-import type { Doc, TableNames } from './_generated/dataModel'
+import type { Doc, Id, TableNames } from './_generated/dataModel'
 import type { AppErrorCode } from './lib/errorCodes'
-import {
-  cycleTitle,
-  isWindowOpenFor,
-  titleOf,
-  validateCycle,
-  windowOf,
-  type CycleFields,
-} from './lib/cycleRules'
+import { isWindowOpenFor, validateCycle, windowOf, type CycleFields } from './lib/cycleRules'
 import { currentUser, requirePermission } from './auth'
 import { can } from './lib/permissions'
 
@@ -52,7 +45,7 @@ const fieldsOf = (c: Doc<'cycles'>): CycleFields => ({
 async function record(
   ctx: MutationCtx,
   by: Doc<'users'>,
-  cycle: string,
+  cycle: Id<'cycles'>,
   before: CycleFields | null,
   after: CycleFields,
 ): Promise<void> {
@@ -65,9 +58,22 @@ async function record(
   })
 }
 
+/** A duplicate title, case- and whitespace-insensitive, excluding one row (for `update`). */
+async function titleTaken(
+  ctx: MutationCtx,
+  title: string,
+  excluding?: Id<'cycles'>,
+): Promise<boolean> {
+  const rows = await ctx.db.query('cycles').collect()
+  const normalized = title.trim().toLowerCase()
+  return rows.some((r) => r._id !== excluding && r.title.trim().toLowerCase() === normalized)
+}
+
 /**
- * The 2026–2027 row, from the values the constants used to hold. Idempotent.
- * Run once per deployment BEFORE the code that reads it deploys:
+ * The 2026–2027 row, with the dates the constants used to hold. Idempotent:
+ * a deployment that already has ANY cycle row is left alone, since a call
+ * has no name to look up a duplicate by. Run once per deployment BEFORE the
+ * code that reads it deploys:
  *
  *   npx convex run cycles:seed
  *   npx convex run cycles:seed --prod
@@ -75,42 +81,27 @@ async function record(
 export const seed = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const existing = await ctx.db
-      .query('cycles')
-      .withIndex('by_cycle', (q) => q.eq('cycle', '2026-2027'))
-      .unique()
+    const existing = await ctx.db.query('cycles').first()
     if (existing) return { inserted: false, activated: false }
 
-    // `by_active` is a `.unique()` index: a second active row does not sit
-    // beside the first, it takes every query on that index down. This can
-    // run against a deployment that already has a different cycle active
-    // (a second environment reusing this seed, a re-run after `create` and
-    // `setActive` moved on) — in that case the invariant "at most one active
-    // row" wins over "the seeded row starts active", so it lands inactive
-    // and a person promotes it with `setActive` if that is what they want.
-    const activeElsewhere = await ctx.db
-      .query('cycles')
-      .withIndex('by_active', (q) => q.eq('isActive', true))
-      .unique()
     const now = Date.now()
     await ctx.db.insert('cycles', {
-      cycle: '2026-2027',
-      title: titleOf('2026-2027', 'es'),
+      title: 'Convocatoria General 2026–2027',
       opensOn: '2026-09-04',
       closesOn: '2026-09-18',
       reviewOn: '2026-09-23',
-      isActive: activeElsewhere === null,
+      isActive: true,
       createdAt: now,
       updatedAt: now,
     })
-    return { inserted: true, activated: activeElsewhere === null }
+    return { inserted: true, activated: true }
   },
 })
 
 /** Public: the landing page reads it signed out. */
 export const active = query({
-  args: { locale: v.union(v.literal('es'), v.literal('en')) },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
     const row = await ctx.db
       .query('cycles')
       .withIndex('by_active', (q) => q.eq('isActive', true))
@@ -119,11 +110,8 @@ export const active = query({
     const { opensAtMs, closesAtMs } = windowOf(row)
     const now = Date.now()
     return {
-      cycle: row.cycle,
-      // Resolved here rather than by the client: the fallback for a row
-      // written before titles existed lives in one place, not in every
-      // screen that reads this query.
-      title: cycleTitle(row, args.locale),
+      _id: row._id,
+      title: row.title,
       opensOn: row.opensOn,
       closesOn: row.closesOn,
       reviewOn: row.reviewOn,
@@ -135,13 +123,7 @@ export const active = query({
   },
 })
 
-/**
- * Staff list: reviewers need to see the window even though they cannot move
- * it. `title` is the raw, possibly-absent field so the edit form can show
- * what is actually stored (and let an admin fill it in); `displayTitle` is
- * what a reader sees on this same row today, resolved through `cycleTitle`
- * so the one row still missing a title does not render blank here either.
- */
+/** Staff list: reviewers need to see the window even though they cannot move it. */
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -151,12 +133,10 @@ export const list = query({
     }
     const rows = await ctx.db.query('cycles').collect()
     return rows
-      .sort((a, b) => b.cycle.localeCompare(a.cycle))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
       .map((c) => ({
         _id: c._id,
-        cycle: c.cycle,
         title: c.title,
-        displayTitle: cycleTitle(c, 'es'),
         opensOn: c.opensOn,
         closesOn: c.closesOn,
         reviewOn: c.reviewOn,
@@ -167,7 +147,7 @@ export const list = query({
 })
 
 export const changes = query({
-  args: { cycle: v.string() },
+  args: { cycle: v.id('cycles') },
   handler: async (ctx, args) => {
     await requirePermission(ctx, 'manage_cycles')
     const rows = await ctx.db
@@ -189,7 +169,6 @@ export const changes = query({
 })
 
 const vInput = {
-  cycle: v.string(),
   title: v.string(),
   opensOn: v.string(),
   closesOn: v.string(),
@@ -202,12 +181,7 @@ export const create = mutation({
     const actor = await requirePermission(ctx, 'manage_cycles')
     const problem = validateCycle(args)
     if (problem) fail(problem)
-    const cycle = args.cycle.trim()
-    const dup = await ctx.db
-      .query('cycles')
-      .withIndex('by_cycle', (q) => q.eq('cycle', cycle))
-      .unique()
-    if (dup) fail('cycle_exists')
+    if (await titleTaken(ctx, args.title)) fail('cycle_title_taken')
 
     const now = Date.now()
     const fields: CycleFields = {
@@ -218,32 +192,27 @@ export const create = mutation({
       // Never active on creation: activating is its own, deliberate action.
       isActive: false,
     }
-    await ctx.db.insert('cycles', {
-      cycle,
+    const id = await ctx.db.insert('cycles', {
       ...fields,
       createdBy: actor._id,
       createdAt: now,
       updatedAt: now,
     })
-    await record(ctx, actor, cycle, null, fields)
+    await record(ctx, actor, id, null, fields)
     return { ok: true as const }
   },
 })
 
 export const update = mutation({
-  args: vInput,
+  args: { id: v.id('cycles'), ...vInput },
   handler: async (ctx, args) => {
     const actor = await requirePermission(ctx, 'manage_cycles')
     const problem = validateCycle(args)
     if (problem) fail(problem)
-    const row = await ctx.db
-      .query('cycles')
-      .withIndex('by_cycle', (q) => q.eq('cycle', args.cycle.trim()))
-      .unique()
+    const row = await ctx.db.get(args.id)
     if (!row) fail('cycle_not_found')
+    if (await titleTaken(ctx, args.title, row._id)) fail('cycle_title_taken')
 
-    // The title may change; the key it is filed under never does — `update`
-    // takes `cycle` only to find the row, the same as it always has.
     const after: CycleFields = {
       ...fieldsOf(row),
       title: args.title.trim(),
@@ -252,7 +221,7 @@ export const update = mutation({
       reviewOn: args.reviewOn,
     }
     await ctx.db.patch(row._id, { ...after, updatedAt: Date.now() })
-    await record(ctx, actor, row.cycle, fieldsOf(row), after)
+    await record(ctx, actor, row._id, fieldsOf(row), after)
     return { ok: true as const }
   },
 })
@@ -275,14 +244,17 @@ async function wipeTable(ctx: MutationCtx, table: TableNames): Promise<number> {
  * else. `users`, `staffInvites` and `preSignups` are untouched, so whoever
  * runs this stays signed in with whatever roles they already have.
  *
- * This exists because the re-key from a typed `cycle` string to a minted
- * `v.id('cycles')` cannot land in the schema while old rows still hold the
- * old shape — Convex rejects the push against them. Run this FIRST, on the
- * current schema, then push the schema change once it reports back clean:
+ * This existed to clear the way for the re-key from a typed `cycle` string
+ * to a minted `v.id('cycles')`, which could not land in the schema while old
+ * rows still held the old shape. That re-key has landed. Left in place
+ * because it is also the fastest way for a human to clear a stray row if the
+ * FIRST production deploy of the new schema is rejected for the same
+ * reason — a prod `cycles`/`registrations`/`guardianAuth` row still shaped
+ * for the old schema:
  *
- *   npx convex run cycles:wipeForRekey
+ *   npx convex run cycles:wipeForRekey --prod
  *
- * A human runs it, not this agent — see the PR/report for why.
+ * A human runs it, never this agent.
  */
 export const wipeForRekey = internalMutation({
   args: {},
@@ -298,13 +270,10 @@ export const wipeForRekey = internalMutation({
 
 /** One transaction: the previous active goes off, the target goes on, one trail row each. */
 export const setActive = mutation({
-  args: { cycle: v.string() },
+  args: { cycle: v.id('cycles') },
   handler: async (ctx, args) => {
     const actor = await requirePermission(ctx, 'manage_cycles')
-    const target = await ctx.db
-      .query('cycles')
-      .withIndex('by_cycle', (q) => q.eq('cycle', args.cycle.trim()))
-      .unique()
+    const target = await ctx.db.get(args.cycle)
     if (!target) fail('cycle_not_found')
     if (target.isActive) return { ok: true as const }
 
@@ -316,11 +285,11 @@ export const setActive = mutation({
     if (current) {
       const after = { ...fieldsOf(current), isActive: false }
       await ctx.db.patch(current._id, { isActive: false, updatedAt: now })
-      await record(ctx, actor, current.cycle, fieldsOf(current), after)
+      await record(ctx, actor, current._id, fieldsOf(current), after)
     }
     const after = { ...fieldsOf(target), isActive: true }
     await ctx.db.patch(target._id, { isActive: true, updatedAt: now })
-    await record(ctx, actor, target.cycle, fieldsOf(target), after)
+    await record(ctx, actor, target._id, fieldsOf(target), after)
     return { ok: true as const }
   },
 })

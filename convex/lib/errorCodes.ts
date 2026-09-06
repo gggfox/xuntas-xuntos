@@ -61,11 +61,10 @@ export type ActionErrorCode =
   | 'cannot_remove_last_master_admin'
   | 'user_not_found'
   // Cycles.
-  | 'cycle_key_invalid'
   | 'cycle_title_required'
+  | 'cycle_title_taken'
   | 'cycle_dates_invalid'
   | 'cycle_review_before_close'
-  | 'cycle_exists'
   | 'cycle_not_found'
   | 'no_active_cycle'
   | 'window_open'

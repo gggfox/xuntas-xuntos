@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation } from './_generated/server'
 import { internal } from './_generated/api'
 import type { AppErrorCode } from './lib/errorCodes'
-import { cycleTitle, isWindowOpenFor } from './lib/cycleRules'
+import { isWindowOpenFor } from './lib/cycleRules'
 import { requirePermission } from './auth'
 
 /**
@@ -28,17 +28,14 @@ export const sendRejection = mutation({
     if (!r) fail('registration_not_found')
     if (r.decisionNotice?.decision !== 'rejected') fail('decision_invalid')
     if (r.decisionNotice.status !== 'not_sent') fail('notice_not_pending')
-    // The registration only carries the cycle's KEY; the title a family
+    // The registration only carries the cycle's id; the title a family
     // reads lives on the cycles row, resolved the same way everywhere else.
-    const cycle = await ctx.db
-      .query('cycles')
-      .withIndex('by_cycle', (q) => q.eq('cycle', r.cycle))
-      .unique()
+    const cycle = await ctx.db.get(r.cycle)
     await ctx.scheduler.runAfter(0, internal.emails.sendDecisionNotice, {
       registrationId: r._id,
       decision: r.decisionNotice.decision,
       sentBy: actor._id,
-      cycleTitle: cycleTitle(cycle ?? { cycle: r.cycle }, 'es'),
+      cycleTitle: cycle?.title ?? '',
     })
     return { ok: true as const }
   },
@@ -59,13 +56,10 @@ export const sendRejection = mutation({
  * Resend has accepted the message.
  */
 export const sendBatch = mutation({
-  args: { cycle: v.string(), ids: v.array(v.id('registrations')) },
+  args: { cycle: v.id('cycles'), ids: v.array(v.id('registrations')) },
   handler: async (ctx, args) => {
     const actor = await requirePermission(ctx, 'send_batch')
-    const cycle = await ctx.db
-      .query('cycles')
-      .withIndex('by_cycle', (q) => q.eq('cycle', args.cycle))
-      .unique()
+    const cycle = await ctx.db.get(args.cycle)
     if (!cycle) fail('cycle_not_found')
     // The batch's own cycle decides, not whichever cycle happens to be
     // active — a stale batch for a past cycle must not be blocked by, and a
@@ -75,7 +69,7 @@ export const sendBatch = mutation({
 
     // Resolved once for the whole batch: every notice in it is for the same
     // cycle, so there is no reason to resolve its title a second time per row.
-    const title = cycleTitle(cycle, 'es')
+    const title = cycle.title
 
     // A stale selection Set or a double-fired handler can repeat an id; one
     // schedule per registration, however many times it was listed.
@@ -110,18 +104,15 @@ export const sendBatch = mutation({
 
 /** The body, to the actor's own address only. What stops a typo going to two hundred families. */
 export const sendTest = mutation({
-  args: { cycle: v.string(), decision: vNoticeDecision },
+  args: { cycle: v.id('cycles'), decision: vNoticeDecision },
   handler: async (ctx, args) => {
     const actor = await requirePermission(ctx, args.decision === 'rejected' ? 'send_rejection' : 'send_batch')
-    const cycle = await ctx.db
-      .query('cycles')
-      .withIndex('by_cycle', (q) => q.eq('cycle', args.cycle))
-      .unique()
+    const cycle = await ctx.db.get(args.cycle)
     if (!cycle) fail('cycle_not_found')
     await ctx.scheduler.runAfter(0, internal.emails.sendDecisionTest, {
       to: actor.email,
       decision: args.decision,
-      cycleTitle: cycleTitle(cycle, 'es'),
+      cycleTitle: cycle.title,
     })
     return { ok: true as const }
   },

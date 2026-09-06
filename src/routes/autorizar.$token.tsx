@@ -73,7 +73,7 @@ function Authorize() {
         {c ? (
           <>
             <b className="font-medium text-ink">{request.athleteName}</b> se registró a la{' '}
-            {m.brand_cycle({ cycle: c.cycle })} del Programa de Desarrollo de {m.brand_name()} y te señaló
+            {c.title} del Programa de Desarrollo de {m.brand_name()} y te señaló
             como su padre, madre o tutor.
           </>
         ) : (

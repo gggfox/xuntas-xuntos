@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { activeCycle, requireWindowOpen } from './cycles'
-import { cycleTitle, formatDay, isWindowOpenFor, windowOf } from './lib/cycleRules'
+import { formatDay, isWindowOpenFor, windowOf } from './lib/cycleRules'
 import { FIELD_LIMIT, ROW_LIMIT } from './lib/registrationLimits'
 import { LETTER_LIMIT } from './lib/registrationSchema'
 import { validateRegistration } from './lib/registrationRules'
@@ -128,14 +128,14 @@ export const mine = query({
     const cycle = await activeCycle(ctx)
     const registration = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
     const { closesAtMs } = windowOf(cycle)
     return {
       registration,
       editable: isWindowOpenFor(cycle),
       closesAt: closesAtMs,
-      cycle: cycle.cycle,
+      cycle: cycle._id,
     }
   },
 })
@@ -154,7 +154,7 @@ export const saveDraft = mutation({
 
     const existing = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     const now = Date.now()
@@ -183,7 +183,7 @@ export const saveDraft = mutation({
 
     return await ctx.db.insert('registrations', {
       userId: user._id,
-      cycle: cycle.cycle,
+      cycle: cycle._id,
       ...args.data,
       status: 'draft',
       updatedAt: now,
@@ -225,7 +225,7 @@ export const submit = mutation({
 
     const existing = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     // Same guard as `saveDraft`: a selected or not-selected row is decided,
@@ -245,7 +245,7 @@ export const submit = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, fields)
     } else {
-      await ctx.db.insert('registrations', { userId: user._id, cycle: cycle.cycle, ...fields })
+      await ctx.db.insert('registrations', { userId: user._id, cycle: cycle._id, ...fields })
     }
 
     // Only the first submission is confirmed; later edits do not re-send.
@@ -253,7 +253,7 @@ export const submit = mutation({
     if (isFirstSubmit) {
       const guardian = await ctx.db
         .query('guardianAuth')
-        .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+        .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
         .unique()
 
       // It goes to the ACCOUNT email, which Clerk already verified — not to
@@ -266,7 +266,7 @@ export const submit = mutation({
         guardianMissing: guardian !== null && guardian.confirmedAt === undefined,
         closesOnText: formatDay(cycle.closesOn, 'es'),
         reviewOnText: formatDay(cycle.reviewOn, 'es'),
-        cycleTitle: cycleTitle(cycle, 'es'),
+        cycleTitle: cycle.title,
       })
     }
 
@@ -304,7 +304,7 @@ function guardianState(
 
 /** Every registration of one cycle, with the columns the table sorts on. */
 export const listForAdmin = query({
-  args: { cycle: v.string() },
+  args: { cycle: v.id('cycles') },
   handler: async (ctx, args) => {
     await requirePermission(ctx, 'review_registrations')
 

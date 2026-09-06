@@ -10,7 +10,7 @@ import { formatDay, windowStatusAt } from '../lib/cycle'
  */
 export function useActiveCycle() {
   const locale = getLocale() as 'es' | 'en'
-  const c = useQuery(api.cycles.active, { locale })
+  const c = useQuery(api.cycles.active, {})
   if (!c) return c
   return {
     ...c,
@@ -20,9 +20,8 @@ export function useActiveCycle() {
     // true when the query last executed, so recompute from the raw instants
     // on every render instead of trusting the snapshot.
     ...windowStatusAt(c.opensAtMs, c.closesAtMs),
-    // `c.title` is already resolved server-side, through `cycleTitle` —
-    // typed by an admin, or `titleOf`'s fallback for a row that predates
-    // titles. Nothing here derives it a second time.
+    // `c.title` is the literal string an admin typed — nothing here derives
+    // or falls back to anything else.
     opensOnText: formatDay(c.opensOn, locale),
     closesOnText: formatDay(c.closesOn, locale),
     reviewOnText: formatDay(c.reviewOn, locale),

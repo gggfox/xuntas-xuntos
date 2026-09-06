@@ -9,7 +9,7 @@ import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import { activeCycle } from './cycles'
 import { fail, currentUser, requireUser } from './auth'
-import { cycleTitle, formatDay, windowOf } from './lib/cycleRules'
+import { formatDay, windowOf } from './lib/cycleRules'
 import { isUnderage } from './lib/cycle'
 import { validateBirthDateDeclaration } from './lib/guardianRules'
 import { newToken } from './lib/tokens'
@@ -39,12 +39,12 @@ export const myStatus = query({
 
     const guardian = await ctx.db
       .query('guardianAuth')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     const registration = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     return {
@@ -102,7 +102,7 @@ async function openGuardianAuthorization(
 ): Promise<void> {
   const alreadyExists = await ctx.db
     .query('guardianAuth')
-    .withIndex('by_user_cycle', (q) => q.eq('userId', args.userId).eq('cycle', cycle.cycle))
+    .withIndex('by_user_cycle', (q) => q.eq('userId', args.userId).eq('cycle', cycle._id))
     .unique()
   if (alreadyExists) return
 
@@ -110,7 +110,7 @@ async function openGuardianAuthorization(
   const token = newToken()
   await ctx.db.insert('guardianAuth', {
     userId: args.userId,
-    cycle: cycle.cycle,
+    cycle: cycle._id,
     guardianName: args.guardianName,
     guardianEmail: args.guardianEmail,
     token,
@@ -125,7 +125,7 @@ async function openGuardianAuthorization(
     token,
     isResend: false,
     closesOnText: formatDay(cycle.closesOn, 'es'),
-    cycleTitle: cycleTitle(cycle, 'es'),
+    cycleTitle: cycle.title,
   })
 }
 

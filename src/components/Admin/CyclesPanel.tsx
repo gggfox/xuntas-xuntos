@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 import * as m from '../../paraglide/messages.js'
 import CycleForm from './CycleForm'
 import Pill from '../Pill'
@@ -21,7 +22,7 @@ export default function CyclesPanel() {
   const update = useMutation(api.cycles.update)
   const setActive = useMutation(api.cycles.setActive)
   const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Id<'cycles'> | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const fmt = useDateFormats()
 
@@ -52,20 +53,15 @@ export default function CyclesPanel() {
 
       <ul className="mt-4 grid gap-3">
         {cycles.map((c) => (
-          <li key={c.cycle} className="card px-[21px] py-[15px]">
+          <li key={c._id} className="card px-[21px] py-[15px]">
             <div className="flex flex-wrap items-center gap-3">
-              {/* The title is what a reader recognizes a call by; the key
-                  beside it in the eyebrow voice is there for whoever needs
-                  to match it against a registration row, not for anyone
-                  reading the list top to bottom. */}
-              <b className="font-disp text-[15px]">{c.displayTitle}</b>
-              <span className="eyebrow">{c.cycle}</span>
+              <b className="font-disp text-[15px]">{c.title}</b>
               {c.isActive && <Pill tone="ok">{m.cycles_active()}</Pill>}
               <span className="font-mono text-[11px] text-soft">
                 {c.opensOn} → {c.closesOn} · {m.cycles_review()}: {c.reviewOn}
               </span>
               <span className="ml-auto flex gap-2">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(editing === c.cycle ? null : c.cycle)}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(editing === c._id ? null : c._id)}>
                   {m.cycles_edit()}
                 </button>
                 {!c.isActive && (
@@ -74,7 +70,7 @@ export default function CyclesPanel() {
                     className="btn btn-ghost btn-sm"
                     onClick={async () => {
                       try {
-                        await setActive({ cycle: c.cycle })
+                        await setActive({ cycle: c._id })
                         setNotice({ text: m.cycles_activated(), tone: 'ok' })
                       } catch (err) {
                         setNotice({ text: describeConvexError(err), tone: 'bad' })
@@ -86,23 +82,18 @@ export default function CyclesPanel() {
                 )}
               </span>
             </div>
-            {editing === c.cycle && (
+            {editing === c._id && (
               <>
                 <CycleForm
-                  // The raw, possibly-absent `title` — not `displayTitle` — so
-                  // editing a row from before titles existed shows an empty
-                  // box to fill in, rather than pre-filling the fallback text
-                  // as if it had been typed.
-                  initial={{ ...c, title: c.title ?? '' }}
-                  lockName
+                  initial={c}
                   submitLabel={m.cycles_save()}
                   onSubmit={async (input) => {
-                    await update(input)
+                    await update({ id: c._id, ...input })
                     setNotice({ text: m.cycles_saved(), tone: 'ok' })
                   }}
                   onDone={() => setEditing(null)}
                 />
-                <History cycle={c.cycle} format={(ms) => fmt.full.format(new Date(ms))} />
+                <History cycle={c._id} format={(ms) => fmt.full.format(new Date(ms))} />
               </>
             )}
           </li>
@@ -112,7 +103,7 @@ export default function CyclesPanel() {
   )
 }
 
-function History({ cycle, format }: { cycle: string; format: (ms: number) => string }) {
+function History({ cycle, format }: { cycle: Id<'cycles'>; format: (ms: number) => string }) {
   const changes = useQuery(api.cycles.changes, { cycle })
   if (!changes) return null
   return (

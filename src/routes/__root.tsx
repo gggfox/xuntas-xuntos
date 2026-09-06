@@ -120,7 +120,7 @@ function Footer() {
     <footer className="relative mt-auto border-t border-line">
       <div className="band py-[15px]">
         <p className="eyebrow">
-          {c ? `${m.brand_cycle({ cycle: c.cycle })} · ${m.reg_closing({ date: c.closesOnText })}` : null}
+          {c ? `${c.title} · ${m.reg_closing({ date: c.closesOnText })}` : null}
         </p>
       </div>
     </footer>

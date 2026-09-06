@@ -1,4 +1,5 @@
 import * as m from '../../paraglide/messages.js'
+import type { Id } from '../../../convex/_generated/dataModel'
 import { useAdminCycle } from '../../hooks/useAdminCycle'
 
 /**
@@ -17,13 +18,11 @@ export default function CycleSelect() {
       <select
         className="fld-input w-auto py-1.5 text-[12.5px] normal-case tracking-normal"
         value={cycle ?? ''}
-        onChange={(e) => setCycle(e.target.value)}
+        onChange={(e) => setCycle(e.target.value as Id<'cycles'>)}
       >
-        {/* The title, not the key: this list is read, and a reader picks a
-            call by what it is called rather than by what it is filed as. */}
         {cycles.map((c) => (
-          <option key={c.cycle} value={c.cycle}>
-            {c.displayTitle}{c.isActive ? ` · ${m.cycles_active()}` : ''}
+          <option key={c._id} value={c._id}>
+            {c.title}{c.isActive ? ` · ${m.cycles_active()}` : ''}
           </option>
         ))}
       </select>

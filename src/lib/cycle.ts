@@ -8,7 +8,6 @@ export { ageAt, isUnderage } from '../../convex/lib/cycle'
 export {
   formatDay,
   isWindowOpenFor,
-  titleOf,
   windowOf,
   windowStatusAt,
 } from '../../convex/lib/cycleRules'

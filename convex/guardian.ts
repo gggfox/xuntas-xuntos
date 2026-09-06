@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { activeCycle } from './cycles'
-import { cycleTitle, formatDay, windowOf } from './lib/cycleRules'
+import { formatDay, windowOf } from './lib/cycleRules'
 import { requireUser } from './auth'
 import { newToken } from './lib/tokens'
 import { isValidEmail } from './lib/html'
@@ -101,7 +101,7 @@ export const resend = mutation({
 
     const auth = await ctx.db
       .query('guardianAuth')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     if (!auth) fail('guardian_not_required')
@@ -131,7 +131,7 @@ export const resend = mutation({
       token,
       isResend: true,
       closesOnText: formatDay(cycle.closesOn, 'es'),
-      cycleTitle: cycleTitle(cycle, 'es'),
+      cycleTitle: cycle.title,
     })
 
     return { ok: true as const, reason: 'sent' as const }
@@ -161,7 +161,7 @@ export const correctEmail = mutation({
 
     const auth = await ctx.db
       .query('guardianAuth')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle.cycle))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     if (!auth) fail('guardian_not_required')
@@ -199,7 +199,7 @@ export const correctEmail = mutation({
       token,
       isResend: false,
       closesOnText: formatDay(cycle.closesOn, 'es'),
-      cycleTitle: cycleTitle(cycle, 'es'),
+      cycleTitle: cycle.title,
     })
 
     return { ok: true as const, reason: 'sent' as const }

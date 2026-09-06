@@ -8,10 +8,12 @@ import { isStaff } from '../lib/permissions'
 
 export const Route = createFileRoute('/administracion')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.admin_title() }) }] }),
-  // Which call the admin pages look at. A bare cycle name only — anything
-  // else in `?ciclo=` is dropped rather than trusted.
+  // Which call the admin pages look at: a Convex document id, opaque to this
+  // route. Validated loosely — a plausible id shape, nothing else in
+  // `?ciclo=` is trusted — because the real check is `ctx.db.get` on the
+  // server, which rejects anything that isn't actually a `cycles` id.
   validateSearch: (search: Record<string, unknown>): { ciclo?: string } =>
-    typeof search.ciclo === 'string' && /^\d{4}-\d{4}$/.test(search.ciclo) ? { ciclo: search.ciclo } : {},
+    typeof search.ciclo === 'string' && /^[a-z0-9]{10,64}$/i.test(search.ciclo) ? { ciclo: search.ciclo } : {},
   component: AdminLayout,
 })
 

@@ -8,23 +8,20 @@ import { describeConvexError, errorMessage } from '../../lib/registrationErrors'
 
 type Props = {
   initial?: CycleInput
-  /** The key never changes once a row exists; editing one keeps it read-only. */
-  lockName?: boolean
   submitLabel: string
   onSubmit: (input: CycleInput) => Promise<void>
   onDone?: () => void
 }
 
 /**
- * Create or edit one call for applications: the key every registration is
- * filed under, the title families actually read, the registration window,
- * and the day results are reviewed. Shared by `CyclesPanel` for both "Nueva
- * convocatoria" and "Editar" — only whether the key is locked and what the
- * submit does differ. The title is never locked: it is free text, and
- * renaming a call does not change what it is filed under.
+ * Create or edit one call for applications: the title families actually
+ * read, the registration window, and the day results are reviewed. A call
+ * has no name of its own — the row's `_id` is what every registration is
+ * filed under, minted by Convex and never typed here. Shared by
+ * `CyclesPanel` for both "Nueva convocatoria" and "Editar" — only what the
+ * submit does differs.
  */
-export default function CycleForm({ initial, lockName, submitLabel, onSubmit, onDone }: Props) {
-  const [cycle, setCycle] = useState(initial?.cycle ?? '')
+export default function CycleForm({ initial, submitLabel, onSubmit, onDone }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [opensOn, setOpensOn] = useState(initial?.opensOn ?? '')
   const [closesOn, setClosesOn] = useState(initial?.closesOn ?? '')
@@ -34,7 +31,7 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault()
-    const input = { cycle: cycle.trim(), title, opensOn, closesOn, reviewOn }
+    const input = { title, opensOn, closesOn, reviewOn }
     const problem = validateCycle(input)
     if (problem) {
       setError(errorMessage(problem))
@@ -56,27 +53,10 @@ export default function CycleForm({ initial, lockName, submitLabel, onSubmit, on
    * The card runs the full width of the column so the two calendars can sit
    * beside each other on a desktop: they are read together — the review date
    * only makes sense against the day the window closes — and stacked they
-   * push the second one below the fold. The name keeps a reading width of
-   * its own; a text box as wide as two calendars is a box nobody can aim at.
+   * push the second one below the fold.
    */
   return (
     <form onSubmit={submit} noValidate className="card mt-6 px-[21px] py-[19px]">
-      <label htmlFor="cycle-name" className="text-[12.5px] font-medium">
-        {m.cycles_name()} <span className="text-bad">*</span>
-      </label>
-      <input
-        id="cycle-name"
-        className="fld-input mt-1.5 max-w-[26ch] font-mono tracking-[0.04em]"
-        value={cycle}
-        onChange={(e) => setCycle(e.target.value)}
-        disabled={lockName}
-        placeholder="2026-2027-verano"
-      />
-      <p className="mt-1 mb-5 text-[11.5px] text-soft">{m.cycles_name_help()}</p>
-
-      {/* Free text, and never locked: unlike the key above, the title is
-          what a family reads, and it is normal to want to fix its wording
-          without touching anything the site already filed under the key. */}
       <label htmlFor="cycle-title" className="text-[12.5px] font-medium">
         {m.cycles_title_label()} <span className="text-bad">*</span>
       </label>
