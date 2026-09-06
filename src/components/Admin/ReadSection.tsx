@@ -12,11 +12,17 @@ export default function ReadSection({ n, title, children }: { n: number; title: 
   )
 }
 
+/*
+ * `min-w-0` and the break: an address is one long word, and a grid column is
+ * happy to let one of those run straight through the column beside it. A
+ * column may shrink under its content, and the word breaks rather than
+ * reaching for the room.
+ */
 export function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <dt className="eyebrow">{label}</dt>
-      <dd className="m-0 mt-0.5 text-[14px]">{value || m.detail_empty()}</dd>
+      <dd className="m-0 mt-0.5 text-[14px] break-words">{value || m.detail_empty()}</dd>
     </div>
   )
 }

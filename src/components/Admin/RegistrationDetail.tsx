@@ -1,9 +1,7 @@
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '../../../convex/_generated/api'
 import * as m from '../../paraglide/messages.js'
-import { SECTIONS_TOTAL } from '../../../convex/lib/decisionRules'
 import ReadSection, { Field, Rows } from './ReadSection'
-import { GuardianChip } from './StatusChip'
 
 export type Detail = FunctionReturnType<typeof api.registrations.detail>
 
@@ -11,45 +9,18 @@ export type Detail = FunctionReturnType<typeof api.registrations.detail>
  * Every section stacked on one page. Someone reading two hundred of these
  * should never click "next", and the letter is the thing being judged, so it
  * is printed whole.
+ *
+ * The page opens on section 1 rather than on a summary of the account. The
+ * card that used to stand here repeated the address and the date of birth
+ * that section 1 gives in full a screen-height below, and a long address had
+ * nowhere to go in a third of a card.
  */
 export default function RegistrationDetail({ detail }: { detail: Detail }) {
   const r = detail.registration
   const yes = m.detail_yes()
   const no = m.detail_no()
-  // `undefined` here means the account predates the field that would have
-  // answered this, not that the athlete is of age — an unknown must read as
-  // unknown, never silently as the reassuring answer.
-  const minorFlag = r.wasMinorAtCycleStart ?? detail.account.wasMinorAtSignup
   return (
     <article>
-      <section className="card mb-[30px] px-[21px] py-[15px]">
-        <p className="eyebrow">{m.detail_account()}</p>
-        <dl className="mt-2 grid gap-3 sm:grid-cols-3">
-          <Field label={m.detail_account_email()} value={detail.account.email} />
-          <Field label={m.detail_birth()} value={detail.account.birthDate} />
-          <Field
-            label={m.detail_guardian()}
-            value={
-              <span className="flex flex-wrap items-center gap-2">
-                <GuardianChip required={detail.guardian.required} confirmed={detail.guardian.confirmed} />
-                {detail.guardian.required && (
-                  <span className="text-[12px] text-soft">
-                    {detail.guardian.guardianName
-                      ? `${detail.guardian.guardianName} · ${detail.guardian.guardianEmail} · ${m.detail_guardian_sent({ n: detail.guardian.timesSent ?? 0 })}`
-                      : m.detail_guardian_missing_cycle()}
-                  </span>
-                )}
-              </span>
-            }
-          />
-        </dl>
-        <p className="mt-3 font-mono text-[11px] text-soft">
-          {m.regs_col_sections()}: {m.regs_sections({ n: detail.sectionsComplete, total: SECTIONS_TOTAL })}
-          {' · '}
-          {minorFlag === undefined ? m.detail_age_unknown() : minorFlag ? m.detail_minor() : m.detail_adult()}
-        </p>
-      </section>
-
       <ReadSection n={1} title={m.reg_s1_title()}>
         <dl className="grid gap-3 sm:grid-cols-2">
           <Field label={m.reg_name()} value={r.personal.name} />
