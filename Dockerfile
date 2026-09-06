@@ -84,8 +84,25 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Unprivileged user. The container does not need root to serve SSR.
-RUN addgroup -S app && adduser -S app -G app
+# Which Infisical environment this image belongs to. Baked in on purpose:
+# the running container fetches the same environment the bundle was built
+# against, and nobody can point a staging image at production secrets by
+# editing a runtime variable.
+ARG INFISICAL_ENV
+ENV INFISICAL_ENV=$INFISICAL_ENV
+
+# Unprivileged user. The container does not need root to serve SSR. The
+# home directory exists because the Infisical CLI keeps its config there.
+RUN addgroup -S app && adduser -S app -G app \
+ && mkdir -p /home/app && chown app:app /home/app
+ENV HOME=/home/app
+
+# The CLI is one static binary with no package dependencies: copying it from
+# the build stage beats downloading it twice. The entrypoint uses it to
+# fetch the runtime secrets at container start (see docker-entrypoint.sh).
+COPY --from=build /usr/bin/infisical /usr/bin/infisical
+COPY --chown=app:app .infisical.json ./.infisical.json
+COPY --chown=app:app docker-entrypoint.sh ./docker-entrypoint.sh
 
 # `vite build` leaves two halves in dist/: the SSR handler in dist/server and
 # the client assets in dist/client. Both are needed — server.mjs serves the
@@ -111,5 +128,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://localhost:'+(process.env.PORT||3000)+'/es/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # `vite build` does NOT generate a server that listens: dist/server/server.js
-# exports a `fetch` handler, nothing more. server.mjs is what opens the socket.
-CMD ["node", "server.mjs"]
+# exports a `fetch` handler, nothing more. server.mjs is what opens the
+# socket, and the entrypoint is what puts the secrets in front of it.
+ENTRYPOINT ["sh", "/app/docker-entrypoint.sh"]

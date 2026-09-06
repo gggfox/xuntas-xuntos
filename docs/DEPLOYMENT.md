@@ -150,9 +150,14 @@ The details are in the README; what to remember when deploying:
   `VITE_CLERK_PUBLISHABLE_KEY` is missing or a placeholder, the build aborts
   with a clear message — they used to produce an image that started fine and
   answered 500 on every route.
-- **`CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` are runtime.** Both of
-  them. Clerk's middleware runs in the SSR; without them, 500 on every route
-  with `no secret key provided` or `Publishable key is missing` in the log.
+- **The runtime secrets come from Infisical too.** `docker-entrypoint.sh`
+  logs in with the machine identity at container start and runs node under
+  `infisical run`, so `CLERK_SECRET_KEY` and `VITE_CLERK_PUBLISHABLE_KEY`
+  are in the process without Dokploy holding them. The container
+  environment carries only `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`.
+  If the login fails the container exits at once with the CLI's error in the
+  log; if Clerk complains `Publishable key not valid`, the value in Infisical
+  is wrong, not Dokploy.
 - **The container comes with a `HEALTHCHECK`** on `/es/`, so Dokploy restarts
   it on its own if the SSR goes down.
 
@@ -168,8 +173,9 @@ curl -o /dev/null -w '%{http_code}\n' https://app.xuntas.org/es/empezar
 curl -o /dev/null -w '%{http_code}\n' https://app.xuntas.org/es/entrar
 ```
 
-All three must return `200`. A `500` on all of them is usually one of the
-Clerk runtime variables.
+All three must return `200`. A `500` on all of them is usually a Clerk key
+in Infisical's `prod` environment; a `502` means the container is not
+starting — read its log, the entrypoint says why.
 
 ### Smoke test, end to end
 
@@ -232,9 +238,9 @@ Before September 4:
 - [ ] Resend webhook to the **prod** `.convex.site`
 
 **Container**
-- [ ] Production environment build args with the `pk_live_` keys
-- [ ] `VITE_WINDOW_ALWAYS_OPEN` **empty** in production
-- [ ] `CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` in the Dokploy runtime
+- [ ] Infisical `prod` holds the `pk_live_` / `sk_live_` keys and the prod `VITE_CONVEX_URL`
+- [ ] `VITE_WINDOW_ALWAYS_OPEN` **absent** from Infisical `prod`
+- [ ] Dokploy production: `INFISICAL_ENV=prod` build arg; `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` as build secrets **and** as environment variables
 - [ ] The three routes from §3 answer 200 on `app.xuntas.org`
 
 **Content and code**
