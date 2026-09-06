@@ -733,7 +733,7 @@ RUN set -eu; \
     esac; \
     base="https://github.com/Infisical/cli/releases/download/v${INFISICAL_CLI_VERSION}"; \
     pkg="infisical_${INFISICAL_CLI_VERSION}_linux_${arch}.apk"; \
-    sums="cli_${INFISICAL_CLI_VERSION}_checksums.txt"; \
+    sums="checksums.txt"; \
     wget -q "${base}/${pkg}" "${base}/${sums}"; \
     grep " ${pkg}\$" "${sums}" | sha256sum -c -; \
     apk add --no-cache --allow-untrusted "./${pkg}"; \

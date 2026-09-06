@@ -116,9 +116,10 @@ npx convex env set --deployment staging APP_URL https://<staging-domain>
 
 Do **not** set `RESEND_TEST_MODE=false` on staging.
 
-The Dokploy `staging` environment must build with
-`VITE_CONVEX_URL=https://joyous-goshawk-857.convex.cloud` (a build arg — see
-the README) or the staging frontend will talk to the wrong backend.
+The staging frontend gets `VITE_CONVEX_URL=https://joyous-goshawk-857.convex.cloud`
+from Infisical's `staging` environment at build time. If it is wrong there,
+the build aborts with `VITE_CONVEX_URL must be an https:// URL` instead of
+producing a container that answers 500.
 
 ### Webhooks pointing at production
 
@@ -141,11 +142,14 @@ different.
 
 The details are in the README; what to remember when deploying:
 
-- **The `VITE_*` variables are build args.** Changing them in Dokploy without
-  rebuilding does nothing. If either of the two critical ones
-  (`VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`) is missing,
-  `vite.config.ts` aborts the build with a clear message — they used to
-  produce an image that started fine and answered 500 on every route.
+- **The `VITE_*` variables come from Infisical at build time.** Dokploy only
+  holds the identity's client id/secret (Build-time Secrets) and
+  `INFISICAL_ENV` (Build-time Argument). To change a `VITE_*` value, change
+  it in Infisical and hit Redeploy; changing anything in Dokploy without
+  rebuilding does nothing. If `VITE_CONVEX_URL` or
+  `VITE_CLERK_PUBLISHABLE_KEY` is missing or a placeholder, the build aborts
+  with a clear message — they used to produce an image that started fine and
+  answered 500 on every route.
 - **`CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` are runtime.** Both of
   them. Clerk's middleware runs in the SSR; without them, 500 on every route
   with `no secret key provided` or `Publishable key is missing` in the log.

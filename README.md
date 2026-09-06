@@ -147,28 +147,40 @@ database and its own environment variables:
 `npx convex env ...` targets dev by default; add `--prod` for production or
 `--deployment staging` for staging.
 
-**Everything that starts with `VITE_` is a build arg, not a runtime variable.**
-Vite embeds them in the client bundle during the build, so changing the value
-in Dokploy does nothing until you rebuild. It is also the reason staging and
-production have to be built separately even though they come from the same
-commit.
+**Everything that starts with `VITE_` is embedded at build time.** Vite bakes
+it into the client bundle, so it cannot be a runtime variable, and staging
+and production have to be built separately even from the same commit.
 
-| Variable | Where it goes | Why |
+Those values are **not** configured in Dokploy. The Dockerfile's build stage
+logs in to Infisical with a machine identity and runs `vite build` under
+`infisical run`, which injects the project's `/` folder for the chosen
+environment. Dokploy provides three things per environment:
+
+| Kind | Name | Value |
 |---|---|---|
-| `VITE_CONVEX_URL` | build arg | ends up in the bundle |
-| `VITE_CLERK_PUBLISHABLE_KEY` | build arg | ends up in the bundle |
-| `VITE_CLERK_SIGN_IN_URL` | build arg | same |
-| `VITE_CLERK_SIGN_UP_URL` | build arg | same |
-| `VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | build arg | same |
-| `VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | build arg | same |
-| `VITE_WINDOW_ALWAYS_OPEN` | build arg | **staging only**, never production |
-| `CLERK_SECRET_KEY` | runtime | an `ARG` ends up in `docker history` |
-| `CLERK_PUBLISHABLE_KEY` | runtime | Clerk's SSR reads it from `process.env`, **without** the `VITE_` prefix. Same value as the one above |
-| `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`, `APP_URL` | Convex | `npx convex env set` — they don't go through Docker |
+| Build-time Secret | `INFISICAL_CLIENT_ID` | the identity's client id |
+| Build-time Secret | `INFISICAL_CLIENT_SECRET` | its `dokploy-build` client secret |
+| Build-time Argument | `INFISICAL_ENV` | `staging` or `prod` |
 
-In Dokploy the build args live in each service's **Environment → Build Time
-Arguments** tab, and point at the environment's variables with
-`${{environment.NAME}}`, so secrets are not repeated in every service.
+Build-time Secrets are BuildKit secret mounts: they never appear in an
+`ARG`, an `ENV`, a layer, or `docker history`.
+
+The container's **runtime** variables stay in Dokploy's Environment
+Settings, because fetching two values at every restart is not worth a
+dependency on Infisical:
+
+| Variable | Why runtime |
+|---|---|
+| `CLERK_SECRET_KEY` | Clerk's SSR middleware reads it from `process.env` |
+| `CLERK_PUBLISHABLE_KEY` | same, **without** the `VITE_` prefix; same value as `VITE_CLERK_PUBLISHABLE_KEY` in Infisical |
+
+And `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`,
+`APP_URL` live in Convex (`npx convex env set`) — they don't go through
+Docker at all.
+
+Trade-off to know about: Infisical runs on the same VPS. If its container
+is down, no frontend build can run until it is back. Running containers
+keep serving; Convex deploys from GitHub are unaffected.
 
 The full procedure — deployment order, the `--prod` trap with the Convex
 variables, smoke test and the checklist to go through before September 4 — is
@@ -180,14 +192,13 @@ To reproduce the build by hand:
 # 1. Backend
 npx convex deploy            # or: npm run deploy:convex
 
-# 2. Image — VITE_* are build args: Vite embeds them in the client bundle
+# 2. Image — the build fetches its VITE_* values from Infisical. Export the
+#    identity's credentials in your shell first; they are passed as BuildKit
+#    secrets, never as build args.
 docker build \
-  --build-arg VITE_CONVEX_URL=https://xxx.convex.cloud \
-  --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_live_xxx \
-  --build-arg VITE_CLERK_SIGN_IN_URL=/es/entrar \
-  --build-arg VITE_CLERK_SIGN_UP_URL=/es/empezar \
-  --build-arg VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/es/mi-registro \
-  --build-arg VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/es/mi-registro \
+  --build-arg INFISICAL_ENV=staging \
+  --secret id=INFISICAL_CLIENT_ID,env=INFISICAL_CLIENT_ID \
+  --secret id=INFISICAL_CLIENT_SECRET,env=INFISICAL_CLIENT_SECRET \
   -t xuntas-registro .
 ```
 
