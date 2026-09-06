@@ -34,15 +34,16 @@ Requires the `CONVEX_PROD_DEPLOY_KEY` secret in the repo. See the README.
 
 ---
 
-## 1. Dev and prod are two databases
+## 1. Dev, staging and prod are three databases
 
-Convex separates `dev` and `prod` completely: different functions, different
+Convex separates the deployments completely: different functions, different
 data, and **different environment variables**. Almost every configuration
 error comes from here.
 
 ```bash
-npx convex env list             # dev
-npx convex env list --prod      # prod   ← the one that matters on September 4
+npx convex env list                        # dev
+npx convex env list --deployment staging   # staging (joyous-goshawk-857)
+npx convex env list --prod                 # prod   ← the one that matters on September 4
 ```
 
 Every `convex env` command below carries `--prod` on purpose.
@@ -80,6 +81,40 @@ npx convex env list --prod | grep WINDOW_ALWAYS_OPEN   # must print nothing
 registrations in outside the call window. Watch out: it has a client-side
 twin, `VITE_WINDOW_ALWAYS_OPEN`, which is a **build arg** and must only exist
 in the staging environment.
+
+### Variables on the staging deployment
+
+Staging is a `prod`-type deployment named `staging` inside the same Convex
+project. `ci-main.yml` deploys code to it on every green `main`; the variables
+are set by hand, same as prod. It runs against the **dev** Clerk instance
+(`pk_test_` keys) and keeps Resend in test mode, so nobody outside
+`@resend.dev` gets mail from it.
+
+Already set (copied from dev on 2026-09-06): `CLERK_JWT_ISSUER_DOMAIN`,
+`CLERK_FRONTEND_API_URL`, `RESEND_API_KEY`, `WINDOW_ALWAYS_OPEN=true`.
+
+Still pending, because each one needs a value that only exists once the
+matching thing is created in a dashboard:
+
+```bash
+# Clerk → Webhooks → new endpoint at
+#   https://joyous-goshawk-857.convex.site/clerk-webhook
+# with user.created, user.updated, user.deleted. Paste its signing secret:
+npx convex env set --deployment staging CLERK_WEBHOOK_SECRET
+
+# Resend → new webhook at
+#   https://joyous-goshawk-857.convex.site/resend-webhook
+npx convex env set --deployment staging RESEND_WEBHOOK_SECRET
+
+# The staging frontend's URL, once Dokploy has a domain for it.
+npx convex env set --deployment staging APP_URL https://<staging-domain>
+```
+
+Do **not** set `RESEND_TEST_MODE=false` on staging.
+
+The Dokploy `staging` environment must build with
+`VITE_CONVEX_URL=https://joyous-goshawk-857.convex.cloud` (a build arg — see
+the README) or the staging frontend will talk to the wrong backend.
 
 ### Webhooks pointing at production
 
