@@ -4,7 +4,7 @@
 
 **Goal:** Local dev, GitHub Actions and the Docker build each fetch their secrets from Infisical with one read-only machine identity, and a failed Convex deploy stops the promotion chain before the branch push that triggers Dokploy.
 
-**Architecture:** The repo carries a committed `.infisical.json` naming the project and domain. Workflows fetch `/ci/CONVEX_DEPLOY_KEY` with `Infisical/secrets-action` before running `convex deploy`. The Dockerfile's build stage installs a pinned Infisical CLI, logs in with two BuildKit secret mounts, and runs `npm run build` under `infisical run`, so no `VITE_*` value ever passes through a build arg. A small pure module validates the build variables and is unit-tested.
+**Architecture:** The repo carries a committed `.infisical.json` naming the project and domain. Workflows fetch `CONVEX_DEPLOY_KEY` with `Infisical/secrets-action` before running `convex deploy`. The Dockerfile's build stage installs a pinned Infisical CLI, logs in with two BuildKit secret mounts, and runs `npm run build` under `infisical run`, so no `VITE_*` value ever passes through a build arg. A small pure module validates the build variables and is unit-tested.
 
 **Tech Stack:** Infisical CLI 0.43.129 (apk from GitHub release, checksum-verified), `Infisical/secrets-action@v1.0.17`, Docker BuildKit secret mounts, Vitest 3.2 unit project, Convex CLI (`npm run deploy:convex`).
 
@@ -14,7 +14,7 @@
 
 - **Infisical instance:** `https://infisical.gggfox.com`. CLI and `.infisical.json` use `https://infisical.gggfox.com/api`; the GitHub action's `domain` input takes `https://infisical.gggfox.com` (no `/api`).
 - **Project:** id `2f1b06b5-c041-4d46-ba01-4f0dd920dfe4`, slug `xuntas-xuntos-j-k6-i`. Environment slugs: `dev`, `staging`, `prod`.
-- **Folders:** `/` holds app values (`VITE_*`); `/ci` holds `CONVEX_DEPLOY_KEY`. Workflows read `/ci` only.
+- **No folders.** Each environment is flat; `CONVEX_DEPLOY_KEY` sits at the root next to the `VITE_*` values.
 - **Identity credentials** exist only as GitHub repo secrets `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` and Dokploy Build-time Secrets of the same names. Never in a file, an `ARG`, an `ENV`, or a log.
 - **Order is enforced:** Convex deploy, then branch push, then Dokploy build. A failed Convex deploy fails the job. No "warn and skip".
 - **`npm run dev` stays unchanged.** Per-developer `CONVEX_DEPLOYMENT` and `VITE_CONVEX_URL` stay in `.env.local`.
@@ -374,7 +374,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/DEPLOYMENT.md` (section "## 0. How it goes to production")
 
 **Interfaces:**
-- Consumes: repo secrets `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` (already set). Infisical `/ci/CONVEX_DEPLOY_KEY` in `staging` and `prod` (human step in Task 5).
+- Consumes: repo secrets `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` (already set). Infisical `CONVEX_DEPLOY_KEY` in `staging` and `prod` (human step in Task 5).
 - Produces: the environment variable `CONVEX_DEPLOY_KEY` in the job, which the Convex CLI reads by that exact name.
 
 - [ ] **Step 1: Rewrite `ci-main.yml`**
@@ -441,11 +441,10 @@ jobs:
 
       - run: npm ci
 
-      # The deploy key lives in Infisical, folder /ci of the `staging`
+      # The deploy key lives in Infisical, at the root of the `staging`
       # environment, under the exact name the Convex CLI reads. The action
-      # exports it into the job environment (masked in logs) and fails the
-      # job if it cannot authenticate. Only /ci is fetched: the identity can
-      # read the app's secrets too, but this job has no business seeing them.
+      # exports every secret of that environment into the job environment
+      # (masked in logs) and fails the job if it cannot authenticate.
       - name: Fetch the Convex staging deploy key from Infisical
         uses: Infisical/secrets-action@v1.0.17
         with:
@@ -455,14 +454,13 @@ jobs:
           domain: https://infisical.gggfox.com
           project-slug: xuntas-xuntos-j-k6-i
           env-slug: staging
-          secret-path: /ci
 
       # The action succeeds even when the folder is empty. Say so here,
       # before `convex deploy` fails with a less helpful message.
       - name: The key must be there
         run: |
           if [ -z "$CONVEX_DEPLOY_KEY" ]; then
-            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from /ci in the staging environment. Nothing was deployed and staging was not advanced."
+            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from the staging environment. Nothing was deployed and staging was not advanced."
             exit 1
           fi
 
@@ -537,12 +535,11 @@ jobs:
           domain: https://infisical.gggfox.com
           project-slug: xuntas-xuntos-j-k6-i
           env-slug: prod
-          secret-path: /ci
 
       - name: The key must be there
         run: |
           if [ -z "$CONVEX_DEPLOY_KEY" ]; then
-            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from /ci in the prod environment. Nothing was deployed and production was not advanced."
+            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from the prod environment. Nothing was deployed and production was not advanced."
             exit 1
           fi
 
@@ -619,12 +616,11 @@ jobs:
           domain: https://infisical.gggfox.com
           project-slug: xuntas-xuntos-j-k6-i
           env-slug: prod
-          secret-path: /ci
 
       - name: The key must be there
         run: |
           if [ -z "$CONVEX_DEPLOY_KEY" ]; then
-            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from /ci in the prod environment."
+            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from the prod environment."
             exit 1
           fi
 
@@ -653,8 +649,8 @@ Under "## Deployment", find the table that starts `| Secret | For |` and replace
 | `INFISICAL_CLIENT_SECRET` | its `github-actions` client secret |
 
 The Convex deploy keys themselves are **not** repo secrets any more. They
-live in Infisical, folder `/ci`, under the name `CONVEX_DEPLOY_KEY` in the
-`staging` and `prod` environments. Each workflow fetches the one it needs
+live in Infisical under the name `CONVEX_DEPLOY_KEY` in the `staging` and
+`prod` environments. Each workflow fetches the one it needs
 with `Infisical/secrets-action` right before `convex deploy`, and fails if
 it is missing.
 ```
@@ -665,8 +661,8 @@ Then find the paragraph that begins `Secrets and variables → Actions), generat
 To rotate a deploy key, generate it and store it in Infisical, not in GitHub:
 
 ```bash
-npx convex deployment token create ci-token --deployment prod      # → Infisical prod    /ci/CONVEX_DEPLOY_KEY
-npx convex deployment token create ci-token --deployment staging   # → Infisical staging /ci/CONVEX_DEPLOY_KEY
+npx convex deployment token create ci-token --deployment prod      # → Infisical prod    CONVEX_DEPLOY_KEY
+npx convex deployment token create ci-token --deployment staging   # → Infisical staging CONVEX_DEPLOY_KEY
 ```
 ```
 
@@ -675,7 +671,7 @@ npx convex deployment token create ci-token --deployment staging   # → Infisic
 Find the line `Requires the \`CONVEX_PROD_DEPLOY_KEY\` secret in the repo. See the README.` and replace it with:
 
 ```
-The deploy key is fetched from Infisical (`prod` → `/ci/CONVEX_DEPLOY_KEY`)
+The deploy key is fetched from Infisical (`prod` → `CONVEX_DEPLOY_KEY`)
 at the start of the job with the `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`
 repo secrets. If Infisical is unreachable or the key is missing, the job
 fails **before** touching the branch, so Dokploy never builds against a
@@ -691,7 +687,7 @@ Expected: green (workflows do not affect it, but the rule is every commit).
 git add .github/workflows/ci-main.yml .github/workflows/release.yml .github/workflows/convex-production.yml README.md docs/DEPLOYMENT.md
 git commit -m "ci: deploy keys come from Infisical, and a missing one stops the chain
 
-Each promotion fetches /ci/CONVEX_DEPLOY_KEY for its environment with the
+Each promotion fetches CONVEX_DEPLOY_KEY for its environment with the
 machine identity, right before convex deploy. The staging promotion no
 longer warns and skips when the key is absent: it fails, and the branch
 push that would make Dokploy build against a stale schema never happens.
@@ -928,7 +924,7 @@ gh pr create --base main --title "feat(secrets): Infisical is the single source 
 Infisical (`infisical.gggfox.com`, project `xuntas-xuntos`) holds every secret once. Three consumers fetch with one read-only machine identity:
 
 - **Local dev**: `.infisical.json` links the repo; `npm run dev:secrets` injects the `dev` environment. `npm run dev` unchanged; per-developer Convex values stay in `.env.local`.
-- **GitHub Actions**: `ci-main.yml`, `release.yml`, `convex-production.yml` fetch `/ci/CONVEX_DEPLOY_KEY` with `Infisical/secrets-action` before `convex deploy`. A missing key or failed deploy **fails the job before the branch push**, so Dokploy never builds against an undeployed schema. The staging promotion's "warn and skip" is gone.
+- **GitHub Actions**: `ci-main.yml`, `release.yml`, `convex-production.yml` fetch `CONVEX_DEPLOY_KEY` with `Infisical/secrets-action` before `convex deploy`. A missing key or failed deploy **fails the job before the branch push**, so Dokploy never builds against an undeployed schema. The staging promotion's "warn and skip" is gone.
 - **Docker build**: pinned, checksum-verified Infisical CLI; two BuildKit secret mounts; `vite build` under `infisical run`. No `VITE_*` build args in Dokploy any more.
 
 Also: the build-variable guard moved to `scripts/build-env.ts` with tests, and now rejects placeholders (a non-https `VITE_CONVEX_URL`), which is what built today's 502 staging container.
@@ -939,7 +935,7 @@ Spec: `docs/superpowers/specs/2026-09-06-infisical-secrets-design.md`. Plan: `do
 
 Merging alone breaks nothing: the old repo secrets still exist and Dokploy still builds with its old args until step 3.
 
-1. Infisical: identity → Viewer; `/ci/CONVEX_DEPLOY_KEY` in `staging` and `prod`; delete the stray `dev` entries.
+1. Infisical: identity → Viewer; `CONVEX_DEPLOY_KEY` in `staging` and `prod`; delete the stray `dev` entries.
 2. Merge. Run `ci-main.yml` by hand and confirm the Infisical step, the deploy, and the fast-forward.
 3. Dokploy, both environments: add `INFISICAL_ENV`; remove the seven `VITE_*` build args; redeploy staging; confirm `https://staging.app.xuntas.org/es/` answers 200.
 4. GitHub: delete `CONVEX_PROD_DEPLOY_KEY` and `CONVEX_STAGING_DEPLOY_KEY`.
@@ -959,8 +955,8 @@ EOF
 - [ ] **Step 2: Infisical (human)**
 
 1. Project → Access Control → Machine Identities → `XUNTAS-XUNTOS INFISICAL CLIENT` → Edit Roles → `Viewer`.
-2. Secrets → environment `staging` → Add Folder `ci` → inside it, Add Secret `CONVEX_DEPLOY_KEY` with the staging key's value. Delete the old root-level `CONVEX_STAGING_DEPLOY_KEY`.
-3. Same in `prod`: folder `ci`, secret `CONVEX_DEPLOY_KEY` with the production key. Delete the root-level `CONVEX_DEPLOY_KEY`.
+2. Secrets → environment `staging` → Add Secret `CONVEX_DEPLOY_KEY` with the staging key's value. Delete the old root-level `CONVEX_STAGING_DEPLOY_KEY`.
+3. Same in `prod`: secret `CONVEX_DEPLOY_KEY` with the production key. Delete the root-level `CONVEX_DEPLOY_KEY`.
 4. In `dev`: delete `CONVEX_PROD_DEPLOY_KEY` and the empty `VITE_CONVEX_URL`.
 
 - [ ] **Step 3: Merge, then prove CI**

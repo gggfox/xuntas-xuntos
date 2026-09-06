@@ -245,8 +245,8 @@ Required secrets (Settings → Secrets and variables → Actions):
 | `INFISICAL_CLIENT_SECRET` | its `github-actions` client secret |
 
 The Convex deploy keys themselves are **not** repo secrets any more. They
-live in Infisical, folder `/ci`, under the name `CONVEX_DEPLOY_KEY` in the
-`staging` and `prod` environments. Each workflow fetches the one it needs
+live in Infisical under the name `CONVEX_DEPLOY_KEY` in the `staging` and
+`prod` environments. Each workflow fetches the one it needs
 with `Infisical/secrets-action` right before `convex deploy`, and fails if
 it is missing.
 
@@ -270,8 +270,8 @@ To rotate a deploy key, generate it from the Convex dashboard with the
 `deployment:deploy` permission, or with:
 
 ```bash
-npx convex deployment token create ci-token --deployment prod      # → Infisical prod    /ci/CONVEX_DEPLOY_KEY
-npx convex deployment token create ci-token --deployment staging   # → Infisical staging /ci/CONVEX_DEPLOY_KEY
+npx convex deployment token create ci-token --deployment prod      # → Infisical prod    CONVEX_DEPLOY_KEY
+npx convex deployment token create ci-token --deployment staging   # → Infisical staging CONVEX_DEPLOY_KEY
 ```
 
 Store the output in Infisical, not in GitHub.

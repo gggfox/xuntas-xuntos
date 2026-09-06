@@ -48,28 +48,27 @@ Its client id and secret live in exactly two places:
 ## Layout in Infisical
 
 ```
-/                      app values — what the build and local dev read
+/                      one flat folder per environment
   VITE_CONVEX_URL
   VITE_CLERK_PUBLISHABLE_KEY
   VITE_WINDOW_ALWAYS_OPEN      (staging and development only — never production)
   CLERK_SECRET_KEY             (reference copy; Dokploy still holds its own)
-/ci                    what GitHub Actions reads
   CONVEX_DEPLOY_KEY            (staging: the staging key; prod: the prod key)
 ```
 
 Changes to today's state:
 
-- **Rename** staging `CONVEX_STAGING_DEPLOY_KEY` → `/ci/CONVEX_DEPLOY_KEY`.
-  Move production `CONVEX_DEPLOY_KEY` into `/ci`. The name is the exact
-  variable the Convex CLI reads, so a workflow that fetches `/ci` needs no
+- **Rename** staging `CONVEX_STAGING_DEPLOY_KEY` → `CONVEX_DEPLOY_KEY`. The
+  name is the exact variable the Convex CLI reads, so the workflow needs no
   mapping step.
 - **Delete** `CONVEX_PROD_DEPLOY_KEY` from the development environment. A
   production key in the development column is a mistake waiting to be
   exported into someone's shell.
 - **Delete** the empty `VITE_CONVEX_URL` from development. Per-developer
   values do not belong in a shared environment (see "Local dev").
-- The `/ci` folder keeps the CI identity from ever seeing `CLERK_SECRET_KEY`:
-  the action is pointed at `secret-path: /ci` and nothing else.
+- No folders. The action fetches the whole environment, so the CI job's
+  environment also carries `CLERK_SECRET_KEY` and the `VITE_*` values,
+  masked in logs and unused. Accepted for simplicity over a `/ci` folder.
 - **Not stored anywhere:** the four `VITE_CLERK_SIGN_*` variables the old
   Dockerfile carried. `SignInScreen` and `SignUpScreen` pass `signInUrl`,
   `signUpUrl` and `forceRedirectUrl` as props, nothing in the app triggers a
@@ -116,7 +115,6 @@ the official action:
     domain: https://infisical.gggfox.com
     project-slug: xuntas-xuntos-j-k6-i
     env-slug: staging          # or prod
-    secret-path: /ci
 ```
 
 It exports `CONVEX_DEPLOY_KEY` into the job environment, masked in logs.
@@ -195,8 +193,7 @@ builds wait.
 ## Cutover
 
 1. **Infisical** (human): downgrade the identity to Viewer; create the two
-   client secrets; create `/ci` in staging and prod and move the
-   deploy keys there under the name `CONVEX_DEPLOY_KEY`; delete the two
+   client secrets; put `CONVEX_DEPLOY_KEY` in staging and prod; delete the two
    stray development entries. *Done as of this writing: client secrets
    created; GitHub and Dokploy hold them.*
 2. **Repo** (this branch): `.infisical.json`, `dev:secrets` script, the
