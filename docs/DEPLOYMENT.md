@@ -38,7 +38,11 @@ lands before the new frontend queries it.
 > regression, but it means the container must not go out — and nobody should
 > start the smoke test — until the seed has run.
 
-Requires the `CONVEX_PROD_DEPLOY_KEY` secret in the repo. See the README.
+The deploy key is fetched from Infisical (`prod` → `CONVEX_DEPLOY_KEY`)
+at the start of the job with the `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`
+repo secrets. If Infisical is unreachable or the key is missing, the job
+fails **before** touching the branch, so Dokploy never builds against a
+schema that was not deployed. See the README.
 
 **Deploy in this order, every time:**
 
@@ -74,15 +78,16 @@ recorded in `cycleChanges` with who made it.
 
 ---
 
-## 1. Dev and prod are two databases
+## 1. Dev, staging and prod are three databases
 
-Convex separates `dev` and `prod` completely: different functions, different
+Convex separates the deployments completely: different functions, different
 data, and **different environment variables**. Almost every configuration
 error comes from here.
 
 ```bash
-npx convex env list             # dev
-npx convex env list --prod      # prod   ← the one that matters on September 4
+npx convex env list                        # dev
+npx convex env list --deployment staging   # staging (joyous-goshawk-857)
+npx convex env list --prod                 # prod   ← the one that matters on September 4
 ```
 
 Every `convex env` command below carries `--prod` on purpose.
@@ -110,6 +115,50 @@ About two of them, the ones that fail silently:
 - **`APP_URL`.** It is the base for the links in the emails. If it is left
   pointing at `localhost`, the link the guardian receives opens nothing.
 
+### Variables on the staging deployment
+
+Staging is a `prod`-type deployment named `staging` inside the same Convex
+project. `ci-main.yml` deploys code to it on every green `main`; the variables
+are set by hand, same as prod. It runs against the **dev** Clerk instance
+(`pk_test_` keys) and keeps Resend in test mode, so nobody outside
+`@resend.dev` gets mail from it.
+
+Already set (copied from dev on 2026-09-06): `CLERK_JWT_ISSUER_DOMAIN`,
+`CLERK_FRONTEND_API_URL`, `RESEND_API_KEY`. (`WINDOW_ALWAYS_OPEN=true` was
+copied too; it is inert now that the window lives in the `cycles` table, and
+can be unset.)
+
+Staging needs its own `cycles` row, same as prod — without one every
+registration query answers `no_active_cycle`:
+
+```bash
+npx convex run cycles:seed --deployment staging
+```
+
+Still pending, because each one needs a value that only exists once the
+matching thing is created in a dashboard:
+
+```bash
+# Clerk → Webhooks → new endpoint at
+#   https://joyous-goshawk-857.convex.site/clerk-webhook
+# with user.created, user.updated, user.deleted. Paste its signing secret:
+npx convex env set --deployment staging CLERK_WEBHOOK_SECRET
+
+# Resend → new webhook at
+#   https://joyous-goshawk-857.convex.site/resend-webhook
+npx convex env set --deployment staging RESEND_WEBHOOK_SECRET
+
+# The staging frontend's URL, once Dokploy has a domain for it.
+npx convex env set --deployment staging APP_URL https://<staging-domain>
+```
+
+Do **not** set `RESEND_TEST_MODE=false` on staging.
+
+The staging frontend gets `VITE_CONVEX_URL=https://joyous-goshawk-857.convex.cloud`
+from Infisical's `staging` environment at build time. If it is wrong there,
+the build aborts with `VITE_CONVEX_URL must be an https:// URL` instead of
+producing a container that answers 500.
+
 ### Webhooks pointing at production
 
 The webhook URL is the **production** deployment's
@@ -131,11 +180,14 @@ different.
 
 The details are in the README; what to remember when deploying:
 
-- **The `VITE_*` variables are build args.** Changing them in Dokploy without
-  rebuilding does nothing. If either of the two critical ones
-  (`VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`) is missing,
-  `vite.config.ts` aborts the build with a clear message — they used to
-  produce an image that started fine and answered 500 on every route.
+- **The `VITE_*` variables come from Infisical at build time.** Dokploy only
+  holds the identity's client id/secret (Build-time Secrets) and
+  `INFISICAL_ENV` (Build-time Argument). To change a `VITE_*` value, change
+  it in Infisical and hit Redeploy; changing anything in Dokploy without
+  rebuilding does nothing. If `VITE_CONVEX_URL` or
+  `VITE_CLERK_PUBLISHABLE_KEY` is missing or a placeholder, the build aborts
+  with a clear message — they used to produce an image that started fine and
+  answered 500 on every route.
 - **`CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` are runtime.** Both of
   them. Clerk's middleware runs in the SSR; without them, 500 on every route
   with `no secret key provided` or `Publishable key is missing` in the log.
@@ -212,7 +264,7 @@ Before September 4:
 - [ ] `npx convex env list --prod` has the 6 variables from §1
 - [ ] `RESEND_TEST_MODE=false` in prod
 - [ ] `npx convex run cycles:seed --prod` run; the `cycles` table shows 2026-2027 active
-- [ ] `CONVEX_PROD_DEPLOY_KEY` secret loaded in the repo
+- [ ] `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` secrets in the repo, and `CONVEX_DEPLOY_KEY` present in Infisical `prod`
 - [ ] The `convex-production` workflow finished green and the `preSignups`
       table shows up in the prod dashboard
 - [ ] Clerk webhook to the **prod** `.convex.site`, with the 3 events

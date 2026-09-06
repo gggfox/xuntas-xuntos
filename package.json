@@ -10,6 +10,7 @@
     "check": "npm run typecheck && npm run test",
     "deploy:convex": "convex deploy",
     "dev": "concurrently -k -n convex,vite -c blue,green \"convex dev\" \"vite dev\"",
+    "dev:secrets": "infisical run -- npm run dev",
     "generate-routes": "tsr generate",
     "paraglide": "node scripts/compile-paraglide.mjs",
     "pretest": "npm run paraglide",
