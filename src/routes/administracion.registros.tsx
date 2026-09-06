@@ -9,9 +9,7 @@ import BatchSendDialog from '../components/Admin/BatchSendDialog'
 import NoTools from '../components/Admin/NoTools'
 import RegistrationFilters from '../components/Admin/RegistrationFilters'
 import RegistrationsTable from '../components/Admin/RegistrationsTable'
-import PrototypeSwitcher from '../components/PrototypeSwitcher'
-import { VARIANTS } from '../components/Admin/prototype-mobile'
-import { padRows } from '../components/Admin/prototype-mobile/fixtures'
+import RegistrationCards from '../components/Admin/RegistrationCards'
 import { useActiveCycle } from '../hooks/useActiveCycle'
 import { useAdminCycle } from '../hooks/useAdminCycle'
 import { useMe } from '../hooks/useMe'
@@ -20,12 +18,8 @@ import { can } from '../lib/permissions'
 
 export const Route = createFileRoute('/administracion/registros')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.regs_title() }) }] }),
-  validateSearch: (s: Record<string, unknown>): { vista?: ViewId; variant?: string } => ({
-    ...(s.vista === 'pending' || s.vista === 'all' || s.vista === 'incomplete' ? { vista: s.vista } : {}),
-    // PROTOTYPE ONLY — drops out with `prototype-mobile/`. Without it the
-    // router strips `?variant=` before the page ever sees it.
-    ...(import.meta.env.DEV && typeof s.variant === 'string' && /^[OABC]$/.test(s.variant) ? { variant: s.variant } : {}),
-  }),
+  validateSearch: (s: Record<string, unknown>): { vista?: ViewId } =>
+    s.vista === 'pending' || s.vista === 'all' || s.vista === 'incomplete' ? { vista: s.vista } : {},
   component: RegistrationsPage,
 })
 
@@ -49,7 +43,7 @@ function RegistrationsPage() {
   const me = useMe()
   const { cycle } = useAdminCycle()
   const active = useActiveCycle()
-  const { vista, variant } = Route.useSearch()
+  const { vista } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const view: ViewId = vista ?? 'pending'
 
@@ -61,12 +55,7 @@ function RegistrationsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState(false)
 
-  // PROTOTYPE ONLY: two real rows hide every density problem the variants
-  // exist to expose, so a variant view pads the list with obvious fakes.
-  const shown = useMemo(
-    () => (rows ? applyFilters(import.meta.env.DEV && variant && variant !== 'O' ? padRows(rows) : rows, filters) : []),
-    [rows, filters, variant],
-  )
+  const shown = useMemo(() => (rows ? applyFilters(rows, filters) : []), [rows, filters])
 
   // What a test send should preview. Drawn from `rows`, not `shown`, so a
   // selection survives a filter change made after selecting; batchable rows
@@ -100,27 +89,8 @@ function RegistrationsPage() {
     void navigate({ search: { vista: v }, replace: true })
   }
 
-  // PROTOTYPE ONLY — `O` is today's screen, kept in the ring so the three
-  // proposals are judged against it rather than against a memory of it.
-  const Proto = VARIANTS.find((v) => v.key === variant)?.Component
-
   return (
     <>
-      {Proto ? (
-        <Proto
-          rows={shown}
-          view={view}
-          onViewChange={switchView}
-          filters={filters}
-          onFiltersChange={setFilters}
-          canBatch={canBatch}
-          selected={selected}
-          onSelectedChange={setSelected}
-          onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
-          onBatch={() => setDialog(true)}
-        />
-      ) : (
-        <>
       <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist">
         {(Object.keys(VIEWS) as ViewId[]).map((v) => (
           <button
@@ -143,15 +113,12 @@ function RegistrationsPage() {
         )}
       </div>
 
-      <RegistrationFilters value={filters} onChange={setFilters} lockStatus={view !== 'all'} />
+      <RegistrationFilters value={filters} onChange={setFilters} lockStatus={view !== 'all'} view={view} />
 
-      <RegistrationsTable
-        // v9's table instance is built once, on mount, from `initialState` —
-        // it does not re-seed sorting from a later `initialState` prop. Each
-        // view has its own default sort (see `VIEWS`), so the key forces a
-        // fresh instance when the tab changes instead of carrying the old
-        // view's sort into the new one.
-        key={view}
+      {/* Two renderings of the same rows, each hidden at the other's width:
+          nine columns do not survive a phone, and a stack of cards wastes a
+          laptop. See `RegistrationCards`. */}
+      <RegistrationCards
         rows={shown}
         view={view}
         canSelect={canBatch}
@@ -159,14 +126,23 @@ function RegistrationsPage() {
         onSelectedChange={setSelected}
         onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
       />
-        </>
-      )}
 
-      <PrototypeSwitcher
-        variants={[{ key: 'O', name: 'Actual (hoy)' }, ...VARIANTS.map(({ key, name }) => ({ key, name }))]}
-        current={variant ?? 'O'}
-        onChange={(v) => void navigate({ search: (prev) => ({ ...prev, variant: v }), replace: true })}
-      />
+      <div className="hidden md:block">
+        <RegistrationsTable
+          // v9's table instance is built once, on mount, from `initialState` —
+          // it does not re-seed sorting from a later `initialState` prop. Each
+          // view has its own default sort (see `VIEWS`), so the key forces a
+          // fresh instance when the tab changes instead of carrying the old
+          // view's sort into the new one.
+          key={view}
+          rows={shown}
+          view={view}
+          canSelect={canBatch}
+          selected={selected}
+          onSelectedChange={setSelected}
+          onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
+        />
+      </div>
 
       {dialog && (
         <BatchSendDialog

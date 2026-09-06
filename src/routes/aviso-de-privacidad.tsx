@@ -41,7 +41,7 @@ function PrivacyNotice() {
       <div className="mt-8 max-w-none font-light text-soft">
         <h2 className="h-display mt-8 text-[18px] text-ink">1. Quién es responsable de tus datos</h2>
         <p>
-          <i>Pendiente: razón social completa de XUNTAS+XUNTOS, domicilio fiscal y
+          <i>Pendiente: razón social completa de XUNTAS, domicilio fiscal y
           correo de contacto para asuntos de datos personales.</i>
         </p>
 

@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import * as m from '../../src/paraglide/messages.js'
-import StaffTable from '../../src/components/Admin/StaffTable'
+import StaffTable, { type StaffView } from '../../src/components/Admin/StaffTable'
 import type { Id } from '../../convex/_generated/dataModel'
 
 const staff = [
@@ -20,12 +20,13 @@ const invites = [
   },
 ]
 
-function renderTable(canManage: boolean) {
+function renderTable(canManage: boolean, view: StaffView = 'people') {
   const onSetRoles = vi.fn(async () => {})
   const onResend = vi.fn(async () => {})
   const onRevoke = vi.fn(async () => {})
   render(
     <StaffTable
+      view={view}
       staff={[...staff]}
       invites={[...invites]}
       canManage={canManage}
@@ -46,9 +47,27 @@ describe('StaffTable', () => {
     expect(screen.getByText(new RegExp(m.staff_you()))).toBeInTheDocument()
   })
 
+  /**
+   * The two tables are alternatives now, not a stack: the page shows one at
+   * a time and the segmented control picks which. A view that leaked the
+   * other one's rows would put the invitations back under the team.
+   */
+  it('draws only the view it was given', () => {
+    renderTable(false, 'people')
+    expect(screen.queryByText('luis@xuntas.org')).not.toBeInTheDocument()
+    cleanup()
+    renderTable(false, 'invites')
+    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+    expect(screen.getByText('luis@xuntas.org')).toBeInTheDocument()
+  })
+
   it('offers no edit controls without manage_users', () => {
     renderTable(false)
     expect(screen.queryByRole('button', { name: m.staff_edit() })).not.toBeInTheDocument()
+  })
+
+  it('offers no invitation controls without manage_users', () => {
+    renderTable(false, 'invites')
     expect(screen.queryByRole('button', { name: m.staff_resend() })).not.toBeInTheDocument()
   })
 
@@ -81,12 +100,29 @@ describe('StaffTable', () => {
   })
 
   it('lists invitations with their status and lets a manager resend or revoke', () => {
-    const { onResend, onRevoke } = renderTable(true)
+    const { onResend, onRevoke } = renderTable(true, 'invites')
     expect(screen.getByText('luis@xuntas.org')).toBeInTheDocument()
     expect(screen.getByText(m.invite_status_pending())).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: m.staff_resend() }))
     expect(onResend).toHaveBeenCalledWith('i1')
     fireEvent.click(screen.getByRole('button', { name: m.staff_revoke() }))
     expect(onRevoke).toHaveBeenCalledWith('i1')
+  })
+
+  it('says the two empty states apart', () => {
+    render(
+      <StaffTable
+        view="invites"
+        staff={[]}
+        invites={[]}
+        canManage
+        meId={undefined}
+        onSetRoles={async () => {}}
+        onResend={async () => {}}
+        onRevoke={async () => {}}
+      />,
+    )
+    expect(screen.getByText(m.staff_invites_none())).toBeInTheDocument()
+    expect(screen.queryByText(m.staff_none())).not.toBeInTheDocument()
   })
 })

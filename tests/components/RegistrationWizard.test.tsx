@@ -450,6 +450,51 @@ describe('the confirmation cards', () => {
     fireEvent.click(screen.getByRole('link', { name: m.rules_title() }))
     expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(false)
   })
+
+  /**
+   * Arriving is not a mistake.
+   *
+   * Every other field is checked when the reader leaves it, which is right
+   * for something you type: leaving it is the moment you finished writing.
+   * A confirmation has nothing in progress to finish — it is off until it is
+   * pressed — so blur says nothing about it, and the reader who tabs from
+   * the heading down to the send button used to arrive there with all three
+   * cards already red for the crime of being passed through.
+   */
+  it('says nothing about a card the reader has only passed through', () => {
+    goToConfirmations()
+    for (const id of ['ck1', 'ck2', 'ck3']) {
+      const box = document.getElementById(id) as HTMLInputElement
+      fireEvent.focus(box)
+      fireEvent.blur(box)
+    }
+    expect(screen.queryByText(m.reg_ck_rules_error())).not.toBeInTheDocument()
+    expect(screen.queryByText(m.reg_ck_scholarship_error())).not.toBeInTheDocument()
+    expect(screen.queryByText(m.reg_ck_privacy_error())).not.toBeInTheDocument()
+  })
+
+  /** Read off the card's own slot, not the summary, which is a separate list. */
+  const cardSays = (id: string) => document.getElementById(`${id}-err`)?.textContent
+
+  it('says so once the reader tries to send without them', async () => {
+    goToConfirmations()
+    fireEvent.click(screen.getByRole('button', { name: m.reg_submit() }))
+    await screen.findByText(m.reg_errors_title())
+    expect(cardSays('ck1')).toBe(m.reg_ck_rules_error())
+    expect(cardSays('ck2')).toBe(m.reg_ck_scholarship_error())
+    expect(cardSays('ck3')).toBe(m.reg_ck_privacy_error())
+  })
+
+  /** And stops saying so the moment the card is pressed. */
+  it('clears a card’s message when it is accepted', async () => {
+    goToConfirmations()
+    fireEvent.click(screen.getByRole('button', { name: m.reg_submit() }))
+    await screen.findByText(m.reg_errors_title())
+
+    fireEvent.click(screen.getByText(m.reg_ck_rules()))
+    expect(cardSays('ck1')).toBe('')
+    expect(cardSays('ck3')).toBe(m.reg_ck_privacy_error())
+  })
 })
 
 /**

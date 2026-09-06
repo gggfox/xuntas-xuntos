@@ -10,7 +10,8 @@ import {
 } from '@tanstack/react-table'
 import * as m from '../../paraglide/messages.js'
 import Pill, { type PillTone } from '../Pill'
-import RoleChecks, { roleName } from './RoleChecks'
+import RoleChecks from './RoleChecks'
+import RolePills from './RolePills'
 import type { Role } from '../../lib/permissions'
 import { useDateFormats } from '../DateField/format'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -26,7 +27,11 @@ export type InviteRow = {
   invitedByName: string
 }
 
+/** Which of the two tables the page is showing. */
+export type StaffView = 'people' | 'invites'
+
 type Props = {
+  view: StaffView
   staff: StaffRow[]
   invites: InviteRow[]
   canManage: boolean
@@ -67,6 +72,7 @@ const INVITE_TONE: Record<InviteRow['status'], PillTone> = {
 }
 
 export default function StaffTable({
+  view,
   staff,
   invites,
   canManage,
@@ -113,14 +119,9 @@ export default function StaffTable({
             }
             /* All one tone: the roles are a list of facts, not a ranking, and
                the screen has already spent its yellow on the button that
-               sends an invitation. */
-            return (
-              <span className="flex flex-wrap gap-1">
-                {row.roles.map((r) => (
-                  <Pill key={r}>{roleName(r)}</Pill>
-                ))}
-              </span>
-            )
+               sends an invitation. Only the first is printed — see
+               `RolePills` for why the rest hide behind a `+N`. */
+            return <RolePills roles={row.roles} />
           },
         }),
         staffHelper.display({
@@ -179,13 +180,7 @@ export default function StaffTable({
         inviteHelper.display({
           id: 'roles',
           header: m.staff_col_roles,
-          cell: (c) => (
-            <span className="flex flex-wrap gap-1">
-              {c.row.original.roles.map((r) => (
-                <Pill key={r}>{roleName(r)}</Pill>
-              ))}
-            </span>
-          ),
+          cell: (c) => <RolePills roles={c.row.original.roles} />,
         }),
         inviteHelper.accessor('status', {
           header: m.staff_col_status,
@@ -225,22 +220,15 @@ export default function StaffTable({
   const staffTable = useTable({ features, columns: staffColumns, data: staff })
   const inviteTable = useTable({ features, columns: inviteColumns, data: invites })
 
-  return (
-    <>
-      <h2 className="h-display mt-9 text-[18px]">{m.staff_people_title()}</h2>
-      <StaffRows table={staffTable} empty={m.staff_none()} />
-      <h2 className="h-display mt-9 text-[18px]">{m.staff_invites_title()}</h2>
-      <InviteRows table={inviteTable} empty={m.staff_none()} />
-    </>
+  /* Both tables are built either way — a hook cannot be called conditionally
+     — but only the chosen one is drawn. The data behind them is a few dozen
+     rows the page already holds, so building the other costs nothing worth
+     saving. */
+  return view === 'people' ? (
+    <Table table={staffTable} empty={m.staff_none()} />
+  ) : (
+    <Table table={inviteTable} empty={m.staff_invites_none()} />
   )
-}
-
-function StaffRows({ table, empty }: { table: ReactTable<typeof features, StaffRow>; empty: string }) {
-  return <Table table={table} empty={empty} />
-}
-
-function InviteRows({ table, empty }: { table: ReactTable<typeof features, InviteRow>; empty: string }) {
-  return <Table table={table} empty={empty} />
 }
 
 /**

@@ -9,7 +9,7 @@ import RegistrationDetail from '../components/Admin/RegistrationDetail'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
 
-export const Route = createFileRoute('/administracion/registros/$id')({
+export const Route = createFileRoute('/administracion/registros_/$id')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.regs_title() }) }] }),
   component: DetailPage,
 })

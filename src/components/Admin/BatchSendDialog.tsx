@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import * as m from '../../paraglide/messages.js'
 import { describeConvexError } from '../../lib/registrationErrors'
+import { useModal } from '../../hooks/useModal'
 
 type Props = {
   count: number
@@ -11,16 +12,17 @@ type Props = {
 }
 
 /**
- * The one dialog in the app, native `<dialog>` so focus and Escape are the
- * browser's. It says the count, refuses while the window is open, and offers
- * a test send — ten lines that stop a typo going to two hundred families.
+ * Native `<dialog>`, so focus and Escape are the browser's; `useModal` adds
+ * the backdrop dismissal it does not give. It says the count, refuses while
+ * the window is open, and offers a test send — ten lines that stop a typo
+ * going to two hundred families.
  *
  * `onConfirm` resolves with `{ scheduled, skipped }`: the mutation only
  * queues the sends, it does not wait on Resend, so the note it prints is
  * careful to say "scheduled" and never claims the mail has gone out.
  */
 export default function BatchSendDialog({ count, windowOpen, onConfirm, onTest, onClose }: Props) {
-  const ref = useRef<HTMLDialogElement>(null)
+  const { close, dialogProps } = useModal(onClose)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   // The `<b>` below needs a stable id for `aria-labelledby` — the dialog is
@@ -28,17 +30,11 @@ export default function BatchSendDialog({ count, windowOpen, onConfirm, onTest, 
   // accessible name of its own from `showModal` alone.
   const titleId = useId()
 
-  /* Why an effect: showModal is an imperative browser call that must run after mount. */
-  useEffect(() => {
-    ref.current?.showModal()
-  }, [])
-
   return (
     <dialog
-      ref={ref}
-      onClose={onClose}
+      {...dialogProps}
       aria-labelledby={titleId}
-      className="card m-auto max-w-[52ch] px-[21px] py-[19px] backdrop:bg-ink/40"
+      className="card m-auto max-w-[52ch] px-[21px] py-[19px]"
     >
       <b id={titleId} className="block font-disp text-[16px]">{m.batch_title({ n: count })}</b>
       <p className="mt-2 text-[13px] font-light text-soft">
@@ -90,7 +86,7 @@ export default function BatchSendDialog({ count, windowOpen, onConfirm, onTest, 
         >
           {m.batch_test()}
         </button>
-        <button type="button" className="btn btn-ghost" onClick={() => ref.current?.close()}>
+        <button type="button" className="btn btn-ghost" onClick={() => close()}>
           {m.common_back()}
         </button>
       </div>

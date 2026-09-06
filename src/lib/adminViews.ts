@@ -40,15 +40,45 @@ export const VIEWS: Record<ViewId, { filters: Filters; sort: { id: string; desc:
   incomplete: { filters: { ...ANY, status: 'draft' }, sort: { id: 'sectionsComplete', desc: false }, selectable: false },
 }
 
+/**
+ * The order a view opens in, applied outside the table.
+ *
+ * `RegistrationsTable` sorts itself — that is TanStack's job and a header is
+ * there to be clicked. The card list below `md` has no headers to click, so
+ * it takes the view's default order from here and keeps it. Both therefore
+ * agree about what the first row is, which is the only thing that would be
+ * noticed if they did not.
+ */
+export function sortRows(rows: AdminRow[], sort: { id: string; desc: boolean }): AdminRow[] {
+  const key = (r: AdminRow): string | number => {
+    switch (sort.id) {
+      case 'submittedAt':
+        return r.submittedAt ?? 0
+      case 'sectionsComplete':
+        return r.sectionsComplete
+      default:
+        return r.name
+    }
+  }
+  return [...rows].sort((a, b) => {
+    const x = key(a)
+    const y = key(b)
+    const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'es')
+    return sort.desc ? -c : c
+  })
+}
+
 export function applyFilters(rows: AdminRow[], f: Filters): AdminRow[] {
+  const matchAnyOrFilter = <T>(value: T, filter: T | 'any'): boolean => filter === 'any' || value === filter
+
   return rows.filter(
     (r) =>
-      (f.status === 'any' || r.status === f.status) &&
-      (f.branch === 'any' || r.branch === f.branch) &&
+      matchAnyOrFilter(r.status, f.status) &&
+      matchAnyOrFilter(r.branch, f.branch) &&
+      matchAnyOrFilter(r.notice, f.notice) &&
       (f.guardian === 'any' ||
         (f.guardian === 'pending' ? r.guardianRequired && !r.guardianConfirmed : r.guardianConfirmed)) &&
-      r.sectionsComplete >= f.minSections &&
-      (f.notice === 'any' || r.notice === f.notice),
+      r.sectionsComplete >= f.minSections
   )
 }
 

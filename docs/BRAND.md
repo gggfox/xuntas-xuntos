@@ -186,9 +186,10 @@ steps the prototype had used around its own yellow, so the relationships the
 designer set up survive the re-anchoring. If the yellow ever moves again, they
 get re-derived — they are not independent choices.
 
-**The wordmark is not used.** The site's lockup reads "XUNTAS" alone, and this
-is the registration for a program with a men's branch. The header keeps the
-mark next to `brand_name`, which says "XUNTAS–XUNTOS".
+**The wordmark is not used.** The header keeps the mark next to `brand_name`,
+which says "XUNTAS" alone, the way the site's own lockup does. The men's branch
+still exists, but it is named where it matters — in the branch field of the
+form — not in the header of every page.
 
 **The favicon carries an ink tile** (`public/favicon.svg`), because the rule
 about yellow on light backgrounds does not stop at the edge of the page — a

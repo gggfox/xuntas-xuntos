@@ -38,7 +38,7 @@
 | `src/lib/adminViews.ts` | View presets and the client filter. Pure. |
 | `src/components/Admin/RegistrationsTable.tsx`, `RegistrationFilters.tsx`, `BatchSendDialog.tsx`, `StatusChip.tsx` | The table page. |
 | `src/components/Admin/RegistrationDetail.tsx`, `DecisionPanel.tsx`, `ReadSection.tsx` | The detail page. |
-| `src/routes/administracion.registros.tsx`, `src/routes/administracion.registros.$id.tsx` | Routes. |
+| `src/routes/administracion.registros.tsx`, `src/routes/administracion.registros_.$id.tsx` | Routes. |
 | `src/components/Admin/AdminShell.tsx`, `src/routes/administracion.index.tsx` | Nav entry, index prefers registrations. |
 | `docs/DEPLOYMENT.md` §4, `docs/DECISIONS.md` | Amended. |
 | `tests/decisionRules.test.ts`, `tests/adminViews.test.ts`, `tests/components/RegistrationsTable.test.tsx`, `tests/components/DecisionPanel.test.tsx` | Tests. |
@@ -1701,7 +1701,10 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/components/Admin/ReadSection.tsx`, `RegistrationDetail.tsx`, `DecisionPanel.tsx`
-- Create: `src/routes/administracion.registros.$id.tsx`
+- Create: `src/routes/administracion.registros_.$id.tsx` — the trailing `_` keeps the URL
+  `/administracion/registros/$id` while parenting the route to the `/administracion`
+  layout instead of to the list page, which renders no `<Outlet />` and would
+  otherwise swallow this one.
 - Modify: `messages/es.json`, `messages/en.json`
 - Test: `tests/components/DecisionPanel.test.tsx`
 
@@ -2126,7 +2129,7 @@ export default function RegistrationDetail({ detail }: { detail: Detail }) {
 - [ ] **Step 7: The route**
 
 ```tsx
-// src/routes/administracion.registros.$id.tsx
+// src/routes/administracion.registros_.$id.tsx
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
@@ -2138,7 +2141,7 @@ import RegistrationDetail from '../components/Admin/RegistrationDetail'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
 
-export const Route = createFileRoute('/administracion/registros/$id')({
+export const Route = createFileRoute('/administracion/registros_/$id')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.regs_title() }) }] }),
   component: DetailPage,
 })
@@ -2192,7 +2195,7 @@ In the browser as master_admin, open a submitted registration: all eight section
 - [ ] **Step 9: Commit**
 
 ```bash
-git add 'src/routes/administracion.registros.$id.tsx' src/components/Admin src/routeTree.gen.ts messages tests/components/DecisionPanel.test.tsx
+git add 'src/routes/administracion.registros_.$id.tsx' src/components/Admin src/routeTree.gen.ts messages tests/components/DecisionPanel.test.tsx
 git commit -m "feat(admin): single-page registration detail with decision panel
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"

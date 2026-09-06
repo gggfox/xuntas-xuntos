@@ -17,7 +17,7 @@ export const resend: Resend = new Resend(components.resend, {
   onEmailEvent: internal.emails.recordEmailEvent,
 })
 
-const FROM = 'XUNTAS+XUNTOS <registro@xuntas.org>'
+const FROM = 'XUNTAS <registro@xuntas.org>'
 const REPLY_TO = 'hola@xuntas.org'
 
 const appUrl = () => process.env.APP_URL ?? 'https://app.xuntas.org'
@@ -57,7 +57,7 @@ function template(content: string, preheader: string, headerLine: string): strin
     <table role="presentation" cellpadding="0" cellspacing="0"><tr>
       <td style="width:34px;height:34px;background:#EDF45F;border-radius:50%;text-align:center;vertical-align:middle;font-family:Georgia,serif;font-weight:bold;font-size:18px;color:#111111;">X</td>
       <td style="padding-left:11px;">
-        <div style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:16px;color:#FFFFFF;line-height:1.15;">XUNTAS&ndash;XUNTOS</div>
+        <div style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:16px;color:#FFFFFF;line-height:1.15;">XUNTAS</div>
         <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);">${headerLine}</div>
       </td>
     </tr></table>
@@ -153,7 +153,7 @@ export const sendGuardianAuthorization = internalMutation({
     const athleteSubject = args.athleteName.trim().replace(/\s+/g, ' ').slice(0, 60)
     const subject = args.isResend
       ? `Recordatorio: autoriza la cuenta de ${athleteSubject}`
-      : `Autoriza la cuenta de ${athleteSubject} · XUNTAS+XUNTOS`
+      : `Autoriza la cuenta de ${athleteSubject} · XUNTAS`
 
     // Escaped: both come from forms.
     const guardianName = textForEmail(args.guardianName)
@@ -173,7 +173,7 @@ export const sendGuardianAuthorization = internalMutation({
         `<p style="margin:0 0 14px;">Hola, ${guardianName}:</p>
          <p style="margin:0 0 14px;">
            <b>${athleteName}</b> se registró a la ${cycleTitle} del
-           Programa de Desarrollo de XUNTAS+XUNTOS y te señaló como su padre, madre o tutor.
+           Programa de Desarrollo de XUNTAS y te señaló como su padre, madre o tutor.
          </p>
          <p style="margin:0 0 14px;">
            Como es menor de edad, necesitamos tu autorización para crear su cuenta y tratar sus datos.
@@ -262,11 +262,11 @@ export const sendStaffInvitation = internalMutation({
       from: FROM,
       to: args.to,
       replyTo: [REPLY_TO],
-      subject: 'Te invitaron al panel de XUNTAS+XUNTOS',
+      subject: 'Te invitaron al panel de XUNTAS',
       html: template(
         `<p style="margin:0 0 14px;">Hola:</p>
          <p style="margin:0 0 14px;">
-           <b>${inviter}</b> te invitó al panel de XUNTAS+XUNTOS con el rol de
+           <b>${inviter}</b> te invitó al panel de XUNTAS con el rol de
            <b>${roleList(args.roles)}</b>.
          </p>
          <p style="margin:0 0 14px;">
@@ -277,7 +277,7 @@ export const sendStaffInvitation = internalMutation({
          <p style="margin:0 0 14px;font-size:13px;color:rgba(17,17,17,.58);">
            La invitación vence en 7 días. Si no esperabas este correo, ignóralo.
          </p>`,
-        'Te invitaron al panel de XUNTAS+XUNTOS.',
+        'Te invitaron al panel de XUNTAS.',
         STAFF_HEADER_LINE,
       ),
     })
@@ -291,12 +291,12 @@ export const sendAccessGranted = internalMutation({
       from: FROM,
       to: args.to,
       replyTo: [REPLY_TO],
-      subject: 'Ya tienes acceso al panel de XUNTAS+XUNTOS',
+      subject: 'Ya tienes acceso al panel de XUNTAS',
       html: template(
         `<p style="margin:0 0 14px;">Hola:</p>
          <p style="margin:0 0 14px;">
            Tu cuenta ahora tiene el rol de <b>${roleList(args.roles)}</b> en el panel
-           de XUNTAS+XUNTOS. Entra con la cuenta que ya tienes.
+           de XUNTAS. Entra con la cuenta que ya tienes.
          </p>
          ${button(`${appUrl()}/es/administracion`, 'Ir al panel')}`,
         'Tu cuenta ya tiene acceso al panel.',
@@ -336,7 +336,7 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
       }
     case 'selected':
       return {
-        subject: 'Fuiste seleccionad@ · Programa de Desarrollo XUNTAS+XUNTOS',
+        subject: 'Fuiste seleccionad@ · Programa de Desarrollo XUNTAS',
         preheader: 'El Consejo Técnico te seleccionó.',
         html: `<p style="margin:0 0 14px;">${greeting}</p>
           <p style="margin:0 0 14px;"><b>El Consejo Técnico te seleccionó para el Programa de Desarrollo</b> en la ${title}.</p>
