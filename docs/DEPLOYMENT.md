@@ -177,6 +177,15 @@ All three must return `200`. A `500` on all of them is usually a Clerk key
 in Infisical's `prod` environment; a `502` means the container is not
 starting — read its log, the entrypoint says why.
 
+**Read the log with the rollback in mind.** When a new container fails its
+health check, Docker Swarm rolls the service back to the previous spec,
+and Dokploy's log view shows only the *latest* container — the rollback's.
+So the error you see ("no INFISICAL_CLIENT_ID", "no secret key") can belong
+to the old spec, not to what you just deployed. The entrypoint prints the
+*names* of the variables it started with as its first line; if that list
+has `CLERK_*` in it, you are looking at a rollback. The real failure is in
+the container before it, and the fix is almost always a value in Infisical.
+
 ### Smoke test, end to end
 
 Do it with a real account before the 4th, in production. It is the only way

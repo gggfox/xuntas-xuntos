@@ -29,6 +29,21 @@ export INFISICAL_TOKEN
 # process dump or a careless console.log(process.env) cannot leak it.
 unset INFISICAL_CLIENT_ID INFISICAL_CLIENT_SECRET
 
+# Fail here, with a name, rather than let node start and answer 500 on
+# every route. A 500 fails the health check, Swarm rolls the service back
+# to the previous spec, and the log you then read belongs to the rollback,
+# not to this failure. Names only in the message, never values.
+require_secrets='
+for k in CLERK_SECRET_KEY VITE_CLERK_PUBLISHABLE_KEY VITE_CONVEX_URL; do
+  eval "v=\${$k:-}"
+  if [ -z "$v" ]; then
+    echo "entrypoint: $k is empty in Infisical environment '"$INFISICAL_ENV"' — fix it there and redeploy" >&2
+    exit 1
+  fi
+done
+'
+
 # exec: `infisical run` becomes PID 1 and forwards signals to node, so a
 # stop or restart from Dokploy reaches the server instead of being ignored.
-exec infisical run --env "$INFISICAL_ENV" --projectId "$project_id" -- node /app/server.mjs
+exec infisical run --env "$INFISICAL_ENV" --projectId "$project_id" -- \
+  sh -c "$require_secrets"'; exec node /app/server.mjs'
