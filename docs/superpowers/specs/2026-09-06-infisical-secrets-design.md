@@ -22,9 +22,6 @@ they cannot.
 
 Out of scope, on purpose:
 
-- **Container runtime variables** (`CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`)
-  stay in Dokploy's environment. Fetching them at container start would make
-  every restart depend on Infisical, for two values.
 - **Convex deployment variables** (`CLERK_JWT_ISSUER_DOMAIN`, `RESEND_API_KEY`,
   `APP_URL`, …) stay in Convex, set with `npx convex env set`.
 - **Secret Syncs** (Infisical pushing into GitHub). Rejected: needs a GitHub
@@ -143,6 +140,8 @@ Dokploy, per environment:
 | Build-time Secret | `INFISICAL_CLIENT_ID` | identity client id |
 | Build-time Secret | `INFISICAL_CLIENT_SECRET` | the `dokploy-build` client secret |
 | Build-time Argument | `INFISICAL_ENV` | `staging` or `prod` |
+| Environment variable | `INFISICAL_CLIENT_ID` | same, for the running container (Consumer 4) |
+| Environment variable | `INFISICAL_CLIENT_SECRET` | same |
 
 The seven `VITE_*` build args are **removed** from Dokploy. Their values
 come from Infisical from now on, so Dokploy can no longer hold a stale copy.
@@ -163,8 +162,14 @@ RUN --mount=type=secret,id=INFISICAL_CLIENT_ID \
         --client-id "$(cat /run/secrets/INFISICAL_CLIENT_ID)" \
         --client-secret "$(cat /run/secrets/INFISICAL_CLIENT_SECRET)" \
         --plain --silent)" \
-    infisical run --env "$INFISICAL_ENV" --path / -- npm run build
+    infisical run --env "$INFISICAL_ENV" \
+        --projectId "$(node -p "require('./.infisical.json').workspaceId")" \
+        -- npm run build
 ```
+
+`--projectId` is not optional: with a machine-identity token the CLI does
+not read the project from `.infisical.json` ("Project ID is required when
+using machine identity"), so the build reads the same file itself.
 
 - `infisical run` injects the `/` folder into the build's environment. Vite
   embeds only `VITE_*`-prefixed variables, so `CLERK_SECRET_KEY` being in
@@ -189,6 +194,36 @@ docker build --build-arg INFISICAL_ENV=staging \
 container is down, no frontend build can run until it is back. Convex
 deploys from GitHub are unaffected. Production keeps serving; only new
 builds wait.
+
+## Consumer 4 — the running container
+
+First designed as out of scope ("two values, not worth a dependency"), then
+reversed on 2026-09-06: the whole point is that Dokploy holds no app secret
+at all, and the two Clerk values were exactly the stale copies that broke
+staging.
+
+- The runtime stage copies the CLI binary from the build stage (one static
+  file at `/usr/bin/infisical`, no package dependencies), plus
+  `.infisical.json` and `docker-entrypoint.sh`.
+- `INFISICAL_ENV` is baked into the image as `ENV` from the build arg. A
+  staging image can only ever fetch staging secrets.
+- The entrypoint requires `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`
+  in the container environment, logs in, exports the token, **unsets the
+  two credentials**, and `exec`s
+  `infisical run --env $INFISICAL_ENV --projectId <from .infisical.json> -- node /app/server.mjs`.
+  `exec` makes `infisical run` PID 1; it forwards signals to node, so a
+  Dokploy stop or restart is honoured.
+- Clerk's server resolves the publishable key by trying the `VITE_` name
+  first, so `VITE_CLERK_PUBLISHABLE_KEY` from Infisical serves both the
+  bundle and SSR. There is no unprefixed `CLERK_PUBLISHABLE_KEY` anywhere.
+- Dokploy per environment therefore carries the identity twice (build
+  secret and environment variable) and nothing else. The `CLERK_*` lines
+  are removed.
+
+**Trade-off, extended:** a container *start* now depends on Infisical too.
+After a full VPS reboot the app crash-loops until the Infisical container
+is up, then Docker's restart policy recovers it. A running container is
+unaffected by an Infisical outage.
 
 ## Cutover
 

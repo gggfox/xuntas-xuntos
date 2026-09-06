@@ -172,26 +172,34 @@ environment. Dokploy provides three things per environment:
 | Build-time Secret | `INFISICAL_CLIENT_ID` | the identity's client id |
 | Build-time Secret | `INFISICAL_CLIENT_SECRET` | its `dokploy-build` client secret |
 | Build-time Argument | `INFISICAL_ENV` | `staging` or `prod` |
+| Environment variable | `INFISICAL_CLIENT_ID` | same client id, for the running container |
+| Environment variable | `INFISICAL_CLIENT_SECRET` | same client secret |
 
 Build-time Secrets are BuildKit secret mounts: they never appear in an
 `ARG`, an `ENV`, a layer, or `docker history`.
 
-The container's **runtime** variables stay in Dokploy's Environment
-Settings, because fetching two values at every restart is not worth a
-dependency on Infisical:
+The **running container** fetches its secrets the same way. The image
+carries the Infisical CLI and [`docker-entrypoint.sh`](docker-entrypoint.sh),
+which logs in with the identity at start and `exec`s
+`infisical run --env $INFISICAL_ENV -- node server.mjs`. `INFISICAL_ENV` is
+baked into the image from the build arg, so a staging image cannot be
+pointed at production secrets by editing a variable. Clerk's server reads
+`VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` straight from that
+environment; there is no unprefixed `CLERK_PUBLISHABLE_KEY` anywhere.
 
-| Variable | Why runtime |
-|---|---|
-| `CLERK_SECRET_KEY` | Clerk's SSR middleware reads it from `process.env` |
-| `CLERK_PUBLISHABLE_KEY` | same, **without** the `VITE_` prefix; same value as `VITE_CLERK_PUBLISHABLE_KEY` in Infisical |
+So Dokploy holds exactly one secret per environment, twice: the identity,
+once for the build and once for the container. Nothing else.
 
 And `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`,
 `APP_URL` live in Convex (`npx convex env set`) — they don't go through
 Docker at all.
 
 Trade-off to know about: Infisical runs on the same VPS. If its container
-is down, no frontend build can run until it is back. Running containers
-keep serving; Convex deploys from GitHub are unaffected.
+is down, no frontend build can run and no frontend container can *start*
+until it is back. A container that is already running keeps serving. After
+a full VPS reboot the app crash-loops until Infisical is up, then Docker's
+restart policy brings it back on its own. Convex deploys from GitHub are
+unaffected.
 
 The full procedure — deployment order, the `--prod` trap with the Convex
 variables, smoke test and the checklist to go through before September 4 — is
