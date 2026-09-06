@@ -59,13 +59,25 @@ In the Clerk dashboard:
 
 ### 3. Environment variables
 
-Local ones, in `.env.local` (see [`.env.example`](.env.example)):
+The shared development values live in Infisical
+(`https://infisical.gggfox.com`, project `xuntas-xuntos`, environment `dev`).
+Install the CLI (`brew install infisical/get-cli/infisical`) and log in once
+against that domain:
+
+```bash
+infisical login --domain https://infisical.gggfox.com
+```
+
+The repo is already linked ([`.infisical.json`](.infisical.json)), so nothing
+else to configure. Two values are yours alone and stay in `.env.local`:
 
 ```
-VITE_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-VITE_CONVEX_URL=
+CONVEX_DEPLOYMENT=   # written by `npx convex dev` in step 1
+VITE_CONVEX_URL=     # the URL it printed
 ```
+
+Without Infisical, copy [`.env.example`](.env.example) to `.env.local` and
+fill it in by hand; `npm run dev` works either way.
 
 In Convex, which is where the backend runs:
 
@@ -98,7 +110,8 @@ npx convex env set RESEND_WEBHOOK_SECRET whsec_...
 ### 5. Run
 
 ```bash
-npm install && npm run dev
+npm install && npm run dev:secrets   # with Infisical
+npm install && npm run dev           # from .env.local only
 ```
 
 ---
