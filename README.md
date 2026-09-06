@@ -230,8 +230,14 @@ Required secrets (Settings → Secrets and variables → Actions):
 
 | Secret | For |
 |---|---|
-| `CONVEX_PROD_DEPLOY_KEY` | `release.yml` and `convex-production.yml` |
-| `CONVEX_STAGING_DEPLOY_KEY` | `ci-main.yml` — deploys to the `staging` Convex deployment. If it is missing, the step is skipped with a warning and the chain goes on |
+| `INFISICAL_CLIENT_ID` | the machine identity `XUNTAS-XUNTOS INFISICAL CLIENT` in Infisical, Universal Auth |
+| `INFISICAL_CLIENT_SECRET` | its `github-actions` client secret |
+
+The Convex deploy keys themselves are **not** repo secrets any more. They
+live in Infisical, folder `/ci`, under the name `CONVEX_DEPLOY_KEY` in the
+`staging` and `prod` environments. Each workflow fetches the one it needs
+with `Infisical/secrets-action` right before `convex deploy`, and fails if
+it is missing.
 
 A merge to `production` triggers **two** independent deployments:
 
@@ -249,15 +255,15 @@ the minutes of the Docker build — which is the desirable order: the new schema
 up before the new frontend queries it. **Nothing guarantees it** other than
 that difference in duration.
 
-It requires the `CONVEX_PROD_DEPLOY_KEY` secret in the repo (Settings →
-Secrets and variables → Actions), generated from the Convex dashboard with the
+To rotate a deploy key, generate it from the Convex dashboard with the
 `deployment:deploy` permission, or with:
 
 ```bash
-npx convex deployment token create ci-token --deployment prod
+npx convex deployment token create ci-token --deployment prod      # → Infisical prod    /ci/CONVEX_DEPLOY_KEY
+npx convex deployment token create ci-token --deployment staging   # → Infisical staging /ci/CONVEX_DEPLOY_KEY
 ```
 
-The staging key is the same command with `--deployment staging`.
+Store the output in Infisical, not in GitHub.
 
 The variables that live in Convex (`CLERK_JWT_ISSUER_DOMAIN`,
 `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`, `APP_URL`) are **not** deployed by

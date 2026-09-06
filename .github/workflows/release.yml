@@ -10,6 +10,9 @@
 # of Dokploy's GitHub App does arrive, so the container does build on its
 # own. convex-production.yml stays on as a safety net for when someone pushes
 # to `production` by hand from their machine.
+#
+# Same order as staging, and for the same reason: Convex first, and the
+# push to `production` only if the deploy succeeded.
 
 name: release — promote staging to production
 
@@ -39,11 +42,26 @@ jobs:
 
       - run: npm ci
 
-      # Same order as in staging: backend before frontend.
+      - name: Fetch the Convex production deploy key from Infisical
+        uses: Infisical/secrets-action@v1.0.17
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain: https://infisical.gggfox.com
+          project-slug: xuntas-xuntos-j-k6-i
+          env-slug: prod
+          secret-path: /ci
+
+      - name: The key must be there
+        run: |
+          if [ -z "$CONVEX_DEPLOY_KEY" ]; then
+            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from /ci in the prod environment. Nothing was deployed and production was not advanced."
+            exit 1
+          fi
+
       - name: Deploy to Convex production
         run: npm run deploy:convex
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PROD_DEPLOY_KEY }}
 
       # The push to `production` is what makes Dokploy build and swap the
       # production container.

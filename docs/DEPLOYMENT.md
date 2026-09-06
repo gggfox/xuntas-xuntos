@@ -30,7 +30,11 @@ lands before the new frontend queries it.
 > yet. With the call for applications this close, it is worth checking that
 > the Convex workflow finished green before calling the deployment good.
 
-Requires the `CONVEX_PROD_DEPLOY_KEY` secret in the repo. See the README.
+The deploy key is fetched from Infisical (`prod` → `/ci/CONVEX_DEPLOY_KEY`)
+at the start of the job with the `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`
+repo secrets. If Infisical is unreachable or the key is missing, the job
+fails **before** touching the branch, so Dokploy never builds against a
+schema that was not deployed. See the README.
 
 ---
 
@@ -217,7 +221,7 @@ Before September 4:
 - [ ] `npx convex env list --prod` has the 6 variables from §1
 - [ ] `RESEND_TEST_MODE=false` in prod
 - [ ] `WINDOW_ALWAYS_OPEN` does **not** show up in prod
-- [ ] `CONVEX_PROD_DEPLOY_KEY` secret loaded in the repo
+- [ ] `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` secrets in the repo, and `/ci/CONVEX_DEPLOY_KEY` present in Infisical `prod`
 - [ ] The `convex-production` workflow finished green and the `preSignups`
       table shows up in the prod dashboard
 - [ ] Clerk webhook to the **prod** `.convex.site`, with the 3 events
