@@ -122,6 +122,18 @@ Docker on Hostinger + Dokploy. The Dokploy project is `xuntas-xuntos`, with
 two environments — `staging` and `production` — and a `frontend` service in
 each. `app.xuntas.org` points at the VPS via an A record (see `DNS-NOTES.md`).
 
+The Convex project `xuntas-xuntos` has three deployments, each with its own
+database and its own environment variables:
+
+| Deployment | Convex name | Used by |
+|---|---|---|
+| dev | one per developer (`CONVEX_DEPLOYMENT` in `.env.local`) | `npm run dev` |
+| `staging` | `joyous-goshawk-857` · `https://joyous-goshawk-857.convex.cloud` | the Dokploy `staging` environment, deployed by `ci-main.yml` |
+| prod | the project's default production deployment | `app.xuntas.org`, deployed by `release.yml` |
+
+`npx convex env ...` targets dev by default; add `--prod` for production or
+`--deployment staging` for staging.
+
 **Everything that starts with `VITE_` is a build arg, not a runtime variable.**
 Vite embeds them in the client bundle during the build, so changing the value
 in Dokploy does nothing until you rebuild. It is also the reason staging and
@@ -206,7 +218,7 @@ Required secrets (Settings → Secrets and variables → Actions):
 | Secret | For |
 |---|---|
 | `CONVEX_PROD_DEPLOY_KEY` | `release.yml` and `convex-production.yml` |
-| `CONVEX_STAGING_DEPLOY_KEY` | `ci-main.yml` — **does not exist yet**; while it's missing, the Convex staging step is skipped with a warning and the chain goes on |
+| `CONVEX_STAGING_DEPLOY_KEY` | `ci-main.yml` — deploys to the `staging` Convex deployment. If it is missing, the step is skipped with a warning and the chain goes on |
 
 A merge to `production` triggers **two** independent deployments:
 
@@ -231,6 +243,8 @@ Secrets and variables → Actions), generated from the Convex dashboard with the
 ```bash
 npx convex deployment token create ci-token --deployment prod
 ```
+
+The staging key is the same command with `--deployment staging`.
 
 The variables that live in Convex (`CLERK_JWT_ISSUER_DOMAIN`,
 `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`, `APP_URL`) are **not** deployed by
