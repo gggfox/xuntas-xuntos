@@ -30,7 +30,11 @@ lands before the new frontend queries it.
 > yet. With the call for applications this close, it is worth checking that
 > the Convex workflow finished green before calling the deployment good.
 
-Requires the `CONVEX_PROD_DEPLOY_KEY` secret in the repo. See the README.
+The deploy key is fetched from Infisical (`prod` → `CONVEX_DEPLOY_KEY`)
+at the start of the job with the `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`
+repo secrets. If Infisical is unreachable or the key is missing, the job
+fails **before** touching the branch, so Dokploy never builds against a
+schema that was not deployed. See the README.
 
 ---
 
@@ -112,9 +116,10 @@ npx convex env set --deployment staging APP_URL https://<staging-domain>
 
 Do **not** set `RESEND_TEST_MODE=false` on staging.
 
-The Dokploy `staging` environment must build with
-`VITE_CONVEX_URL=https://joyous-goshawk-857.convex.cloud` (a build arg — see
-the README) or the staging frontend will talk to the wrong backend.
+The staging frontend gets `VITE_CONVEX_URL=https://joyous-goshawk-857.convex.cloud`
+from Infisical's `staging` environment at build time. If it is wrong there,
+the build aborts with `VITE_CONVEX_URL must be an https:// URL` instead of
+producing a container that answers 500.
 
 ### Webhooks pointing at production
 
@@ -137,11 +142,14 @@ different.
 
 The details are in the README; what to remember when deploying:
 
-- **The `VITE_*` variables are build args.** Changing them in Dokploy without
-  rebuilding does nothing. If either of the two critical ones
-  (`VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`) is missing,
-  `vite.config.ts` aborts the build with a clear message — they used to
-  produce an image that started fine and answered 500 on every route.
+- **The `VITE_*` variables come from Infisical at build time.** Dokploy only
+  holds the identity's client id/secret (Build-time Secrets) and
+  `INFISICAL_ENV` (Build-time Argument). To change a `VITE_*` value, change
+  it in Infisical and hit Redeploy; changing anything in Dokploy without
+  rebuilding does nothing. If `VITE_CONVEX_URL` or
+  `VITE_CLERK_PUBLISHABLE_KEY` is missing or a placeholder, the build aborts
+  with a clear message — they used to produce an image that started fine and
+  answered 500 on every route.
 - **`CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` are runtime.** Both of
   them. Clerk's middleware runs in the SSR; without them, 500 on every route
   with `no secret key provided` or `Publishable key is missing` in the log.
@@ -217,7 +225,7 @@ Before September 4:
 - [ ] `npx convex env list --prod` has the 6 variables from §1
 - [ ] `RESEND_TEST_MODE=false` in prod
 - [ ] `WINDOW_ALWAYS_OPEN` does **not** show up in prod
-- [ ] `CONVEX_PROD_DEPLOY_KEY` secret loaded in the repo
+- [ ] `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` secrets in the repo, and `CONVEX_DEPLOY_KEY` present in Infisical `prod`
 - [ ] The `convex-production` workflow finished green and the `preSignups`
       table shows up in the prod dashboard
 - [ ] Clerk webhook to the **prod** `.convex.site`, with the 3 events

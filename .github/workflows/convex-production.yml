@@ -6,12 +6,13 @@
 # putting it in the container build would run it on every rebuild, even when
 # not a single function changed.
 #
-# WATCH the order. This workflow and the Dokploy webhook start with the same
-# push. In practice Convex finishes first (seconds versus the minutes that
-# `npm ci` + the Docker build take), which is exactly the order we want: the
-# new schema has to be live before the new frontend starts querying it.
-# Nothing guarantees it beyond the difference in duration; if it ever truly
-# matters, the two steps have to be chained explicitly.
+# In the normal flow release.yml has already deployed Convex before pushing
+# the branch, so this run is a no-op re-deploy of the same code. It exists
+# for the other case: someone pushes to `production` from their machine and
+# Dokploy starts building while nothing deployed Convex. WATCH the order in
+# that case: this workflow and the Dokploy webhook start with the same push,
+# and only the difference in duration (seconds versus minutes) puts the
+# schema ahead of the frontend.
 
 name: Convex — production
 
@@ -47,12 +48,24 @@ jobs:
       # Dockerfile.
       - run: npm ci
 
+      - name: Fetch the Convex production deploy key from Infisical
+        uses: Infisical/secrets-action@v1.0.17
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain: https://infisical.gggfox.com
+          project-slug: xuntas-xuntos-j-k6-i
+          env-slug: prod
+
+      - name: The key must be there
+        run: |
+          if [ -z "$CONVEX_DEPLOY_KEY" ]; then
+            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from the prod environment."
+            exit 1
+          fi
+
       # `convex deploy` typechecks convex/ before uploading anything, so a
       # type error fails here and not halfway into production.
       - name: Deploy to Convex production
         run: npm run deploy:convex
-        env:
-          # The name on the left is fixed by the Convex CLI — it is the
-          # variable it reads. The one on the right is what the secret is
-          # called in the repo.
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PROD_DEPLOY_KEY }}

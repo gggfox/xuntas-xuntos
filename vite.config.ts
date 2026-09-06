@@ -7,27 +7,7 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { paraglideVitePlugin } from '@inlang/paraglide-js'
 import { paraglideOptions } from './paraglide.config.mjs'
-
-/**
- * Vite embeds the VITE_* variables into the client bundle during the build,
- * so if they are missing there is no compile error: the container starts and
- * answers 500 on every route. We prefer it to blow up here, where the log
- * gets read.
- *
- * Build only: `vite dev` takes them from .env.local, and there one may well
- * be missing while the project is being set up for the first time.
- */
-function requireBuildVariables() {
-  const missing = ['VITE_CONVEX_URL', 'VITE_CLERK_PUBLISHABLE_KEY'].filter(
-    (k) => !process.env[k],
-  )
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing build variables: ${missing.join(', ')}.\n` +
-        'They are passed as --build-arg when building the image (see README, "Deployment").',
-    )
-  }
-}
+import { requireBuildVariables } from './scripts/build-env'
 
 const config = defineConfig(({ command }) => {
   if (command === 'build') requireBuildVariables()

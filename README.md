@@ -59,13 +59,25 @@ In the Clerk dashboard:
 
 ### 3. Environment variables
 
-Local ones, in `.env.local` (see [`.env.example`](.env.example)):
+The shared development values live in Infisical
+(`https://infisical.gggfox.com`, project `xuntas-xuntos`, environment `dev`).
+Install the CLI (`brew install infisical/get-cli/infisical`) and log in once
+against that domain:
+
+```bash
+infisical login --domain https://infisical.gggfox.com
+```
+
+The repo is already linked ([`.infisical.json`](.infisical.json)), so nothing
+else to configure. Two values are yours alone and stay in `.env.local`:
 
 ```
-VITE_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-VITE_CONVEX_URL=
+CONVEX_DEPLOYMENT=   # written by `npx convex dev` in step 1
+VITE_CONVEX_URL=     # the URL it printed
 ```
+
+Without Infisical, copy [`.env.example`](.env.example) to `.env.local` and
+fill it in by hand; `npm run dev` works either way.
 
 In Convex, which is where the backend runs:
 
@@ -98,7 +110,8 @@ npx convex env set RESEND_WEBHOOK_SECRET whsec_...
 ### 5. Run
 
 ```bash
-npm install && npm run dev
+npm install && npm run dev:secrets   # with Infisical
+npm install && npm run dev           # from .env.local only
 ```
 
 ---
@@ -134,28 +147,40 @@ database and its own environment variables:
 `npx convex env ...` targets dev by default; add `--prod` for production or
 `--deployment staging` for staging.
 
-**Everything that starts with `VITE_` is a build arg, not a runtime variable.**
-Vite embeds them in the client bundle during the build, so changing the value
-in Dokploy does nothing until you rebuild. It is also the reason staging and
-production have to be built separately even though they come from the same
-commit.
+**Everything that starts with `VITE_` is embedded at build time.** Vite bakes
+it into the client bundle, so it cannot be a runtime variable, and staging
+and production have to be built separately even from the same commit.
 
-| Variable | Where it goes | Why |
+Those values are **not** configured in Dokploy. The Dockerfile's build stage
+logs in to Infisical with a machine identity and runs `vite build` under
+`infisical run`, which injects the project's `/` folder for the chosen
+environment. Dokploy provides three things per environment:
+
+| Kind | Name | Value |
 |---|---|---|
-| `VITE_CONVEX_URL` | build arg | ends up in the bundle |
-| `VITE_CLERK_PUBLISHABLE_KEY` | build arg | ends up in the bundle |
-| `VITE_CLERK_SIGN_IN_URL` | build arg | same |
-| `VITE_CLERK_SIGN_UP_URL` | build arg | same |
-| `VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | build arg | same |
-| `VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | build arg | same |
-| `VITE_WINDOW_ALWAYS_OPEN` | build arg | **staging only**, never production |
-| `CLERK_SECRET_KEY` | runtime | an `ARG` ends up in `docker history` |
-| `CLERK_PUBLISHABLE_KEY` | runtime | Clerk's SSR reads it from `process.env`, **without** the `VITE_` prefix. Same value as the one above |
-| `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`, `APP_URL` | Convex | `npx convex env set` — they don't go through Docker |
+| Build-time Secret | `INFISICAL_CLIENT_ID` | the identity's client id |
+| Build-time Secret | `INFISICAL_CLIENT_SECRET` | its `dokploy-build` client secret |
+| Build-time Argument | `INFISICAL_ENV` | `staging` or `prod` |
 
-In Dokploy the build args live in each service's **Environment → Build Time
-Arguments** tab, and point at the environment's variables with
-`${{environment.NAME}}`, so secrets are not repeated in every service.
+Build-time Secrets are BuildKit secret mounts: they never appear in an
+`ARG`, an `ENV`, a layer, or `docker history`.
+
+The container's **runtime** variables stay in Dokploy's Environment
+Settings, because fetching two values at every restart is not worth a
+dependency on Infisical:
+
+| Variable | Why runtime |
+|---|---|
+| `CLERK_SECRET_KEY` | Clerk's SSR middleware reads it from `process.env` |
+| `CLERK_PUBLISHABLE_KEY` | same, **without** the `VITE_` prefix; same value as `VITE_CLERK_PUBLISHABLE_KEY` in Infisical |
+
+And `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`,
+`APP_URL` live in Convex (`npx convex env set`) — they don't go through
+Docker at all.
+
+Trade-off to know about: Infisical runs on the same VPS. If its container
+is down, no frontend build can run until it is back. Running containers
+keep serving; Convex deploys from GitHub are unaffected.
 
 The full procedure — deployment order, the `--prod` trap with the Convex
 variables, smoke test and the checklist to go through before September 4 — is
@@ -167,14 +192,13 @@ To reproduce the build by hand:
 # 1. Backend
 npx convex deploy            # or: npm run deploy:convex
 
-# 2. Image — VITE_* are build args: Vite embeds them in the client bundle
+# 2. Image — the build fetches its VITE_* values from Infisical. Export the
+#    identity's credentials in your shell first; they are passed as BuildKit
+#    secrets, never as build args.
 docker build \
-  --build-arg VITE_CONVEX_URL=https://xxx.convex.cloud \
-  --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_live_xxx \
-  --build-arg VITE_CLERK_SIGN_IN_URL=/es/entrar \
-  --build-arg VITE_CLERK_SIGN_UP_URL=/es/empezar \
-  --build-arg VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/es/mi-registro \
-  --build-arg VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/es/mi-registro \
+  --build-arg INFISICAL_ENV=staging \
+  --secret id=INFISICAL_CLIENT_ID,env=INFISICAL_CLIENT_ID \
+  --secret id=INFISICAL_CLIENT_SECRET,env=INFISICAL_CLIENT_SECRET \
   -t xuntas-registro .
 ```
 
@@ -217,8 +241,14 @@ Required secrets (Settings → Secrets and variables → Actions):
 
 | Secret | For |
 |---|---|
-| `CONVEX_PROD_DEPLOY_KEY` | `release.yml` and `convex-production.yml` |
-| `CONVEX_STAGING_DEPLOY_KEY` | `ci-main.yml` — deploys to the `staging` Convex deployment. If it is missing, the step is skipped with a warning and the chain goes on |
+| `INFISICAL_CLIENT_ID` | the machine identity `XUNTAS-XUNTOS INFISICAL CLIENT` in Infisical, Universal Auth |
+| `INFISICAL_CLIENT_SECRET` | its `github-actions` client secret |
+
+The Convex deploy keys themselves are **not** repo secrets any more. They
+live in Infisical under the name `CONVEX_DEPLOY_KEY` in the `staging` and
+`prod` environments. Each workflow fetches the one it needs
+with `Infisical/secrets-action` right before `convex deploy`, and fails if
+it is missing.
 
 A merge to `production` triggers **two** independent deployments:
 
@@ -236,15 +266,15 @@ the minutes of the Docker build — which is the desirable order: the new schema
 up before the new frontend queries it. **Nothing guarantees it** other than
 that difference in duration.
 
-It requires the `CONVEX_PROD_DEPLOY_KEY` secret in the repo (Settings →
-Secrets and variables → Actions), generated from the Convex dashboard with the
+To rotate a deploy key, generate it from the Convex dashboard with the
 `deployment:deploy` permission, or with:
 
 ```bash
-npx convex deployment token create ci-token --deployment prod
+npx convex deployment token create ci-token --deployment prod      # → Infisical prod    CONVEX_DEPLOY_KEY
+npx convex deployment token create ci-token --deployment staging   # → Infisical staging CONVEX_DEPLOY_KEY
 ```
 
-The staging key is the same command with `--deployment staging`.
+Store the output in Infisical, not in GitHub.
 
 The variables that live in Convex (`CLERK_JWT_ISSUER_DOMAIN`,
 `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`, `APP_URL`) are **not** deployed by
