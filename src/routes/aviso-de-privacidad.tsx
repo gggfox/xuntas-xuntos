@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
 import { DOCUMENTS } from '../lib/documents'
+import { useActiveCycle } from '../hooks/useActiveCycle'
 
 export const Route = createFileRoute('/aviso-de-privacidad')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.privacy_title() }) }] }),
@@ -20,9 +21,10 @@ export const Route = createFileRoute('/aviso-de-privacidad')({
  * having any.
  */
 function PrivacyNotice() {
+  const c = useActiveCycle()
   return (
     <main className="col col-720 pt-[46px] pb-[90px]">
-      <p className="eyebrow">{m.brand_cycle()}</p>
+      {c && <p className="eyebrow">{c.title}</p>}
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">
         {m.privacy_title()}
       </h1>
@@ -39,7 +41,7 @@ function PrivacyNotice() {
       <div className="mt-8 max-w-none font-light text-soft">
         <h2 className="h-display mt-8 text-[18px] text-ink">1. Quién es responsable de tus datos</h2>
         <p>
-          <i>Pendiente: razón social completa de XUNTAS+XUNTOS, domicilio fiscal y
+          <i>Pendiente: razón social completa de XUNTAS, domicilio fiscal y
           correo de contacto para asuntos de datos personales.</i>
         </p>
 

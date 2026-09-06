@@ -1,18 +1,20 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
-/**
- * Current cycle. Every registration and every guardian authorization hangs off
- * a cycle, so the call for applications can run again in 2027 without
- * migrating anything.
- */
-export const CURRENT_CYCLE = '2026-2027'
-
 /** Program branch. XUNTAS = women's, XUNTOS = men's. */
 export const vBranch = v.union(v.literal('womens'), v.literal('mens'))
 
-/** Account role. Read from Clerk publicMetadata.role and copied here. */
-export const vRole = v.union(v.literal('athlete'), v.literal('admin'))
+/**
+ * Account roles. Owned by Convex — see docs/DECISIONS.md, "Convex owns roles".
+ */
+export const vRole = v.union(
+  v.literal('athlete'),
+  v.literal('admin'),
+  v.literal('master_admin'),
+  v.literal('coach'),
+  v.literal('finance'),
+  v.literal('health'),
+)
 
 /**
  * Status of the REGISTRATION (the data), not of the account nor the guardian.
@@ -23,6 +25,24 @@ export const vRegistrationStatus = v.union(
   v.literal('submitted'),
   v.literal('validated'),
   v.literal('rejected'),
+  v.literal('selected'),
+  v.literal('not_selected'),
+)
+
+/** The decisions administration and the Council may record, as opposed to the states a draft passes through on its own. */
+export const vDecision = v.union(
+  v.literal('validated'),
+  v.literal('rejected'),
+  v.literal('selected'),
+  v.literal('not_selected'),
+)
+
+const vNoticeDecision = v.union(v.literal('rejected'), v.literal('selected'), v.literal('not_selected'))
+const vNoticeStatus = v.union(
+  v.literal('not_sent'),
+  v.literal('sent'),
+  v.literal('delivered'),
+  v.literal('bounced'),
 )
 
 /**
@@ -49,6 +69,14 @@ const vRanking = v.object({
 const vCalendarEvent = v.object({
   event: v.string(),
   date: v.string(),
+})
+
+const vCycleFields = v.object({
+  title: v.string(),
+  opensOn: v.string(),
+  closesOn: v.string(),
+  reviewOn: v.string(),
+  isActive: v.boolean(),
 })
 
 export default defineSchema({
@@ -82,8 +110,67 @@ export default defineSchema({
     .index('by_expires', ['expiresAt']),
 
   /**
-   * Mirror of the Clerk account. The MIRRORED fields (email, name, role,
+   * Staff invitations. Bound to an email: the webhook redeems one by matching
+   * the account's primary address, so a forwarded link is worth nothing to
+   * anyone else. `token` only names the page the invitee lands on.
+   */
+  staffInvites: defineTable({
+    email: v.string(),
+    roles: v.array(vRole),
+    token: v.string(),
+    invitedBy: v.id('users'),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    lastSentAt: v.number(),
+    timesSent: v.number(),
+    acceptedAt: v.optional(v.number()),
+    /** clerkId of the account that redeemed it. */
+    acceptedBy: v.optional(v.string()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index('by_token', ['token'])
+    .index('by_email', ['email']),
+
+  /**
+   * One row per call for applications; exactly one is active. Dates are
+   * Mexico City days — see convex/lib/cycleRules.ts for how they become
+   * instants.
+   *
+   * A call has no name: the row's own `_id` is the key every registration
+   * and guardian authorization is filed under, minted by Convex at creation
+   * and never typed. `title` is the only thing an admin types — the free
+   * text families actually read, on the site and in emails, editable any
+   * time because a renamed call is still the same call.
+   */
+  cycles: defineTable({
+    title: v.string(),
+    opensOn: v.string(),
+    closesOn: v.string(),
+    reviewOn: v.string(),
+    isActive: v.boolean(),
+    /** Optional only so the seed can run before any staff row exists. */
+    createdBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_active', ['isActive']),
+
+  /**
+   * Who moved the window, when, from what to what. The dates decide whether
+   * a family's registration gets in; changing them leaves a trail.
+   */
+  cycleChanges: defineTable({
+    cycle: v.id('cycles'),
+    changedBy: v.id('users'),
+    changedAt: v.number(),
+    before: v.union(v.null(), vCycleFields),
+    after: vCycleFields,
+  }).index('by_cycle', ['cycle']),
+
+  /**
+   * Mirror of the Clerk account. The MIRRORED fields (email, name,
    * emailVerified) are written by the webhook and never by the client.
+   * `roles` is not mirrored — see its own comment below.
    *
    * Two fields are not mirrored and are written by the person themselves
    * through a mutation: `birthDate` (once, via `declareBirthDate`) and
@@ -97,7 +184,20 @@ export default defineSchema({
     clerkId: v.string(),
     email: v.string(),
     name: v.optional(v.string()),
-    role: vRole,
+    /**
+     * LEGACY. The Clerk-mirrored single role, superseded by `roles`. Kept
+     * optional so a deployment whose rows still carry it accepts the schema;
+     * `users.dropLegacyRole` unsets it after `backfillRoles` has run, and the
+     * field leaves the schema in a later PR once no row has it.
+     */
+    role: v.optional(vRole),
+    /**
+     * Owned by Convex, never by Clerk. Written by exactly three paths:
+     * `staff.grantRoles` (CLI bootstrap), the invite redeemed in
+     * `users.create`, and `staff.setRoles`. See convex/lib/permissions.ts
+     * for what each role may do.
+     */
+    roles: v.array(vRole),
     emailVerified: v.boolean(),
     /**
      * Captured in the age gate, before the Clerk signup.
@@ -115,8 +215,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_clerk_id', ['clerkId'])
-    .index('by_email', ['email'])
-    .index('by_role', ['role']),
+    .index('by_email', ['email']),
 
   /**
    * State axis 2: GUARDIAN AUTHORIZATION.
@@ -132,7 +231,7 @@ export default defineSchema({
    */
   guardianAuth: defineTable({
     userId: v.id('users'),
-    cycle: v.string(),
+    cycle: v.id('cycles'),
     guardianName: v.string(),
     guardianEmail: v.string(),
     /** Single-use token that travels in the email to the guardian. */
@@ -157,7 +256,7 @@ export default defineSchema({
    */
   registrations: defineTable({
     userId: v.id('users'),
-    cycle: v.string(),
+    cycle: v.id('cycles'),
 
     personal: v.object({
       name: v.string(),
@@ -203,8 +302,37 @@ export default defineSchema({
     validatedBy: v.optional(v.id('users')),
     validatedAt: v.optional(v.number()),
     validationNote: v.optional(v.string()),
+
+    /** Every decision ever made on this registration, newest last. */
+    decisionLog: v.optional(
+      v.array(
+        v.object({
+          status: vDecision,
+          by: v.id('users'),
+          at: v.number(),
+          note: v.optional(v.string()),
+        }),
+      ),
+    ),
+    /**
+     * The email that tells the athlete. `not_sent` until someone presses the
+     * button; then the Resend webhook moves it to delivered or bounced. A
+     * decision whose notice went out is locked — see decisionRules.ts.
+     */
+    decisionNotice: v.optional(
+      v.object({
+        decision: vNoticeDecision,
+        status: vNoticeStatus,
+        emailId: v.optional(v.string()),
+        sentAt: v.optional(v.number()),
+        sentBy: v.optional(v.id('users')),
+      }),
+    ),
+    /** Age at the cycle's opening day. Written by the first save in a cycle (see users.wasMinorAtSignup for the frozen signup value). */
+    wasMinorAtCycleStart: v.optional(v.boolean()),
   })
     .index('by_user_cycle', ['userId', 'cycle'])
     .index('by_cycle_status', ['cycle', 'status'])
-    .index('by_cycle_branch', ['cycle', 'personal.branch']),
+    .index('by_cycle_branch', ['cycle', 'personal.branch'])
+    .index('by_notice_email', ['decisionNotice.emailId']),
 })

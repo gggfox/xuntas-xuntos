@@ -1,34 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import {
-  CLOSES_AT_MS,
-  OPENS_AT_MS,
-  ageAt,
-  isUnderage,
-  isValidBirthDate,
-  isWindowOpen,
-} from '../convex/lib/cycle'
+import { ageAt, isUnderage, isValidBirthDate } from '../convex/lib/cycle'
 
 /** September 10, 2026, noon in central Mexico. */
 const DURING = Date.parse('2026-09-10T18:00:00.000Z')
-
-describe('isWindowOpen', () => {
-  it('is closed before opening and open right at opening time', () => {
-    expect(isWindowOpen(OPENS_AT_MS - 1)).toBe(false)
-    expect(isWindowOpen(OPENS_AT_MS)).toBe(true)
-  })
-
-  it('is still open at the last millisecond and closes afterwards', () => {
-    expect(isWindowOpen(CLOSES_AT_MS)).toBe(true)
-    expect(isWindowOpen(CLOSES_AT_MS + 1)).toBe(false)
-  })
-
-  it('opens September 4 and closes September 18, central Mexico time', () => {
-    // September 4, 00:00 CST = 06:00 UTC.
-    expect(OPENS_AT_MS).toBe(Date.parse('2026-09-04T06:00:00.000Z'))
-    // September 18, 23:59:59.999 CST = September 19, 05:59:59.999 UTC.
-    expect(CLOSES_AT_MS).toBe(Date.parse('2026-09-19T05:59:59.999Z'))
-  })
-})
 
 describe('ageAt', () => {
   it('counts completed years', () => {

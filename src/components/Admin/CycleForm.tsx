@@ -1,0 +1,107 @@
+import { useState } from 'react'
+import * as m from '../../paraglide/messages.js'
+import DateField from '../DateField'
+import RangeField from '../DateField/RangeField'
+import { validateCycle } from '../../../convex/lib/cycleRules'
+import type { CycleInput } from '../../../convex/lib/cycleRules'
+import { describeConvexError, errorMessage } from '../../lib/registrationErrors'
+
+type Props = {
+  initial?: CycleInput
+  submitLabel: string
+  onSubmit: (input: CycleInput) => Promise<void>
+  onDone?: () => void
+}
+
+/**
+ * Create or edit one call for applications: the title families actually
+ * read, the registration window, and the day results are reviewed. A call
+ * has no name of its own — the row's `_id` is what every registration is
+ * filed under, minted by Convex and never typed here. Shared by
+ * `CyclesPanel` for both "Nueva convocatoria" and "Editar" — only what the
+ * submit does differs.
+ */
+export default function CycleForm({ initial, submitLabel, onSubmit, onDone }: Props) {
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [opensOn, setOpensOn] = useState(initial?.opensOn ?? '')
+  const [closesOn, setClosesOn] = useState(initial?.closesOn ?? '')
+  const [reviewOn, setReviewOn] = useState(initial?.reviewOn ?? '')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function submit(ev: React.FormEvent) {
+    ev.preventDefault()
+    const input = { title, opensOn, closesOn, reviewOn }
+    const problem = validateCycle(input)
+    if (problem) {
+      setError(errorMessage(problem))
+      return
+    }
+    setError(null)
+    setBusy(true)
+    try {
+      await onSubmit(input)
+      onDone?.()
+    } catch (err) {
+      setError(describeConvexError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /*
+   * The card runs the full width of the column so the two calendars can sit
+   * beside each other on a desktop: they are read together — the review date
+   * only makes sense against the day the window closes — and stacked they
+   * push the second one below the fold.
+   */
+  return (
+    <form onSubmit={submit} noValidate className="card mt-6 px-[21px] py-[19px]">
+      <label htmlFor="cycle-title" className="text-[12.5px] font-medium">
+        {m.cycles_title_label()} <span className="text-bad">*</span>
+      </label>
+      <input
+        id="cycle-title"
+        className="fld-input mt-1.5"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <p className="mt-1 mb-5 text-[11.5px] text-soft">{m.cycles_title_help()}</p>
+
+      {/* `cal-pair` puts the two fields on shared rows, so the calendars sit
+          level even though the window's boxes carry their own headings and
+          the review date's does not. See the comment in calendar.css. */}
+      <div className="cal-pair">
+        <RangeField
+          id="cycle-window"
+          label={m.cycles_window()}
+          start={opensOn}
+          end={closesOn}
+          onChange={({ start, end }) => {
+            setOpensOn(start)
+            setClosesOn(end)
+          }}
+          min={`${new Date().getUTCFullYear() - 1}-01-01`}
+          max={`${new Date().getUTCFullYear() + 5}-12-31`}
+        />
+
+        <DateField
+          id="cycle-review"
+          label={m.cycles_review()}
+          req
+          value={reviewOn}
+          onChange={setReviewOn}
+          min={closesOn || undefined}
+          max={`${new Date().getUTCFullYear() + 5}-12-31`}
+          openAt={closesOn || undefined}
+          pinned
+        />
+      </div>
+
+      <p className="mt-2 min-h-[1.45em] text-[11.5px] leading-[1.45] text-bad">{error}</p>
+      <button type="submit" className="btn" disabled={busy}>
+        {busy ? m.common_loading() : submitLabel}
+      </button>
+    </form>
+  )
+}

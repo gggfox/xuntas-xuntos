@@ -1,0 +1,174 @@
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMutation, useQuery } from 'convex/react'
+import { useMemo, useState } from 'react'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
+import type { NoticeDecision } from '../../convex/lib/decisionRules'
+import * as m from '../paraglide/messages.js'
+import BatchSendDialog from '../components/Admin/BatchSendDialog'
+import NoTools from '../components/Admin/NoTools'
+import RegistrationFilters from '../components/Admin/RegistrationFilters'
+import RegistrationsTable from '../components/Admin/RegistrationsTable'
+import RegistrationCards from '../components/Admin/RegistrationCards'
+import { useActiveCycle } from '../hooks/useActiveCycle'
+import { useAdminCycle } from '../hooks/useAdminCycle'
+import { useMe } from '../hooks/useMe'
+import { VIEWS, applyFilters, type Filters, type ViewId } from '../lib/adminViews'
+import { can } from '../lib/permissions'
+
+export const Route = createFileRoute('/administracion/registros')({
+  head: () => ({ meta: [{ title: m.meta_page({ page: m.regs_title() }) }] }),
+  validateSearch: (s: Record<string, unknown>): { vista?: ViewId } =>
+    s.vista === 'pending' || s.vista === 'all' || s.vista === 'incomplete' ? { vista: s.vista } : {},
+  component: RegistrationsPage,
+})
+
+const VIEW_LABEL: Record<ViewId, () => string> = {
+  pending: m.regs_view_pending,
+  all: m.regs_view_all,
+  incomplete: m.regs_view_incomplete,
+}
+
+/**
+ * Where reviewers land: three presets over one query (`adminViews.ts`), a
+ * filter bar that narrows further, and — only in *Todos*, only for an
+ * account that may send a batch — a selection that survives switching
+ * filters but not switching views, because a selection made under one
+ * view's rows stops meaning anything once the rows underneath it change.
+ *
+ * Opening a row is wired to the detail route the next task adds; nothing
+ * here depends on that page existing.
+ */
+function RegistrationsPage() {
+  const me = useMe()
+  const { cycle } = useAdminCycle()
+  const active = useActiveCycle()
+  const { vista } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const view: ViewId = vista ?? 'pending'
+
+  const rows = useQuery(api.registrations.listForAdmin, cycle && me && can(me.roles, 'review_registrations') ? { cycle } : 'skip')
+  const sendBatch = useMutation(api.notices.sendBatch)
+  const sendTest = useMutation(api.notices.sendTest)
+
+  const [filters, setFilters] = useState<Filters>(VIEWS[view].filters)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [dialog, setDialog] = useState(false)
+
+  const shown = useMemo(() => (rows ? applyFilters(rows, filters) : []), [rows, filters])
+
+  // What a test send should preview. Drawn from `rows`, not `shown`, so a
+  // selection survives a filter change made after selecting; batchable rows
+  // always carry a `selected` or `not_selected` decision (never `null` —
+  // `batchable()` requires a notice — and never `rejected`, which
+  // `batchable()` excludes), so this is never empty while the dialog can
+  // open.
+  const selectedDecisions = useMemo(
+    () => new Set((rows ?? []).filter((r) => selected.has(r._id) && r.decision).map((r) => r.decision as NoticeDecision)),
+    [rows, selected],
+  )
+
+  if (!me) return null
+  if (!can(me.roles, 'review_registrations')) return <NoTools />
+  if (rows === undefined || !cycle) return <p className="mt-8 text-soft">{m.common_loading()}</p>
+
+  const canBatch = can(me.roles, 'send_batch')
+  // The batch's own cycle gates it, not whichever cycle happens to be active
+  // right now — a reviewer looking at a past cycle must not be told its
+  // window is open just because this year's is. But a safety check must
+  // fail closed: while `active` is still loading we do not yet know
+  // whether this is that cycle, so treat the window as open (sending
+  // disabled) rather than assume it's safe. The server refuses to send
+  // while the window is open regardless — this is only about not inviting
+  // a send the dialog is about to be told it cannot make.
+  const windowOpen = active === undefined ? true : !!active && active._id === cycle && active.isOpen
+
+  function switchView(v: ViewId) {
+    setFilters(VIEWS[v].filters)
+    setSelected(new Set())
+    void navigate({ search: { vista: v }, replace: true })
+  }
+
+  return (
+    <>
+      <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist">
+        {(Object.keys(VIEWS) as ViewId[]).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={v === view}
+            className={`rounded-ctl border px-3 py-1.5 font-mono text-[11.5px] tracking-[.08em] uppercase ${
+              v === view ? 'border-line-2 text-ink' : 'border-transparent text-soft hover:text-ink'
+            }`}
+            onClick={() => switchView(v)}
+          >
+            {VIEW_LABEL[v]()}
+          </button>
+        ))}
+        {canBatch && view === 'all' && (
+          <button type="button" className="btn btn-sm ml-auto" disabled={selected.size === 0} onClick={() => setDialog(true)}>
+            {m.regs_send_batch()} · {m.regs_selected({ n: selected.size })}
+          </button>
+        )}
+      </div>
+
+      <RegistrationFilters value={filters} onChange={setFilters} lockStatus={view !== 'all'} view={view} />
+
+      {/* Two renderings of the same rows, each hidden at the other's width:
+          nine columns do not survive a phone, and a stack of cards wastes a
+          laptop. See `RegistrationCards`. */}
+      <RegistrationCards
+        rows={shown}
+        view={view}
+        canSelect={canBatch}
+        selected={selected}
+        onSelectedChange={setSelected}
+        onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
+      />
+
+      <div className="hidden md:block">
+        <RegistrationsTable
+          // v9's table instance is built once, on mount, from `initialState` —
+          // it does not re-seed sorting from a later `initialState` prop. Each
+          // view has its own default sort (see `VIEWS`), so the key forces a
+          // fresh instance when the tab changes instead of carrying the old
+          // view's sort into the new one.
+          key={view}
+          rows={shown}
+          view={view}
+          canSelect={canBatch}
+          selected={selected}
+          onSelectedChange={setSelected}
+          onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
+        />
+      </div>
+
+      {dialog && (
+        <BatchSendDialog
+          count={selected.size}
+          windowOpen={windowOpen}
+          // Left to reject on failure: `BatchSendDialog` sits in the top
+          // layer over an inert backdrop, so a message printed out here in
+          // the page body — behind that backdrop — is not one the operator
+          // can see. The dialog is the only place a failed send may be
+          // reported; swallowing the error here and returning a fake
+          // {scheduled: 0, skipped: n} used to tell the operator the send
+          // ran and skipped everyone, when it had not run at all.
+          onConfirm={async () => {
+            const r = await sendBatch({ cycle, ids: [...selected] as Id<'registrations'>[] })
+            setSelected(new Set())
+            return r
+          }}
+          onTest={async () => {
+            // A mixed selection sends one preview per distinct decision, so
+            // the reviewer sees the actual copy for every template the
+            // batch is about to send — never a stand-in for one of them.
+            await Promise.all([...selectedDecisions].map((decision) => sendTest({ cycle, decision })))
+          }}
+          onClose={() => setDialog(false)}
+        />
+      )}
+    </>
+  )
+}

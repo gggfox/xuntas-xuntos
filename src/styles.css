@@ -302,6 +302,26 @@ body {
     border-radius: var(--radius-xt);
   }
 
+  /*
+   * The scrim behind every modal.
+   *
+   * Painted from `--color-chrome` and not from `--color-ink`, which is the
+   * mistake this replaces: ink is bone in dark mode, so `bg-ink/40` dropped a
+   * *white* wash over a near-black page — the page behind a dialog got
+   * lighter as it went inert. Chrome is one of the two pinned tokens, so the
+   * scrim is the same warm black in both themes, which is the only thing a
+   * scrim can honestly be.
+   *
+   * 0.66 rather than the 0.40 it replaces: at 40% the cards, chips and
+   * hairlines behind a dialog stayed legible enough to compete with it, and
+   * on a phone — where the sheet covers the bottom third and the whole of
+   * the page is still in view above it — that competition is the difference
+   * between a sheet and a stripe.
+   */
+  dialog::backdrop {
+    background: rgb(from var(--color-chrome) r g b / 0.66);
+  }
+
   /* Form field. The focus ring is translucent yellow, not blue. */
   .fld-input {
     border: 1px solid var(--color-line-2);
@@ -364,6 +384,261 @@ body {
     color: var(--color-bad);
     border-color: var(--color-bad-line);
     background: var(--color-bad-wash);
+  }
+
+  /*
+   * A pill that answers a question rather than reporting one.
+   *
+   * Chosen, it fills with ink and the page's paper colour comes back as the
+   * text — the same way the calendar marks the day it has been given, so the
+   * app has one idiom for "this is the one you picked" instead of two. It
+   * carries more padding than a `.chip` because this one gets aimed at, and
+   * it stays a real `<button>` with `aria-pressed`, which is what tells a
+   * screen reader it is a switch and not a label.
+   */
+  .chip-toggle {
+    padding: 6px 12px;
+    color: var(--color-ink-2);
+    cursor: pointer;
+    transition:
+      background-color 0.13s,
+      color 0.13s,
+      border-color 0.13s;
+  }
+  .chip-toggle:hover:not([aria-pressed='true']):not(:disabled) {
+    background: var(--color-wash);
+    border-color: var(--color-ink);
+  }
+  .chip-toggle[aria-pressed='true'] {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-paper);
+    font-weight: 600;
+  }
+  .chip-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /*
+   * A `+N` on the end of a truncated list. A `.chip` that can be aimed at,
+   * so it takes the toggle's padding and cursor without its pressed state:
+   * this one does not answer a question, it opens a panel.
+   */
+  .chip-more {
+    /* 5px, not the `.chip`'s 3, to clear a 24px tall target. This is the one
+       chip on the screen that gets aimed at with a finger — a tablet on the
+       side of a court is where the roles behind it get read. */
+    padding: 5px 9px;
+    color: var(--color-ink-2);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .chip-more:hover,
+  .chip-more[aria-expanded='true'] {
+    background: var(--color-wash);
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+  }
+
+  /*
+   * The panel a `.chip-more` opens. Fixed rather than absolute because the
+   * tables it appears in sit inside a card that scrolls sideways, and an
+   * `overflow` box clips what grows out of it; a fixed box is laid out
+   * against the viewport instead, so it escapes that clip. The component
+   * measures the trigger and writes `top`/`left` — see `RolePills.tsx`.
+   */
+  .pop {
+    position: fixed;
+    z-index: 40;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 220px;
+    padding: 8px 9px;
+    background: var(--color-card);
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-ctl);
+    box-shadow: 0 6px 20px rgb(from var(--color-ink) r g b / 0.14);
+  }
+
+  /*
+   * A segmented control: two or three views of one region, joined into one
+   * shape so they read as alternatives rather than as three separate
+   * buttons. The chosen one lifts to `--color-card` off the bare page, which
+   * is the one raised relationship this app has that survives both themes —
+   * white over bone in light, #1c1c1b over #0f0f0e in dark. A sunken track
+   * painted in `--color-wash` was the obvious way to draw this and it is the
+   * wrong one: wash is translucent INK on light and translucent PAPER on
+   * dark, so it sits below the card in one theme and above it in the other,
+   * and the chosen segment read as a dent in dark mode.
+   */
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-ctl);
+  }
+  .seg-btn {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 13px;
+    border-radius: 6px;
+    color: var(--color-soft);
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background-color 0.13s,
+      color 0.13s;
+  }
+  .seg-btn:hover:not([aria-selected='true']) {
+    color: var(--color-ink);
+  }
+  .seg-btn[aria-selected='true'] {
+    background: var(--color-card);
+    color: var(--color-ink);
+    font-weight: 600;
+    box-shadow:
+      0 0 0 1px var(--color-line),
+      0 1px 2px rgb(from var(--color-ink) r g b / 0.09);
+  }
+
+  /*
+   * The header's burger, and what it opens. Both hang off the button's own
+   * `aria-expanded`: the state the assistive tech reads is the same state
+   * the animation runs on, so the two cannot disagree.
+   *
+   * Every transition here is switched off wholesale by the reduced-motion
+   * rule in `@layer base` — which is why the closed and open states are
+   * each complete on their own, and nothing depends on an animation having
+   * run to end up in the right place.
+   */
+  .burger-box {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 12px;
+  }
+  .burger-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(50% - 0.75px);
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+    /* Rotation has to happen about the bar's own middle, or the arms of the
+       cross swing wide of each other on the way. */
+    transform-origin: 50% 50%;
+    transition:
+      translate 0.19s cubic-bezier(0.2, 0, 0.2, 1),
+      rotate 0.19s cubic-bezier(0.2, 0, 0.2, 1),
+      opacity 0.1s linear;
+  }
+  .burger-bar:nth-child(1) {
+    translate: 0 -5px;
+  }
+  .burger-bar:nth-child(3) {
+    translate: 0 5px;
+  }
+  /* Closed→open: the outer bars ride to the middle and cross; the one that
+     is already there fades, because three bars cannot make a cross. */
+  .burger[aria-expanded='true'] .burger-bar:nth-child(1) {
+    translate: 0 0;
+    rotate: 45deg;
+  }
+  .burger[aria-expanded='true'] .burger-bar:nth-child(2) {
+    opacity: 0;
+  }
+  .burger[aria-expanded='true'] .burger-bar:nth-child(3) {
+    translate: 0 0;
+    rotate: -45deg;
+  }
+
+  .nav-panel {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    z-index: 10;
+    opacity: 0;
+    translate: 0 -6px;
+    /*
+     * `display` is in the transition, with `allow-discrete`, so the panel
+     * is `display: none` while shut — out of the layout, catching no
+     * clicks — and yet still fades on its way there instead of blinking
+     * out. `@starting-style` below supplies the state it fades *from* on
+     * the way in; without it the first frame is already the open one and
+     * the entrance never plays.
+     */
+    display: none;
+    transition:
+      opacity 0.19s ease,
+      translate 0.19s ease,
+      display 0.19s allow-discrete;
+  }
+  .nav-panel[aria-hidden='false'] {
+    display: block;
+    opacity: 1;
+    translate: 0 0;
+  }
+  @starting-style {
+    .nav-panel[aria-hidden='false'] {
+      opacity: 0;
+      translate: 0 -6px;
+    }
+  }
+  /*
+   * The rows arrive after the panel they are in, one behind the next, so
+   * the menu reads as a list being laid down rather than a block appearing.
+   * Leaving is not staggered: a dismissal the reader asked for should be
+   * over at once, and a reversed cascade on the way out only delays it.
+   */
+  .nav-panel > * {
+    opacity: 0;
+    translate: 0 -4px;
+    transition:
+      opacity 0.16s ease,
+      translate 0.16s ease;
+  }
+  .nav-panel[aria-hidden='false'] > * {
+    opacity: 1;
+    translate: 0 0;
+  }
+  /*
+   * In, as an animation; out, as a transition — which is not the asymmetry
+   * it looks like. Until the panel opens the rows are inside a
+   * `display: none` subtree, and a transition out of a style the element
+   * never had does not run: measured in the browser, the rows arrived
+   * fully formed while the panel around them faded. An animation has no
+   * such dependency on a previous style, so the entrance is one. The exit
+   * has a real previous style and transitions from it, and the panel's own
+   * `display` transition holds the panel open longer than the rows take to
+   * leave.
+   *
+   * The `opacity: 1` above still stands on its own: under reduced motion
+   * the global rule strips the animation, and the rows are simply there.
+   */
+  .nav-panel[aria-hidden='false'] > * {
+    animation: nav-row-in 0.16s ease both;
+  }
+  .nav-panel[aria-hidden='false'] > :nth-child(1) {
+    animation-delay: 0.05s;
+  }
+  .nav-panel[aria-hidden='false'] > :nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  .nav-panel[aria-hidden='false'] > :nth-child(3) {
+    animation-delay: 0.15s;
+  }
+
+  @keyframes nav-row-in {
+    from {
+      opacity: 0;
+      translate: 0 -4px;
+    }
   }
 
   /* Notice in soft yellow. For the important-but-not-an-error. */

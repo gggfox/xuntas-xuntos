@@ -18,6 +18,7 @@ type ClerkEvent = {
     primary_email_address_id?: string | null
     first_name?: string | null
     last_name?: string | null
+    /** Unread since roles moved to Convex; kept in the type so a future reader knows it arrives. */
     public_metadata?: Record<string, unknown> | null
     unsafe_metadata?: Record<string, unknown> | null
   }
@@ -28,7 +29,12 @@ function primaryEmail(data: ClerkEvent['data']): { email: string; verified: bool
   const list = data.email_addresses ?? []
   const primary = list.find((e) => e.id === data.primary_email_address_id) ?? list[0]
   return {
-    email: primary?.email_address ?? '',
+    // Lowercased here, the single place this value enters Convex: every
+    // `by_email` lookup (grantRoles, invite, invite redemption in
+    // users.create) compares against a lowercased input, so the stored
+    // value must already be canonical or an existing account's differently
+    // cased email defeats the match.
+    email: (primary?.email_address ?? '').trim().toLowerCase(),
     verified: primary?.verification?.status === 'verified',
   }
 }
@@ -36,11 +42,6 @@ function primaryEmail(data: ClerkEvent['data']): { email: string; verified: bool
 function fullName(data: ClerkEvent['data']): string | undefined {
   const n = [data.first_name, data.last_name].filter(Boolean).join(' ').trim()
   return n || undefined
-}
-
-/** The role lives in Clerk publicMetadata and is only mirrored here. */
-function role(data: ClerkEvent['data']): 'athlete' | 'admin' {
-  return data.public_metadata?.role === 'admin' ? 'admin' : 'athlete'
 }
 
 function text(v: unknown): string | undefined {
@@ -93,7 +94,6 @@ http.route({
           email,
           name: fullName(event.data),
           emailVerified: verified,
-          role: role(event.data),
           /**
            * The ONLY thing read from `unsafeMetadata`, and on purpose: it is
            * an opaque reference to the pre-signup the server already resolved.
@@ -115,7 +115,6 @@ http.route({
           email,
           name: fullName(event.data),
           emailVerified: verified,
-          role: role(event.data),
         })
         break
       }

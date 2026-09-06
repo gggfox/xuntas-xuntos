@@ -3,27 +3,55 @@
 A record of the architecture and product decisions, with the why. The code
 points here when something looks odd at first glance but is deliberate.
 
-Last reviewed: August 26, 2026.
+Last reviewed: September 3, 2026.
 
 ---
 
 ## Product
 
-**The window runs September 4–18, 2026.** The 4th, not the 1st: the prototypes
-said both things and XUNTAS confirmed the 4th. The constants live in
-`convex/lib/cycle.ts` and nowhere else.
+**The window lives in the `cycles` table, one row per call, exactly one
+active.** A `master_admin` edits opens/closes/review from
+`/administracion/convocatorias`; every change lands in `cycleChanges` with who
+and when. The 2026–2027 row was seeded from the old constants (September 4–18,
+review the 23rd). The arithmetic — Mexico City days to instants, UTC-6 all
+year — is `convex/lib/cycleRules.ts`, shared with the client. There is no
+development hatch anymore: to test before September, set dev dates on the dev
+row.
 
-**The launch scope is registration and data capture.** The admin table comes
-later: nobody reads a registration before September 23, so it does not block
-the release.
+**Two decision stages, four terminal states.** Administration screens
+(`validated` / `rejected`); the Council's selection is recorded by a
+`master_admin` (`selected` / `not_selected`). The acceptance email is about
+selection — "accepted" to two hundred screened people who then do not make
+twenty-five is the worst email this system could send. Rules:
+`convex/lib/decisionRules.ts`.
+
+**A guardian who never confirms holds the registration, never rejects it —
+and never lets it be selected.** A submitted registration without the
+guardian's confirmation may be validated (it stays flagged) but cannot be
+`selected`: a minor does not enter the program without consent. This closes
+the open item below.
+
+**Decisions lock once their email is sent.** Changing one needs a
+`master_admin` and a note, resets the notice, and never re-sends on its own.
 
 **The form is the one from `registro_xuntas.html`, field by field.** XUNTAS
 already approved that shape. Changing fields or copy reopens a conversation
 the calendar has no room for.
 
-**The six-role portal (`portal_xuntas.html`) is a visual reference, not a
-specification.** The `coach` and `direccion` roles are not being built this
-cycle.
+**Roles are a Convex-owned array, behind a permission table.** `users.roles`
+holds `athlete | admin | master_admin | coach | finance | health`;
+`convex/lib/permissions.ts` maps roles to permissions and every guard reads a
+permission. Clerk's `publicMetadata.role` is no longer read. `master_admin` is
+a superset. `coach`, `finance` and `health` exist so they can be invited now;
+their screens come later. Design: `docs/superpowers/specs/2026-09-03-admin-roles-cycles-review-design.md`.
+The legacy `role` column stays optional in the schema until `users:dropLegacyRole` has run everywhere; it leaves in a later PR.
+
+**Staff are invited by the app, not from Clerk.** `staffInvites` binds an
+invitation to an email; the `user.created` webhook redeems it by matching the
+account's primary address. Removal revokes roles and never deletes the
+account: `validatedBy` must keep pointing at a person, and deletion is the
+person's own LFPDPPP right. Nobody can remove their own `master_admin`, and
+the last one cannot be removed by anyone.
 
 ---
 
@@ -114,8 +142,7 @@ UI.
 The Council starts reviewing on the 23rd. If registrations kept changing
 after that, they would be grading a moving target.
 
-Mexico has not observed daylight saving time since 2022, so
-`America/Mexico_City` is UTC-6 all year and the constants are stored in UTC.
+Mexico has not observed daylight saving time since 2022, so `America/Mexico_City` is UTC-6 all year and `cycleRules.ts` turns the stored days into instants with that fixed offset.
 
 ---
 
@@ -180,11 +207,7 @@ and clubs are the person's own content, and no library translates those.
    a **blocker**: the routes and the links from the checkboxes already exist,
    but with the scaffolding, not the text. While `ready` is `false` in
    `src/lib/documents.ts`, the pages come out marked as drafts.
-2. **Policy for when the guardian never confirms.** The recommendation is to
-   hold for manual follow-up, never auto-reject. The formal decision is still
-   missing.
-3. **Emails that get an admin invitation.** They are added from Clerk.
-4. **XUNTOS in the Shopify store.** `xuntas.org` only talks about the women's
+2. **XUNTOS in the Shopify store.** `xuntas.org` only talks about the women's
    program. Out of scope for this work, but if it is not updated, a male
    registrant never reaches the form.
 
@@ -199,6 +222,36 @@ and clubs are the person's own content, and no library translates those.
   minors.
 - **Clerk's `esMX` localization is community-made**, not official. The
   sign-up screens have to be read before launch.
+- **No Convex function is covered by a test.** Every test in this repo runs
+  over a pure function or a React component, so the rules modules are well
+  covered and the mutations are not. Two facts the administration work rests
+  on are held only by reading the code: that a batch of decision emails
+  refuses while its cycle's window is open, and that a decision email goes to
+  the account's verified address rather than the one typed into the form.
+  `convex-test` runs under the existing vitest setup and would close this.
+  Worth doing before the first batch send, not before the merge.
+- **`guardianState` in `convex/registrations.ts` is untested.** It decides
+  whether a minor's registration reports its guardian as pending, which is
+  what stops a selection without consent. It is a pure function and would be
+  trivial to test once exported.
+- **A returning minor has no guardian record for the new cycle.** Rows are
+  created at signup only, so from the second cycle onwards the reviewer's
+  screen relies on the conservative fallback above rather than on a real
+  authorization. The design doc's §7 opens one per cycle; until that lands,
+  a returning minor is flagged rather than cleared.
+- **An athlete sees the generic error screen when no cycle is active.**
+  `no_active_cycle` is thrown from the queries the panel reads, so the
+  specific sentence — which exists and is translated — never reaches anyone.
+  Only reachable on a deployment that was never seeded.
+- **The form's editability reads a cached clock.** `registrations.mine`
+  computes `editable` from `Date.now()` inside a reactive query, so a page
+  left open across the closing instant can still offer to save. The server
+  refuses the write, so nothing gets in late; the screen is what lies.
+- **One solid-yellow element per screen is enforced by review, not by CI.**
+  The rule was broken three times while this work was written, each time
+  caught by a reviewer. `DecisionPanel` now derives the class from position
+  so the rule holds by construction; a lint rule or a per-screen test would
+  generalise that.
 
 Resolved since then:
 

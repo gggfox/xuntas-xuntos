@@ -62,6 +62,7 @@ function renderForm(overrides: Partial<Parameters<typeof RegistrationForm>[0]> =
       editable
       account={SIGNED_UP}
       alreadySubmitted={false}
+      closesOnText="18 de septiembre de 2026"
       onSaveDraft={onSaveDraft}
       onSubmit={onSubmit}
       {...overrides}
@@ -162,6 +163,7 @@ describe('RegistrationForm validation', () => {
         editable
         account={SIGNED_UP}
         alreadySubmitted={false}
+        closesOnText="18 de septiembre de 2026"
         onSaveDraft={vi.fn()}
         onSubmit={onSubmit}
       />,
@@ -169,7 +171,7 @@ describe('RegistrationForm validation', () => {
     await act(async () => {
       fireEvent.submit(document.querySelector('form')!)
     })
-    expect(await screen.findByRole('alert')).toHaveTextContent(m.reg_closed())
+    expect(await screen.findByRole('alert')).toHaveTextContent(m.err_window_closed())
   })
 })
 
@@ -185,6 +187,7 @@ describe('RegistrationForm autosave', () => {
         editable
         account={SIGNED_UP}
         alreadySubmitted={false}
+        closesOnText="18 de septiembre de 2026"
         onSaveDraft={onSaveDraft}
         onSubmit={async () => []}
       />,
@@ -206,6 +209,7 @@ describe('RegistrationForm autosave', () => {
         editable
         account={SIGNED_UP}
         alreadySubmitted={false}
+        closesOnText="18 de septiembre de 2026"
         onSaveDraft={onSaveDraft}
         onSubmit={async () => []}
       />,
@@ -222,6 +226,7 @@ describe('RegistrationForm autosave', () => {
         editable={false}
         account={SIGNED_UP}
         alreadySubmitted
+        closesOnText="18 de septiembre de 2026"
         onSaveDraft={onSaveDraft}
         onSubmit={async () => []}
       />,

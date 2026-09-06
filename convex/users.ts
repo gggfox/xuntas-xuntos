@@ -1,52 +1,29 @@
-import { ConvexError, v } from 'convex/values'
+import { v } from 'convex/values'
 import {
   internalMutation,
   mutation,
   query,
   type MutationCtx,
-  type QueryCtx,
 } from './_generated/server'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
-import { CURRENT_CYCLE, CLOSES_AT_MS, isUnderage } from './lib/cycle'
+import { activeCycle } from './cycles'
+import { fail, currentUser, requireUser } from './auth'
+import { formatDay, windowOf } from './lib/cycleRules'
+import { isUnderage } from './lib/cycle'
 import { validateBirthDateDeclaration } from './lib/guardianRules'
-import type { AppErrorCode } from './lib/errorCodes'
 import { newToken } from './lib/tokens'
-import { vRole, vThemePreference } from './schema'
-
-/**
- * Errors cross the wire as codes so the browser can say them in the reader's
- * language. A plain `Error` message arrives wrapped in Convex's own framing
- * and is whatever language the server happened to be written in.
- */
-function fail(code: AppErrorCode): never {
-  throw new ConvexError({ code })
-}
+import { inviteStatus } from './lib/staffRules'
+import { vThemePreference } from './schema'
+import { permissionsOf, type Role } from './lib/permissions'
 
 export { newToken }
 
-/** Authenticated user, or null. Never throws — the UI decides what to show. */
-export async function currentUser(ctx: QueryCtx): Promise<Doc<'users'> | null> {
-  const identity = await ctx.auth.getUserIdentity()
-  if (!identity) return null
-  return await ctx.db
-    .query('users')
-    .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
-    .unique()
-}
-
-/** Same as `currentUser`, but requires a session. For mutations. */
-export async function requireUser(ctx: QueryCtx): Promise<Doc<'users'>> {
-  const user = await currentUser(ctx)
-  if (!user) fail('not_signed_in')
-  return user
-}
-
-export async function requireAdmin(ctx: QueryCtx): Promise<Doc<'users'>> {
-  const user = await requireUser(ctx)
-  if (user.role !== 'admin') fail('admin_required')
-  return user
-}
+// `cycles.ts` needs `requirePermission` and this module needs `activeCycle`
+// from `cycles.ts` — see `convex/auth.ts` for why `currentUser`,
+// `requireUser` and `requirePermission` moved there. Re-exported so every
+// other import of them from `./users` keeps resolving.
+export { currentUser, requireUser, requirePermission } from './auth'
 
 /**
  * Full account status for the athlete's panel: the three axes together.
@@ -58,14 +35,16 @@ export const myStatus = query({
     const user = await currentUser(ctx)
     if (!user) return null
 
+    const cycle = await activeCycle(ctx)
+
     const guardian = await ctx.db
       .query('guardianAuth')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     const registration = await ctx.db
       .query('registrations')
-      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', CURRENT_CYCLE))
+      .withIndex('by_user_cycle', (q) => q.eq('userId', user._id).eq('cycle', cycle._id))
       .unique()
 
     return {
@@ -73,7 +52,7 @@ export const myStatus = query({
         name: user.name,
         email: user.email,
         emailVerified: user.emailVerified,
-        role: user.role,
+        roles: user.roles,
         /**
          * `false` means the account was created without a valid pre-signup and
          * we do not know their age. It does NOT mean of legal age — that
@@ -113,6 +92,7 @@ export const myStatus = query({
  */
 async function openGuardianAuthorization(
   ctx: MutationCtx,
+  cycle: Doc<'cycles'>,
   args: {
     userId: Id<'users'>
     guardianName: string
@@ -122,7 +102,7 @@ async function openGuardianAuthorization(
 ): Promise<void> {
   const alreadyExists = await ctx.db
     .query('guardianAuth')
-    .withIndex('by_user_cycle', (q) => q.eq('userId', args.userId).eq('cycle', CURRENT_CYCLE))
+    .withIndex('by_user_cycle', (q) => q.eq('userId', args.userId).eq('cycle', cycle._id))
     .unique()
   if (alreadyExists) return
 
@@ -130,11 +110,11 @@ async function openGuardianAuthorization(
   const token = newToken()
   await ctx.db.insert('guardianAuth', {
     userId: args.userId,
-    cycle: CURRENT_CYCLE,
+    cycle: cycle._id,
     guardianName: args.guardianName,
     guardianEmail: args.guardianEmail,
     token,
-    expiresAt: CLOSES_AT_MS,
+    expiresAt: windowOf(cycle).closesAtMs,
     sentAt: now,
     timesSent: 1,
   })
@@ -144,6 +124,8 @@ async function openGuardianAuthorization(
     athleteName: args.athleteName,
     token,
     isResend: false,
+    closesOnText: formatDay(cycle.closesOn, 'es'),
+    cycleTitle: cycle.title,
   })
 }
 
@@ -167,7 +149,6 @@ export const create = internalMutation({
     email: v.string(),
     name: v.optional(v.string()),
     emailVerified: v.boolean(),
-    role: vRole,
     preSignupToken: v.optional(v.string()),
   },
   // Annotated on purpose: the handler calls `internal.preSignups.consume`,
@@ -183,11 +164,13 @@ export const create = internalMutation({
     const now = Date.now()
 
     if (existing) {
+      // `roles` is untouched here on purpose: a re-delivered webhook must
+      // not reset a master_admin back to athlete. Convex owns `roles`, and
+      // this mirror only ever writes it once, at insert, below.
       await ctx.db.patch(existing._id, {
         email: args.email,
         name: args.name ?? existing.name,
         emailVerified: args.emailVerified,
-        role: args.role,
         updatedAt: now,
       })
       return existing._id
@@ -207,11 +190,34 @@ export const create = internalMutation({
       )
     }
 
+    /**
+     * A staff invitation is redeemed by the account's primary email, not by
+     * a token: a forwarded link is worth nothing to a different address, and
+     * a Google sign-up that picks another address simply lands as an athlete
+     * (the invite stays pending, and a master_admin can grant directly).
+     * Redemption only runs for a verified address, because this is the one
+     * unauthenticated path into a privileged role — it must not depend on a
+     * Clerk dashboard setting keeping sign-ups verified.
+     */
+    const invite = args.emailVerified
+      ? (
+          await ctx.db
+            .query('staffInvites')
+            .withIndex('by_email', (q) => q.eq('email', args.email.trim().toLowerCase()))
+            .collect()
+        ).find((i) => inviteStatus(i, now) === 'pending')
+      : undefined
+
+    const roles: Role[] = invite ? [...invite.roles] : ['athlete']
+    if (invite) {
+      await ctx.db.patch(invite._id, { acceptedAt: now, acceptedBy: args.clerkId })
+    }
+
     const userId = await ctx.db.insert('users', {
       clerkId: args.clerkId,
       email: args.email,
       name: args.name,
-      role: args.role,
+      roles,
       emailVerified: args.emailVerified,
       birthDate: preSignup?.birthDate,
       wasMinorAtSignup: preSignup?.isMinor,
@@ -222,7 +228,8 @@ export const create = internalMutation({
     // Minor: the guardian email goes out immediately. It does not block the
     // signup, but the account stays incomplete until they confirm.
     if (preSignup?.isMinor && preSignup.guardianEmail && preSignup.guardianName) {
-      await openGuardianAuthorization(ctx, {
+      const cycle = await activeCycle(ctx)
+      await openGuardianAuthorization(ctx, cycle, {
         userId,
         guardianName: preSignup.guardianName,
         guardianEmail: preSignup.guardianEmail,
@@ -281,7 +288,8 @@ export const declareBirthDate = mutation({
     })
 
     if (isMinor && guardianName && guardianEmail) {
-      await openGuardianAuthorization(ctx, {
+      const cycle = await activeCycle(ctx)
+      await openGuardianAuthorization(ctx, cycle, {
         userId: user._id,
         guardianName,
         guardianEmail,
@@ -339,7 +347,6 @@ export const update = internalMutation({
     email: v.string(),
     name: v.optional(v.string()),
     emailVerified: v.boolean(),
-    role: vRole,
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -347,11 +354,12 @@ export const update = internalMutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique()
     if (!user) return
+    // `roles` is untouched here for the same reason it is in `create`:
+    // Clerk never owns roles, so this mirror never writes them.
     await ctx.db.patch(user._id, {
       email: args.email,
       name: args.name ?? user.name,
       emailVerified: args.emailVerified,
-      role: args.role,
       updatedAt: Date.now(),
     })
   },
@@ -386,5 +394,67 @@ export const remove = internalMutation({
     for (const g of guardians) await ctx.db.delete(g._id)
 
     await ctx.db.delete(user._id)
+  },
+})
+
+/**
+ * Roles and permissions for the header and the admin guard. Separate from
+ * `myStatus` for the same reason `myThemePreference` is: that query serves
+ * the registration panel, and the header runs on every page.
+ */
+export const me = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await currentUser(ctx)
+    if (!user) return null
+    return { roles: user.roles, permissions: permissionsOf(user.roles), email: user.email }
+  },
+})
+
+/**
+ * One-off: `roles` from `role`. Idempotent — rows that already carry `roles`
+ * are skipped — so it can be re-run if it is interrupted. Also lowercases
+ * `email`, because rows written before the webhook normalized casing still
+ * carry Clerk's original casing, which `by_email` lookups miss. Run by hand:
+ *
+ *   npx convex run users:backfillRoles
+ *   npx convex run users:backfillRoles --prod
+ *
+ * Removed together with the legacy `role` field in a later PR.
+ */
+export const backfillRoles = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect()
+    let updated = 0
+    for (const u of users) {
+      if (u.roles !== undefined) continue
+      await ctx.db.patch(u._id, { roles: [u.role ?? 'athlete'], email: u.email.trim().toLowerCase() })
+      updated++
+    }
+    console.log(`[users.backfillRoles] ${updated} of ${users.length} rows updated`)
+    return { updated }
+  },
+})
+
+/**
+ * Unsets the legacy `role` on every row that still carries it. Idempotent.
+ * Run AFTER `backfillRoles`, once per deployment:
+ *
+ *   npx convex run users:dropLegacyRole
+ *   npx convex run users:dropLegacyRole --prod
+ */
+export const dropLegacyRole = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect()
+    let updated = 0
+    for (const u of users) {
+      if (u.role === undefined) continue
+      await ctx.db.patch(u._id, { role: undefined })
+      updated++
+    }
+    console.log(`[users.dropLegacyRole] ${updated} of ${users.length} rows updated`)
+    return { updated }
   },
 })

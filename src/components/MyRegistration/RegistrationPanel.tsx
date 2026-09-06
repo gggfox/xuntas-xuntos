@@ -1,4 +1,5 @@
 import { useUser } from '@clerk/tanstack-react-start'
+import { Navigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { useCallback } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -14,6 +15,7 @@ import SyncingFrame from './SyncingFrame'
 import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../../lib/registrationSchema'
 import { errorCodeFromConvex } from '../../lib/registrationErrors'
 import type { RegistrationError } from '../../lib/registrationRules'
+import { useActiveCycle } from '../../hooks/useActiveCycle'
 
 /**
  * Everything behind the sign-in wall: the form itself, plus the screens that
@@ -33,6 +35,7 @@ export default function RegistrationPanel({
   const mine = useQuery(api.registrations.mine)
   const saveDraft = useMutation(api.registrations.saveDraft)
   const submitRegistration = useMutation(api.registrations.submit)
+  const cycle = useActiveCycle()
 
   /**
    * Stable on purpose. These two go in as dependencies of the autosave
@@ -63,9 +66,12 @@ export default function RegistrationPanel({
   )
 
   // Convex returns undefined while the query is in flight, and the session is
-  // still worth nothing until Clerk's token has been exchanged.
-  if (authLoading || status === undefined || mine === undefined) {
-    return <LoadingFrame>{m.common_loading()}</LoadingFrame>
+  // still worth nothing until Clerk's token has been exchanged. `!cycle`
+  // covers both "still loading" and "no active cycle" (a configuration
+  // fault the UI does not design for) — either way, nothing below this
+  // point may render a sentence that needs a date it does not have yet.
+  if (authLoading || status === undefined || mine === undefined || !cycle) {
+    return <LoadingFrame reviewOnText={cycle?.reviewOnText}>{m.common_loading()}</LoadingFrame>
   }
 
   /**
@@ -86,6 +92,16 @@ export default function RegistrationPanel({
   // yet. That one really does resolve on its own, in a few seconds.
   if (status === null || mine === null) {
     return <SyncingFrame />
+  }
+
+  /**
+   * Staff have no registration. Clerk's fallback redirect still points at this
+   * page (a build arg, not worth a rebuild), so the page itself sends them on.
+   * Before the birth-date step, on purpose: a staff account has no date and
+   * must never be asked for one.
+   */
+  if (!status.account.roles.includes('athlete')) {
+    return <Navigate to="/administracion" />
   }
 
   /**
@@ -123,7 +139,7 @@ export default function RegistrationPanel({
   return (
     <main className="relative isolate col pt-[38px] pb-[90px]">
       <Meteors />
-      <p className="eyebrow">{m.reg_eyebrow()}</p>
+      <p className="eyebrow">{m.reg_eyebrow({ title: cycle.title })}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.reg_title()}</h1>
 
       <AccountStatus status={status} alreadySubmitted={alreadySubmitted} />
@@ -135,6 +151,7 @@ export default function RegistrationPanel({
           initial={initial}
           editable={mine.editable}
           alreadySubmitted={alreadySubmitted}
+          closesOnText={cycle.closesOnText}
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit}
           /* All three are true by the time this renders — the panel returns
