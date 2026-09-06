@@ -163,8 +163,14 @@ RUN --mount=type=secret,id=INFISICAL_CLIENT_ID \
         --client-id "$(cat /run/secrets/INFISICAL_CLIENT_ID)" \
         --client-secret "$(cat /run/secrets/INFISICAL_CLIENT_SECRET)" \
         --plain --silent)" \
-    infisical run --env "$INFISICAL_ENV" --path / -- npm run build
+    infisical run --env "$INFISICAL_ENV" \
+        --projectId "$(node -p "require('./.infisical.json').workspaceId")" \
+        -- npm run build
 ```
+
+`--projectId` is not optional: with a machine-identity token the CLI does
+not read the project from `.infisical.json` ("Project ID is required when
+using machine identity"), so the build reads the same file itself.
 
 - `infisical run` injects the `/` folder into the build's environment. Vite
   embeds only `VITE_*`-prefixed variables, so `CLERK_SECRET_KEY` being in

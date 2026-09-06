@@ -53,9 +53,12 @@ RUN test -n "${INFISICAL_ENV:-}" || { echo "INFISICAL_ENV build arg is required:
 # `/` folder into the build's environment; Vite embeds only the VITE_*
 # variables, so anything else in there stays out of the bundle.
 #
-# The domain and project id come from .infisical.json, copied with the
-# code. vite.config.ts aborts the build if VITE_CONVEX_URL or
-# VITE_CLERK_PUBLISHABLE_KEY is missing or a placeholder.
+# The domain comes from .infisical.json, copied with the code. The project
+# id is read from the same file, but has to be passed explicitly: with a
+# machine-identity token the CLI refuses to infer it ("Project ID is
+# required when using machine identity"). vite.config.ts aborts the build
+# if VITE_CONVEX_URL or VITE_CLERK_PUBLISHABLE_KEY is missing or a
+# placeholder.
 RUN --mount=type=secret,id=INFISICAL_CLIENT_ID \
     --mount=type=secret,id=INFISICAL_CLIENT_SECRET \
     set -eu; \
@@ -64,7 +67,8 @@ RUN --mount=type=secret,id=INFISICAL_CLIENT_ID \
         --client-secret "$(cat /run/secrets/INFISICAL_CLIENT_SECRET)" \
         --plain --silent)"; \
     export INFISICAL_TOKEN; \
-    infisical run --env "${INFISICAL_ENV}" --silent -- npm run build
+    project_id="$(node -p "require('./.infisical.json').workspaceId")"; \
+    infisical run --env "${INFISICAL_ENV}" --projectId "${project_id}" --silent -- npm run build
 
 # The SSR bundle leaves out react, @tanstack, @clerk, convex and a few more:
 # dist/server/server.js imports them by name at runtime. Pruning here and
