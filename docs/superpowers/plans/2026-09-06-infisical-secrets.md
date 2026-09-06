@@ -118,7 +118,7 @@ describe('requireBuildVariables', () => {
 
   it('throws one error listing every problem', () => {
     expect(() => requireBuildVariables({ VITE_CONVEX_URL: 'nope' })).toThrow(
-      /VITE_CONVEX_URL must be an https:\/\/ URL[\s\S]*VITE_CLERK_PUBLISHABLE_KEY is missing/,
+      /VITE_CLERK_PUBLISHABLE_KEY is missing[\s\S]*VITE_CONVEX_URL must be an https:\/\/ URL/,
     )
   })
 
