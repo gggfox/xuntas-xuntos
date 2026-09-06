@@ -6,7 +6,7 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from './_generated/server'
-import type { Doc } from './_generated/dataModel'
+import type { Doc, TableNames } from './_generated/dataModel'
 import type { AppErrorCode } from './lib/errorCodes'
 import {
   cycleTitle,
@@ -254,6 +254,45 @@ export const update = mutation({
     await ctx.db.patch(row._id, { ...after, updatedAt: Date.now() })
     await record(ctx, actor, row.cycle, fieldsOf(row), after)
     return { ok: true as const }
+  },
+})
+
+const WIPE_TABLES = ['cycles', 'cycleChanges', 'registrations', 'guardianAuth'] as const
+
+/** Every row deleted, one call away from being pasted into a report. */
+type WipeCounts = Record<(typeof WIPE_TABLES)[number], number>
+
+async function wipeTable(ctx: MutationCtx, table: TableNames): Promise<number> {
+  const rows = await ctx.db.query(table).collect()
+  for (const row of rows) {
+    await ctx.db.delete(row._id)
+  }
+  return rows.length
+}
+
+/**
+ * One-off: clears every row keyed by the old `cycle` STRING, and nothing
+ * else. `users`, `staffInvites` and `preSignups` are untouched, so whoever
+ * runs this stays signed in with whatever roles they already have.
+ *
+ * This exists because the re-key from a typed `cycle` string to a minted
+ * `v.id('cycles')` cannot land in the schema while old rows still hold the
+ * old shape — Convex rejects the push against them. Run this FIRST, on the
+ * current schema, then push the schema change once it reports back clean:
+ *
+ *   npx convex run cycles:wipeForRekey
+ *
+ * A human runs it, not this agent — see the PR/report for why.
+ */
+export const wipeForRekey = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<WipeCounts> => {
+    const counts = {} as WipeCounts
+    for (const table of WIPE_TABLES) {
+      counts[table] = await wipeTable(ctx, table)
+    }
+    console.log('[cycles.wipeForRekey] deleted', counts)
+    return counts
   },
 })
 
