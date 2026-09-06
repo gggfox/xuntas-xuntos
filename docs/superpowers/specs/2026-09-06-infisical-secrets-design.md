@@ -51,8 +51,6 @@ Its client id and secret live in exactly two places:
 /                      app values — what the build and local dev read
   VITE_CONVEX_URL
   VITE_CLERK_PUBLISHABLE_KEY
-  VITE_CLERK_SIGN_IN_URL, VITE_CLERK_SIGN_UP_URL,
-  VITE_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL, VITE_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
   VITE_WINDOW_ALWAYS_OPEN      (staging and development only — never production)
   CLERK_SECRET_KEY             (reference copy; Dokploy still holds its own)
 /ci                    what GitHub Actions reads
@@ -72,6 +70,12 @@ Changes to today's state:
   values do not belong in a shared environment (see "Local dev").
 - The `/ci` folder keeps the CI identity from ever seeing `CLERK_SECRET_KEY`:
   the action is pointed at `secret-path: /ci` and nothing else.
+- **Not stored anywhere:** the four `VITE_CLERK_SIGN_*` variables the old
+  Dockerfile carried. `SignInScreen` and `SignUpScreen` pass `signInUrl`,
+  `signUpUrl` and `forceRedirectUrl` as props, nothing in the app triggers a
+  Clerk-driven redirect that would fall back to the env values, and Clerk's
+  TanStack Start package does not read the two `FALLBACK_REDIRECT` names at
+  all. They were dead config.
 
 ## Consumer 1 — local dev
 
