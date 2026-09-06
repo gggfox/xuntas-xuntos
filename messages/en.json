@@ -1,7 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "brand_name": "XUNTAS",
-  "brand_cycle": "{cycle} Call for Applications",
   "meta_title": "Registration · XUNTAS",
   "meta_description": "Registration for the XUNTAS Development Program.",
   "meta_page": "{page} · XUNTAS",
