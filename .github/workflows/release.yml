@@ -51,12 +51,11 @@ jobs:
           domain: https://infisical.gggfox.com
           project-slug: xuntas-xuntos-j-k6-i
           env-slug: prod
-          secret-path: /ci
 
       - name: The key must be there
         run: |
           if [ -z "$CONVEX_DEPLOY_KEY" ]; then
-            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from /ci in the prod environment. Nothing was deployed and production was not advanced."
+            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from the prod environment. Nothing was deployed and production was not advanced."
             exit 1
           fi
 

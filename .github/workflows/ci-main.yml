@@ -57,11 +57,10 @@ jobs:
 
       - run: npm ci
 
-      # The deploy key lives in Infisical, folder /ci of the `staging`
+      # The deploy key lives in Infisical, at the root of the `staging`
       # environment, under the exact name the Convex CLI reads. The action
-      # exports it into the job environment (masked in logs) and fails the
-      # job if it cannot authenticate. Only /ci is fetched: the identity can
-      # read the app's secrets too, but this job has no business seeing them.
+      # exports every secret of that environment into the job environment
+      # (masked in logs) and fails the job if it cannot authenticate.
       - name: Fetch the Convex staging deploy key from Infisical
         uses: Infisical/secrets-action@v1.0.17
         with:
@@ -71,14 +70,13 @@ jobs:
           domain: https://infisical.gggfox.com
           project-slug: xuntas-xuntos-j-k6-i
           env-slug: staging
-          secret-path: /ci
 
       # The action succeeds even when the folder is empty. Say so here,
       # before `convex deploy` fails with a less helpful message.
       - name: The key must be there
         run: |
           if [ -z "$CONVEX_DEPLOY_KEY" ]; then
-            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from /ci in the staging environment. Nothing was deployed and staging was not advanced."
+            echo "::error title=No Convex deploy key::Infisical returned no CONVEX_DEPLOY_KEY from the staging environment. Nothing was deployed and staging was not advanced."
             exit 1
           fi
 
