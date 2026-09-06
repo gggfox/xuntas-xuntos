@@ -8,6 +8,10 @@
 # See docs/superpowers/specs/2026-09-06-infisical-secrets-design.md.
 set -eu
 
+# Names only, never values: enough to tell "Dokploy did not pass the
+# identity" from "the identity is wrong" without leaking anything.
+echo "entrypoint: environment has: $(env | cut -d= -f1 | sort | tr '\n' ' ')"
+
 : "${INFISICAL_ENV:?INFISICAL_ENV is baked into the image at build time; this image was built without it}"
 : "${INFISICAL_CLIENT_ID:?set INFISICAL_CLIENT_ID in the container environment}"
 : "${INFISICAL_CLIENT_SECRET:?set INFISICAL_CLIENT_SECRET in the container environment}"
