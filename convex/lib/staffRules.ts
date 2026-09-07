@@ -14,7 +14,7 @@ export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 /** Same brake as the guardian email: this is a way to make the domain send mail. */
 export const INVITE_RESEND_WAIT_MS = 5 * 60 * 1000
 
-export type StaffRole = Exclude<Role, 'athlete'>
+type StaffRole = Exclude<Role, 'athlete'>
 
 /** Dedupes, drops `athlete` and anything unknown, keeps table order. */
 export function normalizeStaffRoles(roles: readonly unknown[]): StaffRole[] {
@@ -31,7 +31,7 @@ export function validateInvite(input: {
   return null
 }
 
-export type InviteStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
+type InviteStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
 
 /** Accepted and revoked outrank expiry: they are things people did. */
 export function inviteStatus(

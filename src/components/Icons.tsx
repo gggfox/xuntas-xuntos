@@ -199,7 +199,7 @@ function ThemeSystem(props: IconProps) {
   )
 }
 
-export const Icons = {
+const Icons = {
   Chevron, Calendar, Check, Document, Award, Shield, BrandMark,
   ThemeLight, ThemeDark, ThemeSystem,
 }

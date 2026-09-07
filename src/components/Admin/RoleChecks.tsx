@@ -2,7 +2,7 @@ import * as m from '../../paraglide/messages.js'
 import { PillToggle } from '../Pill'
 import { ROLES, type Role } from '../../lib/permissions'
 
-export const ROLE_LABEL: Record<Exclude<Role, 'athlete'>, () => string> = {
+const ROLE_LABEL: Record<Exclude<Role, 'athlete'>, () => string> = {
   admin: m.role_admin,
   master_admin: m.role_master_admin,
   coach: m.role_coach,

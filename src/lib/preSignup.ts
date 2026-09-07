@@ -22,17 +22,12 @@ export function readPreSignupToken(): string | null {
   return window.sessionStorage.getItem(KEY) || null
 }
 
-export function clearPreSignup(): void {
-  if (typeof window === 'undefined') return
-  window.sessionStorage.removeItem(KEY)
-}
-
 /**
- * Age in completed years, in central Mexico time.
+ * Whether a birth date makes someone a minor today, in central Mexico time.
  *
  * It is only for the UI: deciding whether to show the guardian fields while
  * the date is being typed. The one that truly decides is the server, which
  * recomputes this very thing in `preSignups.create`. It is re-exported from
  * the backend so they cannot disagree.
  */
-export { ageAt, isUnderage, isValidBirthDate } from '../../convex/lib/cycle'
+export { isUnderage } from '../../convex/lib/cycle'
