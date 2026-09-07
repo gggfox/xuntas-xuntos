@@ -26,8 +26,8 @@ export const NAME_MIN = 2
 export const WHATSAPP_MIN_DIGITS = 10
 
 /** P3 — someone who already graduated, through someone starting secondary. */
-export const GRADUATION_YEARS_BACK = 1
-export const GRADUATION_YEARS_AHEAD = 12
+const GRADUATION_YEARS_BACK = 1
+const GRADUATION_YEARS_AHEAD = 12
 
 /**
  * P4 — minimum letter length. Off.

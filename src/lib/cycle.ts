@@ -4,10 +4,5 @@
  * shared here is the arithmetic, so the two sides cannot disagree about when
  * a day ends.
  */
-export { ageAt, isUnderage } from '../../convex/lib/cycle'
-export {
-  formatDay,
-  isWindowOpenFor,
-  windowOf,
-  windowStatusAt,
-} from '../../convex/lib/cycleRules'
+export { ageAt } from '../../convex/lib/cycle'
+export { formatDay, windowStatusAt } from '../../convex/lib/cycleRules'

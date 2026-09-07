@@ -26,6 +26,3 @@ export const DOCUMENTS = {
     ready: false,
   },
 } as const
-
-/** Is any document the call for applications takes for granted still unpublished? */
-export const HAS_PENDING_DOCUMENTS = Object.values(DOCUMENTS).some((d) => !d.ready)

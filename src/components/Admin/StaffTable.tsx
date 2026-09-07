@@ -16,8 +16,8 @@ import type { Role } from '../../lib/permissions'
 import { useDateFormats } from '../DateField/format'
 import type { Id } from '../../../convex/_generated/dataModel'
 
-export type StaffRow = { _id: Id<'users'>; name?: string; email: string; roles: readonly Role[] }
-export type InviteRow = {
+type StaffRow = { _id: Id<'users'>; name?: string; email: string; roles: readonly Role[] }
+type InviteRow = {
   _id: Id<'staffInvites'>
   email: string
   roles: readonly Role[]
