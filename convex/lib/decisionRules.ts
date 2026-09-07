@@ -12,27 +12,35 @@ import type { RegistrationData } from './registrationSchema'
  * could send.
  */
 
-export type Decision = 'validated' | 'rejected' | 'selected' | 'not_selected'
-export const DECISIONS: readonly Decision[] = ['validated', 'rejected', 'selected', 'not_selected']
+export type Decision = 'validated' | 'rejected' | 'selected' | 'not_selected' | 'removed'
+export const DECISIONS: readonly Decision[] = ['validated', 'rejected', 'selected', 'not_selected', 'removed']
 export type RegistrationStatus = 'draft' | 'submitted' | Decision
 
-export type NoticeDecision = 'rejected' | 'selected' | 'not_selected'
+export type NoticeDecision = 'rejected' | 'selected' | 'not_selected' | 'removed'
 export type NoticeStatus = 'not_sent' | 'sent' | 'delivered' | 'bounced'
 
 export function permissionFor(decision: Decision): Permission {
+  if (decision === 'removed') return 'remove_athletes'
   return decision === 'validated' || decision === 'rejected'
     ? 'review_registrations'
     : 'select_registrations'
 }
 
-/** What may follow what. Changing a prior decision is allowed (with a note). */
+/**
+ * What may follow what. Changing a prior decision is allowed (with a note).
+ *
+ * `removed` is a third stage: a member let go from the program after
+ * selection. It can only come from `selected` and only go back there — a
+ * removal is not a way to re-screen someone.
+ */
 const NEXT: Record<RegistrationStatus, readonly Decision[]> = {
   draft: [],
   submitted: ['validated', 'rejected'],
   validated: ['rejected', 'selected', 'not_selected'],
   rejected: ['validated'],
-  selected: ['not_selected', 'validated', 'rejected'],
+  selected: ['not_selected', 'validated', 'rejected', 'removed'],
   not_selected: ['selected', 'validated', 'rejected'],
+  removed: ['selected'],
 }
 
 /**
@@ -81,9 +89,20 @@ export function checkDecision(input: {
   // its own: selection is the master_admin's authority, and a plain admin
   // walking a row back out of it erases that decision as surely as making
   // it, just without the ability to redo it.
-  const needs: Permission = locked || isSelectionDecision(from) ? 'select_registrations' : permissionFor(to)
+  //
+  // Removal, in either direction, is administration's own authority
+  // (`remove_athletes`): it happens after the selection email went out, so
+  // the lock cannot apply to it, and leaving `selected` for `removed` is
+  // not the Council's decision being erased — the selection stays on the
+  // log, the person just stops being a member.
+  const removalMove = to === 'removed' || from === 'removed'
+  const needs: Permission = removalMove
+    ? 'remove_athletes'
+    : locked || isSelectionDecision(from)
+      ? 'select_registrations'
+      : permissionFor(to)
   if (!input.permissions.includes(needs)) {
-    return locked ? 'decision_locked' : 'permission_required'
+    return locked && !removalMove ? 'decision_locked' : 'permission_required'
   }
 
   if (to === 'selected' && !input.guardianConfirmed) return 'guardian_unconfirmed'
@@ -96,13 +115,15 @@ export function checkDecision(input: {
   // ever sets a notice while the row still reads `validated` — instead of
   // enforcing "a sent notice locks the decision" on its own terms.
   const hasNote = (input.note ?? '').trim().length > 0
-  if ((to === 'rejected' || locked || changesAPriorDecision(from, to)) && !hasNote) return 'note_required'
+  if ((to === 'rejected' || locked || removalMove || changesAPriorDecision(from, to)) && !hasNote) return 'note_required'
 
   return null
 }
 
 export function noticeDecisionFor(status: RegistrationStatus): NoticeDecision | null {
-  return status === 'rejected' || status === 'selected' || status === 'not_selected' ? status : null
+  return status === 'rejected' || status === 'selected' || status === 'not_selected' || status === 'removed'
+    ? status
+    : null
 }
 
 /**

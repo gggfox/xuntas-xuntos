@@ -4,6 +4,7 @@ import type { AppErrorCode } from '../../convex/lib/errorCodes'
 import { LETTER_LIMIT } from './registrationSchema'
 import { RESULTS_MIN } from './registrationRules'
 import { FIELD_LIMIT, ROW_LIMIT } from '../../convex/lib/registrationLimits'
+import { BODY_LIMIT, COMMENT_LIMIT, SCORE_LIMIT, TITLE_LIMIT } from '../../convex/lib/journalRules'
 
 /**
  * Turns an error code into a sentence in the reader's language.
@@ -80,6 +81,26 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   notice_not_pending: m.err_notice_not_pending,
   registration_not_found: m.err_registration_not_found,
   nothing_to_send: m.err_nothing_to_send,
+  // Members, assignments, the journal.
+  not_a_member: m.err_not_a_member,
+  athlete_not_found: m.err_athlete_not_found,
+  journal_frozen: m.err_journal_frozen,
+  entry_not_found: m.err_entry_not_found,
+  entry_title_required: m.err_entry_title_required,
+  entry_title_too_long: () => m.err_entry_title_too_long({ limit: TITLE_LIMIT }),
+  entry_date_invalid: m.err_entry_date_invalid,
+  entry_body_required: m.err_entry_body_required,
+  entry_body_too_long: () => m.err_entry_body_too_long({ limit: BODY_LIMIT }),
+  entry_score_too_long: () => m.err_entry_score_too_long({ limit: SCORE_LIMIT }),
+  entry_score_not_allowed: m.err_entry_score_not_allowed,
+  entry_has_comments: m.err_entry_has_comments,
+  not_entry_author: m.err_not_entry_author,
+  comment_required: m.err_comment_required,
+  comment_too_long: () => m.err_comment_too_long({ limit: COMMENT_LIMIT }),
+  comment_not_found: m.err_comment_not_found,
+  not_comment_author: m.err_not_comment_author,
+  assignment_target_invalid: m.err_assignment_target_invalid,
+  notification_not_found: m.err_notification_not_found,
   generic: m.err_generic,
 }
 

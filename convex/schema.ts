@@ -27,6 +27,8 @@ export const vRegistrationStatus = v.union(
   v.literal('rejected'),
   v.literal('selected'),
   v.literal('not_selected'),
+  /** A member let go from the program after selection. Membership = `selected`; this is its end. */
+  v.literal('removed'),
 )
 
 /** The decisions administration and the Council may record, as opposed to the states a draft passes through on its own. */
@@ -35,9 +37,15 @@ export const vDecision = v.union(
   v.literal('rejected'),
   v.literal('selected'),
   v.literal('not_selected'),
+  v.literal('removed'),
 )
 
-const vNoticeDecision = v.union(v.literal('rejected'), v.literal('selected'), v.literal('not_selected'))
+const vNoticeDecision = v.union(
+  v.literal('rejected'),
+  v.literal('selected'),
+  v.literal('not_selected'),
+  v.literal('removed'),
+)
 const vNoticeStatus = v.union(
   v.literal('not_sent'),
   v.literal('sent'),
@@ -334,5 +342,29 @@ export default defineSchema({
     .index('by_user_cycle', ['userId', 'cycle'])
     .index('by_cycle_status', ['cycle', 'status'])
     .index('by_cycle_branch', ['cycle', 'personal.branch'])
-    .index('by_notice_email', ['decisionNotice.emailId']),
+    .index('by_notice_email', ['decisionNotice.emailId'])
+    /**
+     * Membership. "Is this person in the program" is "does any registration
+     * of theirs read `selected`", and "who is in the program" is the same
+     * question without the person — one index answers both.
+     */
+    .index('by_status_user', ['status', 'userId']),
+
+  /**
+   * Who works with whom. A coach or a health specialist reads and comments
+   * on the journals of the members assigned to them, and nobody else's.
+   * Open-ended, not per cycle: a row ends (`endedAt`) when administration
+   * says so or when the member is removed, and the row stays so a comment
+   * written under it keeps its context.
+   */
+  assignments: defineTable({
+    staffUserId: v.id('users'),
+    athleteUserId: v.id('users'),
+    assignedBy: v.id('users'),
+    assignedAt: v.number(),
+    endedAt: v.optional(v.number()),
+  })
+    .index('by_staff_active', ['staffUserId', 'endedAt'])
+    .index('by_athlete_active', ['athleteUserId', 'endedAt'])
+    .index('by_staff_athlete', ['staffUserId', 'athleteUserId']),
 })

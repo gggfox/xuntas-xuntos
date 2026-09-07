@@ -306,11 +306,16 @@ export const sendAccessGranted = internalMutation({
   },
 })
 
-const vNoticeDecision = v.union(v.literal('rejected'), v.literal('selected'), v.literal('not_selected'))
-type NoticeDecisionArg = 'rejected' | 'selected' | 'not_selected'
+const vNoticeDecision = v.union(
+  v.literal('rejected'),
+  v.literal('selected'),
+  v.literal('not_selected'),
+  v.literal('removed'),
+)
+type NoticeDecisionArg = 'rejected' | 'selected' | 'not_selected' | 'removed'
 
 /**
- * The three decisions a family hears about. Fixed copy, drafted for XUNTAS
+ * The four decisions a family hears about. Fixed copy, drafted for XUNTAS
  * to approve: no internal note ever reaches a body, and no name beyond the
  * athlete's own. `cycleTitle` is the resolved title — the caller works it
  * out with `cycleTitle` from `lib/cycleRules.ts` and passes the same string
@@ -352,6 +357,17 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
           <p style="margin:0 0 14px;">El Consejo Técnico terminó la revisión de la ${title}. En esta ocasión no fuiste seleccionad@ para el Programa de Desarrollo.</p>
           <p style="margin:0 0 14px;">El registro fue numeroso y los lugares, pocos. Esto no dice nada de tu potencial: te animamos a seguir compitiendo y a registrarte en la siguiente convocatoria.</p>
           <p style="margin:0 0 14px;">Si tienes dudas, responde a este correo.</p>`,
+      }
+    case 'removed':
+      // The reason stays on the internal note; a body never carries it.
+      // Administration already spoke with the person before pressing this.
+      return {
+        subject: 'Sobre tu lugar en el Programa de Desarrollo',
+        preheader: 'Tu participación en el Programa de Desarrollo termina.',
+        html: `<p style="margin:0 0 14px;">${greeting}</p>
+          <p style="margin:0 0 14px;">Te escribimos para confirmarte que, a partir de hoy, dejas de formar parte del Programa de Desarrollo de la ${title}.</p>
+          <p style="margin:0 0 14px;">Tu cuenta y tu registro siguen siendo tuyos. Tu bitácora se conserva, pero ya no recibe entradas ni comentarios, y tu equipo de trabajo deja de tener acceso a ella.</p>
+          <p style="margin:0 0 14px;">Si tienes dudas sobre esta decisión, responde a este correo: te contestamos personalmente.</p>`,
       }
   }
 }
