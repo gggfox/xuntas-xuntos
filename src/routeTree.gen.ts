@@ -18,6 +18,7 @@ import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
+import { Route as AdministracionAtletasRouteImport } from './routes/administracion.atletas'
 import { Route as AdministracionConvocatoriasRouteImport } from './routes/administracion.convocatorias'
 import { Route as AdministracionEquipoRouteImport } from './routes/administracion.equipo'
 import { Route as AdministracionRegistrosRouteImport } from './routes/administracion.registros'
@@ -27,6 +28,7 @@ import { Route as CrearCuentaSplatRouteImport } from './routes/crear-cuenta.$'
 import { Route as EntrarIndexRouteImport } from './routes/entrar.index'
 import { Route as EntrarSplatRouteImport } from './routes/entrar.$'
 import { Route as InvitacionTokenRouteImport } from './routes/invitacion.$token'
+import { Route as AdministracionAtletasIdRouteImport } from './routes/administracion.atletas_.$id'
 import { Route as AdministracionRegistrosIdRouteImport } from './routes/administracion.registros_.$id'
 import { Route as InvitacionTokenSplatRouteImport } from './routes/invitacion.$token.$'
 
@@ -75,6 +77,11 @@ const AdministracionIndexRoute = AdministracionIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdministracionRoute,
 } as any)
+const AdministracionAtletasRoute = AdministracionAtletasRouteImport.update({
+  id: '/atletas',
+  path: '/atletas',
+  getParentRoute: () => AdministracionRoute,
+} as any)
 const AdministracionConvocatoriasRoute =
   AdministracionConvocatoriasRouteImport.update({
     id: '/convocatorias',
@@ -121,6 +128,11 @@ const InvitacionTokenRoute = InvitacionTokenRouteImport.update({
   path: '/invitacion/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdministracionAtletasIdRoute = AdministracionAtletasIdRouteImport.update({
+  id: '/atletas_/$id',
+  path: '/atletas/$id',
+  getParentRoute: () => AdministracionRoute,
+} as any)
 const AdministracionRegistrosIdRoute =
   AdministracionRegistrosIdRouteImport.update({
     id: '/registros_/$id',
@@ -142,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
   '/perfil': typeof PerfilRoute
+  '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
@@ -152,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
+  '/administracion/atletas/$id': typeof AdministracionAtletasIdRoute
   '/administracion/registros/$id': typeof AdministracionRegistrosIdRoute
   '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
@@ -163,6 +177,7 @@ export interface FileRoutesByTo {
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
   '/perfil': typeof PerfilRoute
+  '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
@@ -173,6 +188,7 @@ export interface FileRoutesByTo {
   '/administracion': typeof AdministracionIndexRoute
   '/crear-cuenta': typeof CrearCuentaIndexRoute
   '/entrar': typeof EntrarIndexRoute
+  '/administracion/atletas/$id': typeof AdministracionAtletasIdRoute
   '/administracion/registros/$id': typeof AdministracionRegistrosIdRoute
   '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
@@ -186,6 +202,7 @@ export interface FileRoutesById {
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
   '/perfil': typeof PerfilRoute
+  '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
@@ -196,6 +213,7 @@ export interface FileRoutesById {
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
+  '/administracion/atletas_/$id': typeof AdministracionAtletasIdRoute
   '/administracion/registros_/$id': typeof AdministracionRegistrosIdRoute
   '/invitacion/$token/$': typeof InvitacionTokenSplatRoute
 }
@@ -210,6 +228,7 @@ export interface FileRouteTypes {
     | '/empezar'
     | '/mi-registro'
     | '/perfil'
+    | '/administracion/atletas'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/administracion/registros'
@@ -220,6 +239,7 @@ export interface FileRouteTypes {
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
+    | '/administracion/atletas/$id'
     | '/administracion/registros/$id'
     | '/invitacion/$token/$'
   fileRoutesByTo: FileRoutesByTo
@@ -231,6 +251,7 @@ export interface FileRouteTypes {
     | '/empezar'
     | '/mi-registro'
     | '/perfil'
+    | '/administracion/atletas'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/administracion/registros'
@@ -241,6 +262,7 @@ export interface FileRouteTypes {
     | '/administracion'
     | '/crear-cuenta'
     | '/entrar'
+    | '/administracion/atletas/$id'
     | '/administracion/registros/$id'
     | '/invitacion/$token/$'
   id:
@@ -253,6 +275,7 @@ export interface FileRouteTypes {
     | '/empezar'
     | '/mi-registro'
     | '/perfil'
+    | '/administracion/atletas'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/administracion/registros'
@@ -263,6 +286,7 @@ export interface FileRouteTypes {
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
+    | '/administracion/atletas_/$id'
     | '/administracion/registros_/$id'
     | '/invitacion/$token/$'
   fileRoutesById: FileRoutesById
@@ -349,6 +373,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministracionIndexRouteImport
       parentRoute: typeof AdministracionRoute
     }
+    '/administracion/atletas': {
+      id: '/administracion/atletas'
+      path: '/atletas'
+      fullPath: '/administracion/atletas'
+      preLoaderRoute: typeof AdministracionAtletasRouteImport
+      parentRoute: typeof AdministracionRoute
+    }
     '/administracion/convocatorias': {
       id: '/administracion/convocatorias'
       path: '/convocatorias'
@@ -412,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvitacionTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/administracion/atletas_/$id': {
+      id: '/administracion/atletas_/$id'
+      path: '/atletas/$id'
+      fullPath: '/administracion/atletas/$id'
+      preLoaderRoute: typeof AdministracionAtletasIdRouteImport
+      parentRoute: typeof AdministracionRoute
+    }
     '/administracion/registros_/$id': {
       id: '/administracion/registros_/$id'
       path: '/registros/$id'
@@ -430,18 +468,22 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdministracionRouteChildren {
+  AdministracionAtletasRoute: typeof AdministracionAtletasRoute
   AdministracionConvocatoriasRoute: typeof AdministracionConvocatoriasRoute
   AdministracionEquipoRoute: typeof AdministracionEquipoRoute
   AdministracionRegistrosRoute: typeof AdministracionRegistrosRoute
   AdministracionIndexRoute: typeof AdministracionIndexRoute
+  AdministracionAtletasIdRoute: typeof AdministracionAtletasIdRoute
   AdministracionRegistrosIdRoute: typeof AdministracionRegistrosIdRoute
 }
 
 const AdministracionRouteChildren: AdministracionRouteChildren = {
+  AdministracionAtletasRoute: AdministracionAtletasRoute,
   AdministracionConvocatoriasRoute: AdministracionConvocatoriasRoute,
   AdministracionEquipoRoute: AdministracionEquipoRoute,
   AdministracionRegistrosRoute: AdministracionRegistrosRoute,
   AdministracionIndexRoute: AdministracionIndexRoute,
+  AdministracionAtletasIdRoute: AdministracionAtletasIdRoute,
   AdministracionRegistrosIdRoute: AdministracionRegistrosIdRoute,
 }
 
