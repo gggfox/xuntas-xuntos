@@ -495,6 +495,32 @@ describe('the confirmation cards', () => {
     expect(cardSays('ck1')).toBe('')
     expect(cardSays('ck3')).toBe(m.reg_ck_privacy_error())
   })
+
+  /**
+   * Enter presses the card, and only the card.
+   *
+   * Chrome reads Enter on a focused checkbox as a request to submit the form
+   * through its first submit button — here "Enviar registro" — and does not
+   * tick the box on the way. A reader who tabbed to a card and pressed Enter
+   * to accept it was sending the registration instead, and landed on three
+   * red cards and a summary without having pressed anything they could see.
+   * Cancelling the key's default action is what stops the send; ticking the
+   * box is what the key was for.
+   */
+  it('ticks from Enter on the card instead of sending the form', () => {
+    goToConfirmations()
+    const box = document.getElementById('ck1') as HTMLInputElement
+    box.focus()
+
+    // `fireEvent` answers false when the handler cancelled the default action.
+    expect(fireEvent.keyDown(box, { key: 'Enter', code: 'Enter' })).toBe(false)
+    expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(true)
+    expect(screen.queryByText(m.reg_errors_title())).not.toBeInTheDocument()
+
+    // And back again: the key toggles, it does not only accept.
+    expect(fireEvent.keyDown(box, { key: 'Enter', code: 'Enter' })).toBe(false)
+    expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(false)
+  })
 })
 
 /**

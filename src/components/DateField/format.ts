@@ -15,6 +15,8 @@ export type DateFormats = {
   monthShort: Intl.DateTimeFormat
   weekday: Intl.DateTimeFormat
   full: Intl.DateTimeFormat
+  /** `14/09/2026` in Spanish, `09/14/2026` in English — the same order the field takes typed. */
+  numeric: Intl.DateTimeFormat
 }
 
 export function useDateFormats(): DateFormats {
@@ -31,6 +33,7 @@ export function useDateFormats(): DateFormats {
          Two letters of `short` are unambiguous in both locales. */
       weekday: new Intl.DateTimeFormat(tag, { weekday: 'short', ...opts }),
       full: new Intl.DateTimeFormat(tag, { dateStyle: 'long', ...opts }),
+      numeric: new Intl.DateTimeFormat(tag, { day: '2-digit', month: '2-digit', year: 'numeric', ...opts }),
     }
   }, [locale])
 }

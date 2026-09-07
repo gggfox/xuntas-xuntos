@@ -641,6 +641,76 @@ body {
     }
   }
 
+  /*
+   * The avatar in the header, and the panel it opens. The panel is the
+   * `.nav-panel` idea hung off one button instead of the whole bar: the
+   * same `aria-hidden`-driven `display` transition, so the component keeps
+   * no timer, but anchored to its trigger's right edge and painted as a
+   * card, because unlike the narrow bar's list it drops out of the ink band
+   * and onto the page, and a panel that stays ink there reads as a torn-off
+   * piece of the header rather than as a menu.
+   */
+  .avatar-btn {
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18);
+  }
+  .avatar-btn:hover,
+  .avatar-btn[aria-expanded='true'] {
+    box-shadow: 0 0 0 2px var(--color-yel);
+  }
+  .acct-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 40;
+    min-width: 220px;
+    max-width: 280px;
+    color: var(--color-ink);
+    background: var(--color-card);
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-ctl);
+    box-shadow: 0 8px 24px rgb(from var(--color-ink) r g b / 0.16);
+    opacity: 0;
+    translate: 0 -6px;
+    display: none;
+    transition:
+      opacity 0.16s ease,
+      translate 0.16s ease,
+      display 0.16s allow-discrete;
+  }
+  .acct-panel[aria-hidden='false'] {
+    display: block;
+    opacity: 1;
+    translate: 0 0;
+  }
+  @starting-style {
+    .acct-panel[aria-hidden='false'] {
+      opacity: 0;
+      translate: 0 -6px;
+    }
+  }
+  .acct-who {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  /* The rows are the very same `<a>`/`<button>` the wide bar used to lay
+     inline; only here do they become full-width targets. */
+  .acct-links {
+    padding: 6px;
+  }
+  .acct-links > a,
+  .acct-links > button {
+    display: block;
+    width: 100%;
+    padding: 8px 8px;
+    border-radius: 6px;
+    text-align: left;
+    text-decoration: none;
+  }
+  .acct-links > a:hover,
+  .acct-links > button:hover {
+    background: var(--color-wash);
+  }
+
   /* Notice in soft yellow. For the important-but-not-an-error. */
   .nota {
     background: var(--color-yel-s);

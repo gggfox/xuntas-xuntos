@@ -10,6 +10,8 @@
   "nav_sign_in": "Entrar",
   "nav_menu": "Menú",
   "nav_admin": "Administración",
+  "nav_account": "Cuenta",
+  "nav_account_menu": "Menú de la cuenta",
   "theme_label": "Tema",
   "theme_system": "automático",
   "theme_light": "claro",
