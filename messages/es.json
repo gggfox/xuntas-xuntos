@@ -317,6 +317,7 @@
   "err_registration_not_found": "No encontramos ese registro.",
   "err_nothing_to_send": "No hay correos pendientes en la selección.",
   "regs_title": "Registros",
+  "regs_views": "Vistas de registros",
   "regs_view_pending": "Pendientes",
   "regs_view_all": "Todos",
   "regs_view_incomplete": "Incompletos",
