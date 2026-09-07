@@ -307,6 +307,7 @@
   "err_registration_not_found": "We couldn't find that registration.",
   "err_nothing_to_send": "There are no pending emails in the selection.",
   "regs_title": "Registrations",
+  "regs_views": "Registration views",
   "regs_view_pending": "Pending",
   "regs_view_all": "All",
   "regs_view_incomplete": "Incomplete",
