@@ -17,6 +17,14 @@ import type { AppErrorCode } from '../../../convex/lib/errorCodes'
  * Colour is not the only difference between accepted and not: the card also
  * gains a tick, and the icon and border change with it. A card that only
  * turned yellow would say nothing at all to a reader who cannot see yellow.
+ *
+ * Enter presses the card. Left to the browser, Enter on a focused checkbox
+ * is an implicit submit: Chrome clicks the form's first submit button — on
+ * this step, "Enviar registro" — and does not tick the box on the way. A
+ * reader who tabbed to a card and pressed Enter to accept it was sending
+ * the registration instead, and found three red cards and a summary without
+ * having pressed anything they could see. Space still toggles natively;
+ * Enter is caught here, cancelled, and made to toggle too.
  */
 export default function CheckboxField({
   id,
@@ -58,6 +66,11 @@ export default function CheckboxField({
           className="sr-only"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            onChange(!checked)
+          }}
           onBlur={onBlur}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
