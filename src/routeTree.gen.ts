@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdministracionRouteImport } from './routes/administracion'
 import { Route as AvisoDePrivacidadRouteImport } from './routes/aviso-de-privacidad'
 import { Route as BasesRouteImport } from './routes/bases'
+import { Route as BitacoraRouteImport } from './routes/bitacora'
 import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
 import { Route as AdministracionConvocatoriasRouteImport } from './routes/administracion.convocatorias'
 import { Route as AdministracionEquipoRouteImport } from './routes/administracion.equipo'
@@ -48,6 +50,11 @@ const BasesRoute = BasesRouteImport.update({
   path: '/bases',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BitacoraRoute = BitacoraRouteImport.update({
+  id: '/bitacora',
+  path: '/bitacora',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmpezarRoute = EmpezarRouteImport.update({
   id: '/empezar',
   path: '/empezar',
@@ -56,6 +63,11 @@ const EmpezarRoute = EmpezarRouteImport.update({
 const MiRegistroRoute = MiRegistroRouteImport.update({
   id: '/mi-registro',
   path: '/mi-registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdministracionIndexRoute = AdministracionIndexRouteImport.update({
@@ -126,8 +138,10 @@ export interface FileRoutesByFullPath {
   '/administracion': typeof AdministracionRouteWithChildren
   '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
   '/bases': typeof BasesRoute
+  '/bitacora': typeof BitacoraRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/perfil': typeof PerfilRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
@@ -145,8 +159,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
   '/bases': typeof BasesRoute
+  '/bitacora': typeof BitacoraRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/perfil': typeof PerfilRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
@@ -166,8 +182,10 @@ export interface FileRoutesById {
   '/administracion': typeof AdministracionRouteWithChildren
   '/aviso-de-privacidad': typeof AvisoDePrivacidadRoute
   '/bases': typeof BasesRoute
+  '/bitacora': typeof BitacoraRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/perfil': typeof PerfilRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
@@ -188,8 +206,10 @@ export interface FileRouteTypes {
     | '/administracion'
     | '/aviso-de-privacidad'
     | '/bases'
+    | '/bitacora'
     | '/empezar'
     | '/mi-registro'
+    | '/perfil'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/administracion/registros'
@@ -207,8 +227,10 @@ export interface FileRouteTypes {
     | '/'
     | '/aviso-de-privacidad'
     | '/bases'
+    | '/bitacora'
     | '/empezar'
     | '/mi-registro'
+    | '/perfil'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/administracion/registros'
@@ -227,8 +249,10 @@ export interface FileRouteTypes {
     | '/administracion'
     | '/aviso-de-privacidad'
     | '/bases'
+    | '/bitacora'
     | '/empezar'
     | '/mi-registro'
+    | '/perfil'
     | '/administracion/convocatorias'
     | '/administracion/equipo'
     | '/administracion/registros'
@@ -248,8 +272,10 @@ export interface RootRouteChildren {
   AdministracionRoute: typeof AdministracionRouteWithChildren
   AvisoDePrivacidadRoute: typeof AvisoDePrivacidadRoute
   BasesRoute: typeof BasesRoute
+  BitacoraRoute: typeof BitacoraRoute
   EmpezarRoute: typeof EmpezarRoute
   MiRegistroRoute: typeof MiRegistroRoute
+  PerfilRoute: typeof PerfilRoute
   AutorizarTokenRoute: typeof AutorizarTokenRoute
   CrearCuentaSplatRoute: typeof CrearCuentaSplatRoute
   EntrarSplatRoute: typeof EntrarSplatRoute
@@ -288,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BasesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bitacora': {
+      id: '/bitacora'
+      path: '/bitacora'
+      fullPath: '/bitacora'
+      preLoaderRoute: typeof BitacoraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/empezar': {
       id: '/empezar'
       path: '/empezar'
@@ -300,6 +333,13 @@ declare module '@tanstack/react-router' {
       path: '/mi-registro'
       fullPath: '/mi-registro'
       preLoaderRoute: typeof MiRegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/administracion/': {
@@ -426,8 +466,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdministracionRoute: AdministracionRouteWithChildren,
   AvisoDePrivacidadRoute: AvisoDePrivacidadRoute,
   BasesRoute: BasesRoute,
+  BitacoraRoute: BitacoraRoute,
   EmpezarRoute: EmpezarRoute,
   MiRegistroRoute: MiRegistroRoute,
+  PerfilRoute: PerfilRoute,
   AutorizarTokenRoute: AutorizarTokenRoute,
   CrearCuentaSplatRoute: CrearCuentaSplatRoute,
   EntrarSplatRoute: EntrarSplatRoute,
@@ -438,13 +480,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

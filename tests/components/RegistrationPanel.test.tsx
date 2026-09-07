@@ -118,6 +118,36 @@ describe('cycle not yet loaded', () => {
   })
 })
 
+describe('a member of the program', () => {
+  /** Membership outranks "enviado": the pill is the one place the panel says the person is in. */
+  it('shows the program pill instead of the submission one', () => {
+    statusResult = {
+      account: { roles: ['athlete'], emailVerified: true, ageDeclared: true, isMinor: false },
+      guardian: { required: false, confirmed: true },
+      registration: { status: 'selected', submittedAt: 1, updatedAt: 1 },
+      member: true,
+    }
+    queryResult = {
+      registration: {
+        status: 'selected',
+        personal: { name: 'Ana', email: 'a@x.org', whatsapp: '', birthDate: '2008-04-11', branch: 'womens', state: '', city: '' },
+        academic: { school: '', grade: '' },
+        athletic: { club: '', coach: '', ghin: '', amateurStatus: true },
+        results: [],
+        rankings: [],
+        calendar: [],
+        motivationLetter: '',
+        confirmations: { rules: true, scholarshipUnderstood: true, privacy: true },
+      },
+      editable: false,
+      closesAt: 0,
+    }
+    render(<RegistrationPanel />)
+    expect(screen.getByText(m.status_member())).toBeInTheDocument()
+    expect(screen.queryByText(m.status_submitted())).not.toBeInTheDocument()
+  })
+})
+
 describe('staff accounts', () => {
   it('sends an account without the athlete role to the admin panel', () => {
     statusResult = {

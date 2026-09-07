@@ -39,8 +39,20 @@ export default function AccountNav() {
       {m.nav_admin()}
     </Link>
   )
+  const member = !!me && me.member
   const accountLinks = (
     <>
+      {/* A member's two pages come first: they are what the account is for now. */}
+      {member && (
+        <Link to="/perfil" className="text-white/72 no-underline hover:text-white">
+          {m.nav_profile()}
+        </Link>
+      )}
+      {member && (
+        <Link to="/bitacora" className="text-white/72 no-underline hover:text-white">
+          {m.nav_journal()}
+        </Link>
+      )}
       <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
         {m.nav_my_registration()}
       </Link>
