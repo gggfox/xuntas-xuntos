@@ -189,7 +189,7 @@ export default function StaffTable({
         inviteHelper.accessor('invitedByName', { header: m.staff_col_invited_by }),
         inviteHelper.accessor('expiresAt', {
           header: m.staff_col_expires,
-          cell: (c) => fmt.full.format(new Date(c.getValue())),
+          cell: (c) => fmt.numeric.format(new Date(c.getValue())),
         }),
         inviteHelper.display({
           id: 'actions',
@@ -214,7 +214,7 @@ export default function StaffTable({
           },
         }),
       ]),
-    [canManage, fmt.full, onResend, onRevoke],
+    [canManage, fmt.numeric, onResend, onRevoke],
   )
 
   const staffTable = useTable({ features, columns: staffColumns, data: staff })
