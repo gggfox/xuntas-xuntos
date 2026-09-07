@@ -41,7 +41,7 @@ const NAV: ReadonlyArray<{
 export default function AdminShell({ roles, children }: Props) {
   const links = NAV.filter((n) => can(roles, n.needs))
   return (
-    <main className="col col-1800 pt-[22px] pb-[90px]">
+    <main className="col col-1800 pt-[22px] pb-[90px] lg:pb-6">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-line pb-3">
         <div className="pr-4">
           <p className="eyebrow">{m.admin_eyebrow()}</p>

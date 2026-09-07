@@ -102,7 +102,7 @@ export default function DecisionPanel({ status, guardianConfirmed, notice, permi
   }
 
   return (
-    <aside className="card px-[21px] py-[19px] lg:sticky lg:top-6">
+    <aside className="card px-[21px] py-[19px] lg:sticky lg:top-6 lg:self-start">
       <p className="eyebrow">{m.detail_decision()}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <StatusChip status={status} />
