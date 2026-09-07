@@ -207,6 +207,47 @@ body {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+  /* `*` does not reach the view-transition pseudo-elements, which live on
+     the root's own pseudo-tree; without this the table would still slide
+     for someone who asked it not to. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/*
+ * The one View Transition in the app is the registrations table (see
+ * `.regs-row` in the components layer), so these tune that: a little
+ * quicker than the browser's 250ms default, on the same ease-out the rest
+ * of the site's motion uses. `:only-child` is how a row that only leaves,
+ * or only arrives, is told apart from one that moves.
+ */
+::view-transition-group(*) {
+  animation-duration: 240ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1);
+}
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 180ms;
+}
+::view-transition-new(.regs-row):only-child {
+  animation: regs-row-in 220ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+::view-transition-old(.regs-row):only-child {
+  animation: regs-row-out 140ms ease both;
+}
+@keyframes regs-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes regs-row-out {
+  to {
+    opacity: 0;
+  }
 }
 
 @layer components {
@@ -229,6 +270,10 @@ body {
   }
   .col-720 {
     max-width: 720px;
+  }
+  /* The administration frame. See `AdminShell` and docs/BRAND.md. */
+  .col-1800 {
+    max-width: 1800px;
   }
 
   /*
@@ -504,6 +549,55 @@ body {
     box-shadow:
       0 0 0 1px var(--color-line),
       0 1px 2px rgb(from var(--color-ink) r g b / 0.09);
+  }
+  /*
+   * The same control stretched to what holds it. Only from `lg` (64rem),
+   * where the registrations panel is a 260px column beside the table and
+   * the three segments would otherwise overflow it; below that the control
+   * sits above a stacked page and keeps its own width, because a
+   * full-width row of three words on a tablet reads as a toolbar, not as
+   * a choice.
+   */
+  @media (width >= 64rem) {
+    .seg-stretch {
+      display: flex;
+    }
+    .seg-stretch .seg-btn {
+      flex: 1;
+      padding-inline: 8px;
+      text-align: center;
+    }
+  }
+
+  /*
+   * The registrations table between two states.
+   *
+   * Every change to it — a filter, a view — runs inside a View Transition
+   * (`src/lib/viewTransition.ts` for local state, `viewTransition: true` on
+   * the navigation that switches views). Each row is its own transition
+   * element, named by the element rather than by hand so no id has to be
+   * threaded through TanStack's cells: a row that survives the change
+   * slides to its new place, one that leaves fades out, one that arrives
+   * fades in from below, and the card and its count line morph in height
+   * around them. Without this the table repainted in one frame, and twenty
+   * rows becoming four read as a glitch rather than as a narrowing.
+   *
+   * A browser without `match-element` simply cross-fades the card; one
+   * without View Transitions at all repaints as before.
+   */
+  .regs-table {
+    view-transition-name: regs-table;
+  }
+  .regs-table-count {
+    view-transition-name: regs-table-count;
+  }
+  .regs-row {
+    view-transition-name: match-element;
+    view-transition-class: regs-row;
+    transition: background-color 0.15s;
+  }
+  .regs-row:hover {
+    background: var(--color-wash);
   }
 
   /*

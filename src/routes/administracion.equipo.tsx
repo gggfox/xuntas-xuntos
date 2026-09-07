@@ -54,7 +54,9 @@ function StaffPage() {
   }
 
   return (
-    <>
+    // Four columns are comfortable at BRAND.md's 1240 and sparse across the
+    // admin frame's full width, so this page caps itself. See `AdminShell`.
+    <div className="max-w-[1240px]">
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <Segmented
           name="equipo"
@@ -104,6 +106,6 @@ function StaffPage() {
           onClose={() => setInviting(false)}
         />
       )}
-    </>
+    </div>
   )
 }

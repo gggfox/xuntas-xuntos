@@ -3,7 +3,7 @@
 A record of the architecture and product decisions, with the why. The code
 points here when something looks odd at first glance but is deliberate.
 
-Last reviewed: September 3, 2026.
+Last reviewed: September 7, 2026.
 
 ---
 
@@ -159,6 +159,33 @@ parent.
 `RESEND_TEST_MODE` must be switched to `false` to send to real addresses.
 
 ---
+
+## The administration frame runs the width of the window
+
+The admin pages sat in the 900px reading column, and on a laptop the
+nine-column registrations table was crushed between two empty margins with
+names wrapping onto two lines. Four frames were tried side by side on the
+real pages, with real data (branch `proto/admin-width`, commit `e73c8da` —
+the prototype is the primary source): the column as it was, the same column
+at BRAND.md's 1240px, a sticky side rail with the sub-nav, and a compact
+title strip with the table's own controls in a panel beside it. The strip
+won: it spends the least height on chrome and gives the table the whole
+width, which is the only thing on these pages that needs it. Concretely:
+
+- `AdminShell` is one strip — eyebrow and title at 22px, the sub-nav, the
+  period — over a page fluid to 1800px (`.col-1800`).
+- On registros the views, the five filters and the batch button stand in a
+  sticky 260px panel to the left of the table from `lg`. Below that the
+  page stacks in the same order; below `md` the filters stay behind their
+  button, as before.
+- A record, the team and the periods cap themselves at 1240px inside the
+  frame: they are reading and short tables, not the wide one.
+- Every change to the table runs inside a View Transition — rows slide,
+  leave and arrive instead of the table repainting in one frame. The
+  filters are remembered per view so a view switch resets them in the same
+  commit the URL changes in, which is what lets one transition cover both.
+
+BRAND.md's width rule was amended to say so.
 
 ## Data
 

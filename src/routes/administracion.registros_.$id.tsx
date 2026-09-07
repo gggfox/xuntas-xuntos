@@ -27,7 +27,9 @@ function DetailPage() {
 
   const r = detail.registration
   return (
-    <>
+    // A record is reading, not a table: it keeps to BRAND.md's 1240 inside
+    // the admin frame rather than stretching across it.
+    <div className="max-w-[1240px]">
       <Link to="/administracion/registros" className="mt-6 inline-block text-[13px] text-soft no-underline hover:text-ink">
         ← {m.detail_back()}
       </Link>
@@ -48,6 +50,6 @@ function DetailPage() {
           }}
         />
       </div>
-    </>
+    </div>
   )
 }

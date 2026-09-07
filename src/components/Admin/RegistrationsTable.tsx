@@ -118,7 +118,10 @@ export default function RegistrationsTable({ rows, view, canSelect, selected, on
   const body = table.getRowModel().rows
 
   return (
-    <div className="card mt-4 overflow-x-auto">
+    // `regs-table`, `regs-row` and `regs-table-count` are the View
+    // Transition names that let the table morph between two sets of rows
+    // instead of snapping; see styles.css.
+    <div className="card regs-table mt-4 overflow-x-auto">
       <table className="w-full border-collapse text-[13.5px]">
         <thead>
           {table.getHeaderGroups().map((hg) => (
@@ -151,7 +154,7 @@ export default function RegistrationsTable({ rows, view, canSelect, selected, on
             </tr>
           )}
           {body.map((row) => (
-            <tr key={row.id} className="border-b border-line last:border-0">
+            <tr key={row.id} className="regs-row border-b border-line last:border-0">
               {row.getAllCells().map((cell) => (
                 <td key={cell.id} className="px-3 py-2 align-middle">
                   <table.FlexRender cell={cell} />
@@ -161,7 +164,9 @@ export default function RegistrationsTable({ rows, view, canSelect, selected, on
           ))}
         </tbody>
       </table>
-      <p className="px-3 py-2 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft">{m.regs_count({ n: body.length })}</p>
+      <p className="regs-table-count px-3 py-2 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft">
+        {m.regs_count({ n: body.length })}
+      </p>
     </div>
   )
 }

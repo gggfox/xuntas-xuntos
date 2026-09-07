@@ -108,7 +108,11 @@ prototype XUNTAS already approved, and together they have a rhythm that gets
 lost when you normalize them.
 
 **The max width depends on the task.** 900 px for forms and reading, 1240 px
-for tables and panels.
+for tables and panels. The administration frame is the one exception: its
+title strip and the registrations table run fluid to 1800 px, because nine
+columns need the width more than they need a centred column, and the pages
+beside that table — a record, the team, the periods — keep to 1240 px inside
+the same frame rather than stretching to match it.
 
 ---
 
