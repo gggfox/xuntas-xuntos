@@ -16,6 +16,7 @@ import { Route as BasesRouteImport } from './routes/bases'
 import { Route as BitacoraRouteImport } from './routes/bitacora'
 import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
+import { Route as NotificacionesRouteImport } from './routes/notificaciones'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
 import { Route as AdministracionAtletasRouteImport } from './routes/administracion.atletas'
@@ -65,6 +66,11 @@ const EmpezarRoute = EmpezarRouteImport.update({
 const MiRegistroRoute = MiRegistroRouteImport.update({
   id: '/mi-registro',
   path: '/mi-registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacionesRoute = NotificacionesRouteImport.update({
+  id: '/notificaciones',
+  path: '/notificaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/bitacora': typeof BitacoraRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/notificaciones': typeof NotificacionesRoute
   '/perfil': typeof PerfilRoute
   '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/bitacora': typeof BitacoraRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/notificaciones': typeof NotificacionesRoute
   '/perfil': typeof PerfilRoute
   '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/bitacora': typeof BitacoraRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
+  '/notificaciones': typeof NotificacionesRoute
   '/perfil': typeof PerfilRoute
   '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/bitacora'
     | '/empezar'
     | '/mi-registro'
+    | '/notificaciones'
     | '/perfil'
     | '/administracion/atletas'
     | '/administracion/convocatorias'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/bitacora'
     | '/empezar'
     | '/mi-registro'
+    | '/notificaciones'
     | '/perfil'
     | '/administracion/atletas'
     | '/administracion/convocatorias'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/bitacora'
     | '/empezar'
     | '/mi-registro'
+    | '/notificaciones'
     | '/perfil'
     | '/administracion/atletas'
     | '/administracion/convocatorias'
@@ -299,6 +311,7 @@ export interface RootRouteChildren {
   BitacoraRoute: typeof BitacoraRoute
   EmpezarRoute: typeof EmpezarRoute
   MiRegistroRoute: typeof MiRegistroRoute
+  NotificacionesRoute: typeof NotificacionesRoute
   PerfilRoute: typeof PerfilRoute
   AutorizarTokenRoute: typeof AutorizarTokenRoute
   CrearCuentaSplatRoute: typeof CrearCuentaSplatRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/mi-registro'
       fullPath: '/mi-registro'
       preLoaderRoute: typeof MiRegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notificaciones': {
+      id: '/notificaciones'
+      path: '/notificaciones'
+      fullPath: '/notificaciones'
+      preLoaderRoute: typeof NotificacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -511,6 +531,7 @@ const rootRouteChildren: RootRouteChildren = {
   BitacoraRoute: BitacoraRoute,
   EmpezarRoute: EmpezarRoute,
   MiRegistroRoute: MiRegistroRoute,
+  NotificacionesRoute: NotificacionesRoute,
   PerfilRoute: PerfilRoute,
   AutorizarTokenRoute: AutorizarTokenRoute,
   CrearCuentaSplatRoute: CrearCuentaSplatRoute,

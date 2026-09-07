@@ -3,8 +3,10 @@ import { Link } from '@tanstack/react-router'
 import * as m from '../../paraglide/messages.js'
 import { useMe } from '../../hooks/useMe'
 import { isStaff } from '../../lib/permissions'
+import { canReceiveNotifications } from '../../../convex/lib/notificationRules'
 import AccountMenu from './AccountMenu'
 import NavMenu from './NavMenu'
+import NotificationsMenu from './NotificationsMenu'
 import ThemeToggle from './ThemeToggle'
 
 /**
@@ -69,9 +71,14 @@ export default function AccountNav() {
     </Link>
   )
 
+  // The bell, like the theme toggle, stays in the bar at every width: it is
+  // the one thing here that changes on its own while the reader is away.
+  const bell = !!me && canReceiveNotifications(me.roles, me.member)
+
   return (
     <nav className="flex items-center gap-3 text-[13px] md:gap-4">
       <ThemeToggle />
+      {bell && <NotificationsMenu />}
       <span className="hidden items-center gap-4 md:flex">
         <Show when="signed-in">
           {adminLink}

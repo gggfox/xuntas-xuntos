@@ -199,9 +199,24 @@ function ThemeSystem(props: IconProps) {
   )
 }
 
+/** The bell in the bar. Outline only; the count beside it is what says "new". */
+function Bell(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M10 2.6a4.6 4.6 0 0 0-4.6 4.6v2.9c0 .7-.2 1.3-.6 1.8L3.6 13.6a.6.6 0 0 0 .5 1h11.8a.6.6 0 0 0 .5-1l-1.2-1.7a3 3 0 0 1-.6-1.8V7.2A4.6 4.6 0 0 0 10 2.6z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M8.2 16.4a1.9 1.9 0 0 0 3.6 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 const Icons = {
   Chevron, Calendar, Check, Document, Award, Shield, BrandMark,
-  ThemeLight, ThemeDark, ThemeSystem,
+  ThemeLight, ThemeDark, ThemeSystem, Bell,
 }
 
 export default Icons
