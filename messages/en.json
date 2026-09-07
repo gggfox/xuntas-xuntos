@@ -10,6 +10,8 @@
   "nav_sign_in": "Sign in",
   "nav_menu": "Menu",
   "nav_admin": "Administration",
+  "nav_account": "Account",
+  "nav_account_menu": "Account menu",
   "theme_label": "Theme",
   "theme_system": "system",
   "theme_light": "light",
