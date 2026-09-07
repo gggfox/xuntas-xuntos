@@ -42,9 +42,48 @@ the calendar has no room for.
 holds `athlete | admin | master_admin | coach | finance | health`;
 `convex/lib/permissions.ts` maps roles to permissions and every guard reads a
 permission. Clerk's `publicMetadata.role` is no longer read. `master_admin` is
-a superset. `coach`, `finance` and `health` exist so they can be invited now;
-their screens come later. Design: `docs/superpowers/specs/2026-09-03-admin-roles-cycles-review-design.md`.
+a superset. `coach` and `health` see the members assigned to them and
+comment on their journals; `admin` sees every member, assigns and removes;
+`finance` still has no screen. Design: `docs/superpowers/specs/2026-09-03-admin-roles-cycles-review-design.md`
+and `docs/superpowers/specs/2026-09-07-members-journal-assignments-notifications-design.md`.
 The legacy `role` column stays optional in the schema until `users:dropLegacyRole` has run everywhere; it leaves in a later PR.
+
+**Membership is a registration status, not a flag.** A member of the
+Programa de Desarrollo is a person with a registration that reads
+`selected`, in any cycle — last year's member is still one while this
+year's window is open. `registrations.by_status_user` answers both "is this
+person in" and "who is in". Nothing is denormalized onto `users`.
+
+**Removal is a decision with its own email.** `removed` follows `selected`
+and only `selected`; `admin` or `master_admin`, always with a note, ignoring
+the notice lock. It goes through `decide` like every decision and sends
+itself at once — nobody presses a button for it, and a batch never owns
+one. Reinstatement (`removed → selected`) sends nothing and clears the
+notice so no batch can find the row. Removal ends every active assignment;
+administration keeps the frozen journal, read-only.
+
+**Assignments are open-ended pairs, never deleted.** A coach or a health
+specialist is paired with members from their own row in the staff table;
+the whole list is saved at once. A row ends, it does not go, so a comment
+written under it keeps its context. Only a role whose access is "assigned
+athletes" and nothing wider can be assigned: a coach who is also an admin
+sees everyone.
+
+**The bitácora is dated by the athlete and read by the team, whole.** An
+entry is a tournament (with a score) or a training session, on the day it
+happened. No tags, no private flag: the prototype's "solo para mí" was
+dropped by decision. Edits are marked, never hidden; an entry with words
+under it cannot be deleted. Comments live under an entry or in the
+athlete's general stream, newest first everywhere; authors delete their
+own, nobody edits. Text search was designed for and dropped — Convex
+removed typo tolerance and a small per-athlete corpus wanted Levenshtein,
+not prefixes. The date range stays.
+
+**Notifications are in-app only, and read ones are pruned.** A staff comment
+tells the athlete; an athlete reply tells the staff already in that thread;
+a new entry tells the assigned staff; an assignment tells both sides;
+removal tells nobody in-app. Administration hears only where it spoke
+first. A daily cron forgets read rows after ninety days.
 
 **Staff are invited by the app, not from Clerk.** `staffInvites` binds an
 invitation to an email; the `user.created` webhook redeems it by matching the
@@ -179,9 +218,24 @@ resolved in O(1).
 turns 18 mid-process would stop "needing" the authorization that was already
 requested, and the consent trail would be lost.
 
-**Deletion really deletes.** `users.remove` erases the registration and the
-guardian trail; it does not set a flag. If someone exercises their right of
-cancellation under the LFPDPPP, their data goes away.
+**Deletion really deletes.** `users.remove` erases the registration, the
+guardian trail, the journal (entries, every comment under them, the stats
+row), the assignments on either side and the notifications addressed to
+the person; it does not set a flag. If someone exercises their right of
+cancellation under the LFPDPPP, their data goes away. Comments the person
+wrote on *someone else's* journal stay: they are part of that athlete's
+record, and resolve to an empty author.
+
+**`journalStats` is a denormalization, kept by the entry mutations.** The
+staff list wants "entries, last entry" per member; one row per athlete is
+one read per row instead of a scan. `commentCount` on an entry is the same
+idea, and what lets deletion refuse without a second query. Both are
+written inside the same mutation as the thing they count, so they cannot
+drift unless a mutation fails halfway — and Convex mutations do not.
+
+**A notification never cascades.** Deleting an entry or a comment leaves
+the rows that pointed at it; the target page tolerates a missing entry.
+The sentence still stands with a blank title.
 
 ---
 
@@ -229,7 +283,14 @@ and clubs are the person's own content, and no library translates those.
   refuses while its cycle's window is open, and that a decision email goes to
   the account's verified address rather than the one typed into the form.
   `convex-test` runs under the existing vitest setup and would close this.
-  Worth doing before the first batch send, not before the merge.
+  Worth doing before the first batch send, not before the merge. The
+  journal, assignment and notification mutations widen the same gap: their
+  rules (`athleteAccess`, `journalRules`, `assignmentRules`,
+  `notificationRules`) are tested, the functions that call them are not.
+- **`convex/_generated/api.d.ts` was last written by hand.** The members
+  branch had no deployment to run codegen against, so the module list was
+  extended in the generator's format. The next `npx convex dev` rewrites
+  it; a diff there is expected once and should be empty.
 - **`guardianState` in `convex/registrations.ts` is untested.** It decides
   whether a minor's registration reports its guardian as pending, which is
   what stops a selection without consent. It is a pure function and would be
