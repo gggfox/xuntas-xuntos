@@ -6,9 +6,13 @@ import { can, type Role } from './permissions'
  * which staff rows get the button at all.
  */
 
-/** Only someone whose access is "assigned athletes" can have athletes assigned. Administration already sees everyone. */
+/**
+ * Only someone whose access is "assigned athletes" — and nothing wider —
+ * can have athletes assigned. Administration already sees everyone, so a
+ * list for them would be a list that changes nothing.
+ */
 export function canBeAssigned(roles: readonly Role[]): boolean {
-  return can(roles, 'view_assigned_athletes')
+  return can(roles, 'view_assigned_athletes') && !can(roles, 'view_all_athletes')
 }
 
 /**

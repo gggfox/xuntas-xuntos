@@ -11,9 +11,10 @@ describe('canBeAssigned', () => {
     expect(canBeAssigned(['athlete'])).toBe(false)
   })
 
-  /** A master admin sees everyone already; the "assigned" list would only shadow that. */
-  it('is not a master admin either, unless they also hold an assignable role', () => {
-    expect(canBeAssigned(['master_admin'])).toBe(true)
+  /** Anyone who sees everyone already has no list to fill — a coach who is also an admin included. */
+  it('is nobody who already sees every member', () => {
+    expect(canBeAssigned(['master_admin'])).toBe(false)
+    expect(canBeAssigned(['coach', 'admin'])).toBe(false)
   })
 })
 
