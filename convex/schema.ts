@@ -367,4 +367,72 @@ export default defineSchema({
     .index('by_staff_active', ['staffUserId', 'endedAt'])
     .index('by_athlete_active', ['athleteUserId', 'endedAt'])
     .index('by_staff_athlete', ['staffUserId', 'athleteUserId']),
+
+  /**
+   * The bitácora. One entry per tournament or training session, dated by
+   * the athlete (the day it happened, not the day it was written). Every
+   * entry is visible to whoever may read the athlete — there is no private
+   * flag, by decision. `commentCount` is kept here so the feed can say
+   * "3 comentarios" without a second query per card, and so deletion can
+   * refuse without one either.
+   */
+  journalEntries: defineTable({
+    athleteUserId: v.id('users'),
+    kind: v.union(v.literal('tournament'), v.literal('training')),
+    title: v.string(),
+    /** ISO day. Sorts as a string, which is what the index relies on. */
+    date: v.string(),
+    body: v.string(),
+    score: v.optional(v.string()),
+    createdAt: v.number(),
+    editedAt: v.optional(v.number()),
+    commentCount: v.number(),
+  }).index('by_athlete_date', ['athleteUserId', 'date']),
+
+  /**
+   * Words under an entry, or — with no `entryId` — in the athlete's general
+   * stream. One table, one index: the general stream is the thread whose
+   * entry is `undefined`.
+   */
+  journalComments: defineTable({
+    athleteUserId: v.id('users'),
+    entryId: v.optional(v.id('journalEntries')),
+    authorId: v.id('users'),
+    body: v.string(),
+    createdAt: v.number(),
+  }).index('by_athlete_entry', ['athleteUserId', 'entryId']),
+
+  /** What the staff list shows per member, kept by the entry mutations so the list is one read per row. */
+  journalStats: defineTable({
+    athleteUserId: v.id('users'),
+    entryCount: v.number(),
+    lastEntryDate: v.optional(v.string()),
+  }).index('by_athlete', ['athleteUserId']),
+
+  /**
+   * In-app only. A row per recipient per event; `readAt` absent until
+   * opened. `by_read` serves the cron that prunes read rows — `undefined`
+   * sorts below every number, so a range from 0 skips the unread.
+   */
+  notifications: defineTable({
+    userId: v.id('users'),
+    kind: v.union(
+      v.literal('entry_comment'),
+      v.literal('entry_reply'),
+      v.literal('general_comment'),
+      v.literal('general_reply'),
+      v.literal('entry_created'),
+      v.literal('assignment_created'),
+      v.literal('assignment_ended'),
+    ),
+    actorId: v.id('users'),
+    athleteId: v.id('users'),
+    entryId: v.optional(v.id('journalEntries')),
+    commentId: v.optional(v.id('journalComments')),
+    createdAt: v.number(),
+    readAt: v.optional(v.number()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_unread', ['userId', 'readAt'])
+    .index('by_read', ['readAt']),
 })

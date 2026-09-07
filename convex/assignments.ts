@@ -5,6 +5,7 @@ import type { Doc, Id } from './_generated/dataModel'
 import { fail, currentUser, requirePermission } from './auth'
 import { canBeAssigned, diffAssignments } from './lib/assignmentRules'
 import { activeAssignmentsOf, membershipOf, requireAthleteAccess } from './members'
+import { notify } from './notifications'
 
 /**
  * Pairing staff with members. Administration (`manage_assignments`) writes
@@ -114,15 +115,27 @@ export const setForStaff = mutation({
 
     const now = Date.now()
     for (const id of add) {
+      const athleteUserId = id as Id<'users'>
       await ctx.db.insert('assignments', {
         staffUserId: args.staffUserId,
-        athleteUserId: id as Id<'users'>,
+        athleteUserId,
         assignedBy: actor._id,
         assignedAt: now,
       })
+      await notify(
+        ctx,
+        { type: 'assignment', ended: false, actorId: actor._id, staffId: args.staffUserId, athleteId: athleteUserId },
+        { athleteId: athleteUserId },
+      )
     }
     for (const a of active) {
-      if (end.includes(a.athleteUserId)) await ctx.db.patch(a._id, { endedAt: now })
+      if (!end.includes(a.athleteUserId)) continue
+      await ctx.db.patch(a._id, { endedAt: now })
+      await notify(
+        ctx,
+        { type: 'assignment', ended: true, actorId: actor._id, staffId: args.staffUserId, athleteId: a.athleteUserId },
+        { athleteId: a.athleteUserId },
+      )
     }
     return { added: add.length, ended: end.length }
   },
