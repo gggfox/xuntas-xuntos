@@ -21,7 +21,7 @@ Steps 1 and 2 are interactive and have to be run once. Without them
 ### 1. Convex
 
 ```bash
-npx convex dev
+pnpm convex dev
 ```
 
 Create the project **under a XUNTAS account**, not a personal one. It generates
@@ -34,7 +34,7 @@ schema.
 Then seed the call for applications, once per deployment:
 
 ```bash
-npx convex run cycles:seed
+pnpm convex run cycles:seed
 ```
 
 Without an active cycle every registration query fails with `no_active_cycle`.
@@ -80,23 +80,23 @@ The repo is already linked ([`.infisical.json`](.infisical.json)), so nothing
 else to configure. Two values are yours alone and stay in `.env.local`:
 
 ```
-CONVEX_DEPLOYMENT=   # written by `npx convex dev` in step 1
+CONVEX_DEPLOYMENT=   # written by `pnpm convex dev` in step 1
 VITE_CONVEX_URL=     # the URL it printed
 ```
 
 Without Infisical, copy [`.env.example`](.env.example) to `.env.local` and
-fill it in by hand; `npm run dev` works either way.
+fill it in by hand; `pnpm run dev` works either way.
 
 In Convex, which is where the backend runs:
 
 ```bash
-npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<slug>.clerk.accounts.dev
-npx convex env set CLERK_WEBHOOK_SECRET whsec_...
-npx convex env set RESEND_API_KEY re_...
-npx convex env set APP_URL http://localhost:3000
+pnpm convex env set CLERK_JWT_ISSUER_DOMAIN https://<slug>.clerk.accounts.dev
+pnpm convex env set CLERK_WEBHOOK_SECRET whsec_...
+pnpm convex env set RESEND_API_KEY re_...
+pnpm convex env set APP_URL http://localhost:3000
 ```
 
-> **`npx convex env set` writes to the DEVELOPMENT deployment.** Production is
+> **`pnpm convex env set` writes to the DEVELOPMENT deployment.** Production is
 > a separate deployment, with its own variables and its own database. To touch
 > production you have to add `--prod` to every command. See
 > [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
@@ -112,14 +112,14 @@ delivery-status webhook: point one at
 events, and save the secret:
 
 ```bash
-npx convex env set RESEND_WEBHOOK_SECRET whsec_...
+pnpm convex env set RESEND_WEBHOOK_SECRET whsec_...
 ```
 
 ### 5. Run
 
 ```bash
-npm install && npm run dev:secrets   # with Infisical
-npm install && npm run dev           # from .env.local only
+pnpm install && pnpm run dev:secrets   # with Infisical
+pnpm install && pnpm run dev           # from .env.local only
 ```
 
 ---
@@ -130,8 +130,8 @@ Roles live in Convex (`users.roles`), not in Clerk. The first `master_admin`
 is granted from the CLI, once per deployment:
 
 ```bash
-npx convex run staff:grantRoles '{"email":"you@xuntas.org","roles":["master_admin"]}'
-npx convex run staff:grantRoles '{"email":"you@xuntas.org","roles":["master_admin"]}' --prod
+pnpm convex run staff:grantRoles '{"email":"you@xuntas.org","roles":["master_admin"]}'
+pnpm convex run staff:grantRoles '{"email":"you@xuntas.org","roles":["master_admin"]}' --prod
 ```
 
 The account must already exist (sign up first). From then on, staff are
@@ -151,11 +151,11 @@ database and its own environment variables:
 
 | Deployment | Convex name | Used by |
 |---|---|---|
-| dev | one per developer (`CONVEX_DEPLOYMENT` in `.env.local`) | `npm run dev` |
+| dev | one per developer (`CONVEX_DEPLOYMENT` in `.env.local`) | `pnpm run dev` |
 | `staging` | `joyous-goshawk-857` · `https://joyous-goshawk-857.convex.cloud` | the Dokploy `staging` environment, deployed by `ci-main.yml` |
 | prod | the project's default production deployment | `app.xuntas.org`, deployed by `release.yml` |
 
-`npx convex env ...` targets dev by default; add `--prod` for production or
+`pnpm convex env ...` targets dev by default; add `--prod` for production or
 `--deployment staging` for staging.
 
 **Everything that starts with `VITE_` is embedded at build time.** Vite bakes
@@ -191,7 +191,7 @@ So Dokploy holds exactly one secret per environment, twice: the identity,
 once for the build and once for the container. Nothing else.
 
 And `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`,
-`APP_URL` live in Convex (`npx convex env set`) — they don't go through
+`APP_URL` live in Convex (`pnpm convex env set`) — they don't go through
 Docker at all.
 
 Trade-off to know about: Infisical runs on the same VPS. If its container
@@ -209,7 +209,7 @@ To reproduce the build by hand:
 
 ```bash
 # 1. Backend
-npx convex deploy            # or: npm run deploy:convex
+pnpm convex deploy            # or: pnpm run deploy:convex
 
 # 2. Image — the build fetches its VITE_* values from Infisical. Export the
 #    identity's credentials in your shell first; they are passed as BuildKit
@@ -274,7 +274,7 @@ A merge to `production` triggers **two** independent deployments:
 | What | Who triggers it | What it does |
 |---|---|---|
 | Container (frontend) | Dokploy's GitHub App webhook | clones `production` on the VPS, builds the Dockerfile with the environment's build args and swaps the container |
-| Convex backend | `.github/workflows/convex-production.yml` | `npx convex deploy` — functions, schema and crons |
+| Convex backend | `.github/workflows/convex-production.yml` | `pnpm convex deploy` — functions, schema and crons |
 
 Convex goes in GitHub Actions and not inside the Dockerfile on purpose: it is
 a separate backend, and putting it in the build would run it on every rebuild
@@ -289,15 +289,15 @@ To rotate a deploy key, generate it from the Convex dashboard with the
 `deployment:deploy` permission, or with:
 
 ```bash
-npx convex deployment token create ci-token --deployment prod      # → Infisical prod    CONVEX_DEPLOY_KEY
-npx convex deployment token create ci-token --deployment staging   # → Infisical staging CONVEX_DEPLOY_KEY
+pnpm convex deployment token create ci-token --deployment prod      # → Infisical prod    CONVEX_DEPLOY_KEY
+pnpm convex deployment token create ci-token --deployment staging   # → Infisical staging CONVEX_DEPLOY_KEY
 ```
 
 Store the output in Infisical, not in GitHub.
 
 The variables that live in Convex (`CLERK_JWT_ISSUER_DOMAIN`,
 `CLERK_WEBHOOK_SECRET`, `RESEND_API_KEY`, `APP_URL`) are **not** deployed by
-this workflow: they are set once with `npx convex env set` and persist in the
+this workflow: they are set once with `pnpm convex env set` and persist in the
 deployment.
 
 ### How the container starts
@@ -314,7 +314,7 @@ middleware and falls back to SSR for everything else.
 
 The SSR bundle is **not** self-contained — it imports `react`, `@tanstack`,
 `@clerk`, `convex` and a few others by name. That is why the image ships
-`node_modules` pruned with `npm prune --omit=dev`, and `package.json` (without
+`node_modules` pruned with `pnpm prune --prod`, and `package.json` (without
 `"type": "module"` Node would read `dist/server/server.js` as CommonJS).
 
 The container ships a `HEALTHCHECK` on `/es/`, so Dokploy restarts it on its

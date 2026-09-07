@@ -38,15 +38,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        # No version here: it reads `packageManager` from package.json.
       - uses: actions/setup-node@v4
         with:
           # Same major as the image runtime (node:22-alpine).
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      # `npm ci` and not `npm install`: the lockfile rules, same as in the
+      # `--frozen-lockfile` and not a bare install: the lockfile rules, same as in the
       # Dockerfile.
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Fetch the Convex production deploy key from Infisical
         uses: Infisical/secrets-action@v1.0.17
@@ -68,4 +70,4 @@ jobs:
       # `convex deploy` typechecks convex/ before uploading anything, so a
       # type error fails here and not halfway into production.
       - name: Deploy to Convex production
-        run: npm run deploy:convex
+        run: pnpm run deploy:convex

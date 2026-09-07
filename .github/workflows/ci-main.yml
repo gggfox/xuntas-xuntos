@@ -50,12 +50,14 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        # No version here: it reads `packageManager` from package.json.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       # The deploy key lives in Infisical, at the root of the `staging`
       # environment, under the exact name the Convex CLI reads. The action
@@ -84,7 +86,7 @@ jobs:
       # key is scoped to the staging deployment (joyous-goshawk-857), so
       # this step cannot touch production by mistake.
       - name: Deploy to Convex staging
-        run: npm run deploy:convex
+        run: pnpm run deploy:convex
 
       # Fast-forward, without --force. If `staging` diverged from `main` this
       # fails, and fails for the right reason: it means someone committed

@@ -35,12 +35,14 @@ jobs:
           ref: staging
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        # No version here: it reads `packageManager` from package.json.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Fetch the Convex production deploy key from Infisical
         uses: Infisical/secrets-action@v1.0.17
@@ -60,7 +62,7 @@ jobs:
           fi
 
       - name: Deploy to Convex production
-        run: npm run deploy:convex
+        run: pnpm run deploy:convex
 
       # The push to `production` is what makes Dokploy build and swap the
       # production container.

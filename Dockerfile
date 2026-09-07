@@ -6,6 +6,10 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+# pnpm, pinned to the `packageManager` field in package.json so the image and
+# the developer machine resolve the lockfile with the same version.
+RUN corepack enable && corepack prepare pnpm@10.25.0 --activate
+
 # Infisical CLI, pinned by version and verified against the release's
 # checksum file. The build fetches its own VITE_* values from Infisical (see
 # docs/superpowers/specs/2026-09-06-infisical-secrets-design.md): nothing
@@ -29,10 +33,11 @@ RUN set -eu; \
 
 # Dependencies are copied before the code to take advantage of the layer
 # cache: changing a .tsx does not reinstall node_modules.
-COPY package.json package-lock.json ./
-# `npm ci` follows the lockfile to the letter. Never use `npm install` here:
+COPY package.json pnpm-lock.yaml ./
+# `pnpm install --frozen-lockfile` follows the lockfile to the letter. Never use a
+# bare `pnpm install` here:
 # the production versions have to be the same ones you tested.
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
@@ -68,13 +73,13 @@ RUN --mount=type=secret,id=INFISICAL_CLIENT_ID \
         --plain --silent)"; \
     export INFISICAL_TOKEN; \
     project_id="$(node -p "require('./.infisical.json').workspaceId")"; \
-    infisical run --env "${INFISICAL_ENV}" --projectId "${project_id}" --silent -- npm run build
+    infisical run --env "${INFISICAL_ENV}" --projectId "${project_id}" --silent -- pnpm run build
 
 # The SSR bundle leaves out react, @tanstack, @clerk, convex and a few more:
 # dist/server/server.js imports them by name at runtime. Pruning here and
-# copying the already-resolved tree is cheaper than a second `npm ci` in the
+# copying the already-resolved tree is cheaper than a second `pnpm install` in the
 # runtime stage, and never touches the network again.
-RUN npm prune --omit=dev
+RUN pnpm prune --prod
 
 # ---------------------------------------------------------------------------
 # Runtime
