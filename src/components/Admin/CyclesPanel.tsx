@@ -5,6 +5,7 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import * as m from '../../paraglide/messages.js'
 import CycleForm from './CycleForm'
 import Pill from '../Pill'
+import { Bone, Loading } from '../Skeleton'
 import { useDateFormats } from '../DateField/format'
 import { describeConvexError } from '../../lib/registrationErrors'
 
@@ -25,8 +26,6 @@ export default function CyclesPanel() {
   const [editing, setEditing] = useState<Id<'cycles'> | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const fmt = useDateFormats()
-
-  if (cycles === undefined) return <p className="mt-8 text-soft">{m.common_loading()}</p>
 
   return (
     <>
@@ -51,54 +50,68 @@ export default function CyclesPanel() {
         />
       )}
 
-      <ul className="mt-4 grid gap-3">
-        {cycles.map((c) => (
-          <li key={c._id} className="card px-[21px] py-[15px]">
-            <div className="flex flex-wrap items-center gap-3">
-              <b className="font-disp text-[15px]">{c.title}</b>
-              {c.isActive && <Pill tone="ok">{m.cycles_active()}</Pill>}
-              <span className="font-mono text-[11px] text-soft">
-                {c.opensOn} → {c.closesOn} · {m.cycles_review()}: {c.reviewOn}
-              </span>
-              <span className="ml-auto flex gap-2">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(editing === c._id ? null : c._id)}>
-                  {m.cycles_edit()}
-                </button>
-                {!c.isActive && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={async () => {
-                      try {
-                        await setActive({ cycle: c._id })
-                        setNotice({ text: m.cycles_activated(), tone: 'ok' })
-                      } catch (err) {
-                        setNotice({ text: describeConvexError(err), tone: 'bad' })
-                      }
-                    }}
-                  >
-                    {m.cycles_activate()}
+      {cycles === undefined ? (
+        <Loading className="mt-4">
+          <ul className="grid list-none gap-3 p-0" aria-hidden="true">
+            {Array.from({ length: 3 }, (_, i) => (
+              <li key={i} className="card flex items-center gap-3 px-[21px] py-[15px]">
+                <Bone className="h-[15px] w-[180px]" />
+                <Bone className="h-[9px] w-[260px]" />
+                <Bone className="ml-auto h-[26px] w-[60px] rounded-[7px]" />
+              </li>
+            ))}
+          </ul>
+        </Loading>
+      ) : (
+        <ul className="mt-4 grid gap-3">
+          {cycles.map((c) => (
+            <li key={c._id} className="card px-[21px] py-[15px]">
+              <div className="flex flex-wrap items-center gap-3">
+                <b className="font-disp text-[15px]">{c.title}</b>
+                {c.isActive && <Pill tone="ok">{m.cycles_active()}</Pill>}
+                <span className="font-mono text-[11px] text-soft">
+                  {c.opensOn} → {c.closesOn} · {m.cycles_review()}: {c.reviewOn}
+                </span>
+                <span className="ml-auto flex gap-2">
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(editing === c._id ? null : c._id)}>
+                    {m.cycles_edit()}
                   </button>
-                )}
-              </span>
-            </div>
-            {editing === c._id && (
-              <>
-                <CycleForm
-                  initial={c}
-                  submitLabel={m.cycles_save()}
-                  onSubmit={async (input) => {
-                    await update({ id: c._id, ...input })
-                    setNotice({ text: m.cycles_saved(), tone: 'ok' })
-                  }}
-                  onDone={() => setEditing(null)}
-                />
-                <History cycle={c._id} format={(ms) => fmt.full.format(new Date(ms))} />
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+                  {!c.isActive && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={async () => {
+                        try {
+                          await setActive({ cycle: c._id })
+                          setNotice({ text: m.cycles_activated(), tone: 'ok' })
+                        } catch (err) {
+                          setNotice({ text: describeConvexError(err), tone: 'bad' })
+                        }
+                      }}
+                    >
+                      {m.cycles_activate()}
+                    </button>
+                  )}
+                </span>
+              </div>
+              {editing === c._id && (
+                <>
+                  <CycleForm
+                    initial={c}
+                    submitLabel={m.cycles_save()}
+                    onSubmit={async (input) => {
+                      await update({ id: c._id, ...input })
+                      setNotice({ text: m.cycles_saved(), tone: 'ok' })
+                    }}
+                    onDone={() => setEditing(null)}
+                  />
+                  <History cycle={c._id} format={(ms) => fmt.full.format(new Date(ms))} />
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   )
 }

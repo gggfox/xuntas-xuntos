@@ -187,6 +187,40 @@ width, which is the only thing on these pages that needs it. Concretely:
 
 BRAND.md's width rule was amended to say so.
 
+## Tables fill the window, and a wait has a shape
+
+Two things the frame above left undone.
+
+**Height.** The registrations table, the team's table and a record sat in
+cards that grew with their rows, so a long queue pushed the count line and
+the footer off the bottom and a reviewer scrolled the page to reach either.
+From `lg` each of those cards now takes what the window has under the admin
+strip, holds its column headings at the top and scrolls its rows inside;
+the count line is pinned to the card's foot, the decision panel beside a
+record keeps its own height. Below `lg` nothing changes — a scroll inside a
+scroll is what a tablet does not have room for. The height is measured
+(`useFillHeight`, one `--tall-h` per card) rather than laid out, because
+nothing above the card has a fixed height and a flex chain from `<body>`
+cannot fill it either: the body has a *minimum* height, not a height, so a
+tall table grew the page instead of scrolling inside it. The frame's bottom
+padding drops to 24px from `lg` so the card ends where the footer begins.
+
+**Waiting.** Every wait on Convex printed "Cargando…" and nothing else, and
+the two-column registrations layout appeared only once the rows had. Now a
+wait draws the shape of what is coming: the table's own card at the
+window's height with twelve rows of bars in each column's shape (a card
+list below `md`, as the real rows are), a record's sections beside a
+decision panel, the reading column's eyebrow-title-paragraph on the public
+pages. Twelve rows, fixed, rather than a measured count: it fills a laptop
+and the card clips the rest. The controls beside the registrations table
+are live during the wait, because nothing in them depends on the rows.
+The sentence survives as a visually hidden `role="status"`, so a screen
+reader hears what it heard before; busy buttons keep their text, and the
+one wait that is a message — an account still syncing — stays a message.
+The bars pulse; the global reduced-motion rule stops them.
+
+BRAND.md was amended for both.
+
 ## Data
 
 **Nested arrays** (`results`, `rankings`, `calendar`): they are small, always

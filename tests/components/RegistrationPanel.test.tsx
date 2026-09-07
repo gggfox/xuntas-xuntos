@@ -72,7 +72,7 @@ describe('RegistrationPanel null states', () => {
     queryResult = null
     statusResult = null
     render(<RegistrationPanel />)
-    expect(screen.getByText(m.common_loading())).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(m.common_loading())
     expect(screen.queryByText(m.session_title())).not.toBeInTheDocument()
   })
 
@@ -113,7 +113,7 @@ describe('cycle not yet loaded', () => {
     queryResult = { registration: null, editable: true, closesAt: 0 }
     cycleResult = undefined
     render(<RegistrationPanel />)
-    expect(screen.getByText(m.common_loading())).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(m.common_loading())
     expect(screen.queryByText(m.reg_title())).not.toBeInTheDocument()
   })
 })

@@ -5,6 +5,7 @@ import type { Id } from '../../convex/_generated/dataModel'
 import * as m from '../paraglide/messages.js'
 import DecisionPanel from '../components/Admin/DecisionPanel'
 import NoTools from '../components/Admin/NoTools'
+import RecordSkeleton from '../components/Admin/RecordSkeleton'
 import RegistrationDetail from '../components/Admin/RegistrationDetail'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
@@ -23,16 +24,27 @@ function DetailPage() {
 
   if (!me) return null
   if (!can(me.roles, 'review_registrations')) return <NoTools />
-  if (detail === undefined) return <p className="mt-8 text-soft">{m.common_loading()}</p>
+  // A record is reading, not a table: it keeps to BRAND.md's 1240 inside
+  // the admin frame rather than stretching across it.
+  const back = (
+    <Link to="/administracion/registros" className="mt-6 inline-block text-[13px] text-soft no-underline hover:text-ink">
+      ← {m.detail_back()}
+    </Link>
+  )
+
+  if (detail === undefined) {
+    return (
+      <div className="max-w-[1240px]">
+        {back}
+        <RecordSkeleton />
+      </div>
+    )
+  }
 
   const r = detail.registration
   return (
-    // A record is reading, not a table: it keeps to BRAND.md's 1240 inside
-    // the admin frame rather than stretching across it.
     <div className="max-w-[1240px]">
-      <Link to="/administracion/registros" className="mt-6 inline-block text-[13px] text-soft no-underline hover:text-ink">
-        ← {m.detail_back()}
-      </Link>
+      {back}
       <h2 className="h-display mt-3 text-[clamp(22px,3.6vw,30px)]">{r.personal.name || detail.account.email}</h2>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
         <RegistrationDetail detail={detail} />

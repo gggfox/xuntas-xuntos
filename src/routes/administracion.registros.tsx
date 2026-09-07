@@ -10,6 +10,7 @@ import NoTools from '../components/Admin/NoTools'
 import RegistrationFilters from '../components/Admin/RegistrationFilters'
 import RegistrationsTable from '../components/Admin/RegistrationsTable'
 import RegistrationCards from '../components/Admin/RegistrationCards'
+import TableSkeleton, { CardsSkeleton } from '../components/Admin/TableSkeleton'
 import Segmented, { segmentId } from '../components/Segmented'
 import { useActiveCycle } from '../hooks/useActiveCycle'
 import { useAdminCycle } from '../hooks/useAdminCycle'
@@ -81,9 +82,13 @@ function RegistrationsPage() {
 
   if (!me) return null
   if (!can(me.roles, 'review_registrations')) return <NoTools />
-  if (rows === undefined || !cycle) return <p className="mt-8 text-soft">{m.common_loading()}</p>
 
   const canBatch = can(me.roles, 'send_batch')
+  // Nothing in the panel beside the table waits on the rows — the views,
+  // the filters and the batch button are all drawn from state the page
+  // already holds — so while Convex answers only the table's region is a
+  // skeleton, in the table's own shape, and the controls are live.
+  const loading = rows === undefined || !cycle
   // The batch's own cycle gates it, not whichever cycle happens to be active
   // right now — a reviewer looking at a past cycle must not be told its
   // window is open just because this year's is. But a safety check must
@@ -147,35 +152,52 @@ function RegistrationsPage() {
           {/* Two renderings of the same rows, each hidden at the other's width:
               nine columns do not survive a phone, and a stack of cards wastes a
               laptop. See `RegistrationCards`. */}
-          <RegistrationCards
-            rows={shown}
-            view={view}
-            canSelect={canBatch}
-            selected={selected}
-            onSelectedChange={setSelected}
-            onOpen={open}
-          />
+          {loading ? (
+            <>
+              <CardsSkeleton />
+              <div className="hidden md:block">
+                <TableSkeleton
+                  columns={
+                    canBatch && VIEWS[view].selectable
+                      ? ['check', 'text', 'text', 'chip', 'mono', 'chip', 'chip', 'date', 'button']
+                      : ['text', 'text', 'chip', 'mono', 'chip', 'chip', 'date', 'button']
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <RegistrationCards
+                rows={shown}
+                view={view}
+                canSelect={canBatch}
+                selected={selected}
+                onSelectedChange={setSelected}
+                onOpen={open}
+              />
 
-          <div className="hidden md:block">
-            <RegistrationsTable
-              // v9's table instance is built once, on mount, from `initialState` —
-              // it does not re-seed sorting from a later `initialState` prop. Each
-              // view has its own default sort (see `VIEWS`), so the key forces a
-              // fresh instance when the tab changes instead of carrying the old
-              // view's sort into the new one.
-              key={view}
-              rows={shown}
-              view={view}
-              canSelect={canBatch}
-              selected={selected}
-              onSelectedChange={setSelected}
-              onOpen={open}
-            />
-          </div>
+              <div className="hidden md:block">
+                <RegistrationsTable
+                  // v9's table instance is built once, on mount, from `initialState` —
+                  // it does not re-seed sorting from a later `initialState` prop. Each
+                  // view has its own default sort (see `VIEWS`), so the key forces a
+                  // fresh instance when the tab changes instead of carrying the old
+                  // view's sort into the new one.
+                  key={view}
+                  rows={shown}
+                  view={view}
+                  canSelect={canBatch}
+                  selected={selected}
+                  onSelectedChange={setSelected}
+                  onOpen={open}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {dialog && (
+      {dialog && cycle && (
         <BatchSendDialog
           count={selected.size}
           windowOpen={windowOpen}

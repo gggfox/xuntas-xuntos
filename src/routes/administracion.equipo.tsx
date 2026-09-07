@@ -6,6 +6,7 @@ import * as m from '../paraglide/messages.js'
 import InviteDialog from '../components/Admin/InviteDialog'
 import NoTools from '../components/Admin/NoTools'
 import StaffTable, { type StaffView } from '../components/Admin/StaffTable'
+import TableSkeleton from '../components/Admin/TableSkeleton'
 import Segmented, { segmentId } from '../components/Segmented'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
@@ -39,7 +40,6 @@ function StaffPage() {
 
   if (!me) return null
   if (!can(me.roles, 'view_staff')) return <NoTools />
-  if (list === undefined) return <p className="mt-8 text-soft">{m.common_loading()}</p>
 
   const canManage = can(me.roles, 'manage_users')
 
@@ -80,16 +80,23 @@ function StaffPage() {
       {error && <p className="mt-3 text-[12.5px] text-bad">{error}</p>}
 
       <div id={PANEL_ID} role="tabpanel" aria-labelledby={segmentId('equipo', view)}>
-        <StaffTable
-          view={view}
-          staff={list.staff}
-          invites={list.invites}
-          canManage={canManage}
-          meId={list.staff.find((s) => s.email === me.email)?._id}
-          onSetRoles={(userId, roles) => guard(() => setRoles({ userId, roles }))}
-          onResend={(inviteId) => guard(() => resend({ inviteId }))}
-          onRevoke={(inviteId) => guard(() => revoke({ inviteId }))}
-        />
+        {list === undefined ? (
+          <TableSkeleton
+            className="mt-3"
+            columns={view === 'people' ? ['text', 'text', 'chip', 'button'] : ['text', 'chip', 'chip', 'text', 'date', 'button']}
+          />
+        ) : (
+          <StaffTable
+            view={view}
+            staff={list.staff}
+            invites={list.invites}
+            canManage={canManage}
+            meId={list.staff.find((s) => s.email === me.email)?._id}
+            onSetRoles={(userId, roles) => guard(() => setRoles({ userId, roles }))}
+            onResend={(inviteId) => guard(() => resend({ inviteId }))}
+            onRevoke={(inviteId) => guard(() => revoke({ inviteId }))}
+          />
+        )}
       </div>
 
       {inviting && (

@@ -249,6 +249,11 @@ body {
     opacity: 0;
   }
 }
+@keyframes bone-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
 
 @layer components {
   /*
@@ -617,6 +622,20 @@ body {
        collapsed border does not travel with a sticky cell. */
     box-shadow: inset 0 -1px 0 var(--color-line);
   }
+  /*
+   * A bar where content is about to be; see `Skeleton.tsx`. The wash, not
+   * the line: a placeholder is a surface, and the hairline tokens are for
+   * edges. The pulse is switched off wholesale by the reduced-motion rule in
+   * `@layer base`, like every other animation.
+   */
+  .bone {
+    display: block;
+    height: 12px;
+    border-radius: 4px;
+    background: var(--color-wash);
+    animation: bone-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   @media (width >= 64rem) {
     .tall-card {
       display: flex;

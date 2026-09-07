@@ -3,6 +3,7 @@ import { useParams } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
+import PageSkeleton from './PageSkeleton'
 import { localizeHref } from '../paraglide/runtime.js'
 import { clerkAppearance } from '../lib/clerkAppearance'
 import { roleName } from './Admin/RoleChecks'
@@ -26,7 +27,7 @@ export default function InviteScreen() {
   const { resolved } = useThemeContext()
 
   if (invite === undefined) {
-    return <main className="col col-560 py-16 text-soft">{m.common_loading()}</main>
+    return <PageSkeleton width="560" />
   }
 
   if (invite.status !== 'pending') {

@@ -9,7 +9,7 @@ import RegistrationForm from '../RegistrationForm'
 import AccountStatus from './AccountStatus'
 import BirthDateStep from './BirthDateStep'
 import GuardianNotice from './GuardianNotice'
-import LoadingFrame from './LoadingFrame'
+import PageSkeleton from '../PageSkeleton'
 import SessionFrame from './SessionFrame'
 import SyncingFrame from './SyncingFrame'
 import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../../lib/registrationSchema'
@@ -71,7 +71,7 @@ export default function RegistrationPanel({
   // fault the UI does not design for) — either way, nothing below this
   // point may render a sentence that needs a date it does not have yet.
   if (authLoading || status === undefined || mine === undefined || !cycle) {
-    return <LoadingFrame reviewOnText={cycle?.reviewOnText}>{m.common_loading()}</LoadingFrame>
+    return <PageSkeleton reviewOnText={cycle?.reviewOnText} />
   }
 
   /**

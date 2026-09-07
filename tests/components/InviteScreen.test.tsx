@@ -21,6 +21,12 @@ beforeEach(() => {
 })
 
 describe('InviteScreen', () => {
+  it('draws a skeleton, not a sentence, while the invitation loads', () => {
+    render(<InviteScreen />)
+    expect(screen.getByRole('status')).toHaveTextContent(m.common_loading())
+    expect(screen.queryByTestId('signup')).not.toBeInTheDocument()
+  })
+
   it('shows who invited and mounts the sign-up with the email prefilled', () => {
     inviteResult = { status: 'pending', email: 'luis@xuntas.org', roles: ['coach'], invitedByName: 'Gerardo' }
     render(<InviteScreen />)

@@ -112,7 +112,16 @@ for tables and panels. The administration frame is the one exception: its
 title strip and the registrations table run fluid to 1800 px, because nine
 columns need the width more than they need a centred column, and the pages
 beside that table — a record, the team, the periods — keep to 1240 px inside
-the same frame rather than stretching to match it.
+the same frame rather than stretching to match it. From `lg` the tables and
+the record fill the window's height and scroll inside their own card, with
+the column headings held at the top; below `lg` the page scrolls.
+
+**A wait has a shape, not a sentence.** While Convex answers, a screen shows
+the outline of what is coming — bars in the wash colour where the title, the
+rows, the fields will be, in the same frame and at the same height — never
+"Cargando…" alone. The sentence is still there for a screen reader, as a
+`role="status"`. The one exception is a wait that is a message ("your
+account is still syncing"): that is for the reader and stays as text.
 
 ---
 
