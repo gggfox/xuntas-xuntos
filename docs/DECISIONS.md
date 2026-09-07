@@ -11,7 +11,7 @@ Last reviewed: September 3, 2026.
 
 **The window lives in the `cycles` table, one row per call, exactly one
 active.** A `master_admin` edits opens/closes/review from
-`/administracion/convocatorias`; every change lands in `cycleChanges` with who
+`/administracion/periodos`; every change lands in `cycleChanges` with who
 and when. The 2026–2027 row was seeded from the old constants (September 4–18,
 review the 23rd). The arithmetic — Mexico City days to instants, UTC-6 all
 year — is `convex/lib/cycleRules.ts`, shared with the client. There is no

@@ -16,8 +16,8 @@ import { Route as BasesRouteImport } from './routes/bases'
 import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
 import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
-import { Route as AdministracionConvocatoriasRouteImport } from './routes/administracion.convocatorias'
 import { Route as AdministracionEquipoRouteImport } from './routes/administracion.equipo'
+import { Route as AdministracionPeriodosRouteImport } from './routes/administracion.periodos'
 import { Route as AdministracionRegistrosRouteImport } from './routes/administracion.registros'
 import { Route as AutorizarTokenRouteImport } from './routes/autorizar.$token'
 import { Route as CrearCuentaIndexRouteImport } from './routes/crear-cuenta.index'
@@ -63,15 +63,14 @@ const AdministracionIndexRoute = AdministracionIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdministracionRoute,
 } as any)
-const AdministracionConvocatoriasRoute =
-  AdministracionConvocatoriasRouteImport.update({
-    id: '/convocatorias',
-    path: '/convocatorias',
-    getParentRoute: () => AdministracionRoute,
-  } as any)
 const AdministracionEquipoRoute = AdministracionEquipoRouteImport.update({
   id: '/equipo',
   path: '/equipo',
+  getParentRoute: () => AdministracionRoute,
+} as any)
+const AdministracionPeriodosRoute = AdministracionPeriodosRouteImport.update({
+  id: '/periodos',
+  path: '/periodos',
   getParentRoute: () => AdministracionRoute,
 } as any)
 const AdministracionRegistrosRoute = AdministracionRegistrosRouteImport.update({
@@ -128,8 +127,8 @@ export interface FileRoutesByFullPath {
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
-  '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
+  '/administracion/periodos': typeof AdministracionPeriodosRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
@@ -147,8 +146,8 @@ export interface FileRoutesByTo {
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
-  '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
+  '/administracion/periodos': typeof AdministracionPeriodosRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
@@ -168,8 +167,8 @@ export interface FileRoutesById {
   '/bases': typeof BasesRoute
   '/empezar': typeof EmpezarRoute
   '/mi-registro': typeof MiRegistroRoute
-  '/administracion/convocatorias': typeof AdministracionConvocatoriasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
+  '/administracion/periodos': typeof AdministracionPeriodosRoute
   '/administracion/registros': typeof AdministracionRegistrosRoute
   '/autorizar/$token': typeof AutorizarTokenRoute
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
@@ -190,8 +189,8 @@ export interface FileRouteTypes {
     | '/bases'
     | '/empezar'
     | '/mi-registro'
-    | '/administracion/convocatorias'
     | '/administracion/equipo'
+    | '/administracion/periodos'
     | '/administracion/registros'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
@@ -209,8 +208,8 @@ export interface FileRouteTypes {
     | '/bases'
     | '/empezar'
     | '/mi-registro'
-    | '/administracion/convocatorias'
     | '/administracion/equipo'
+    | '/administracion/periodos'
     | '/administracion/registros'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
@@ -229,8 +228,8 @@ export interface FileRouteTypes {
     | '/bases'
     | '/empezar'
     | '/mi-registro'
-    | '/administracion/convocatorias'
     | '/administracion/equipo'
+    | '/administracion/periodos'
     | '/administracion/registros'
     | '/autorizar/$token'
     | '/crear-cuenta/$'
@@ -309,18 +308,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministracionIndexRouteImport
       parentRoute: typeof AdministracionRoute
     }
-    '/administracion/convocatorias': {
-      id: '/administracion/convocatorias'
-      path: '/convocatorias'
-      fullPath: '/administracion/convocatorias'
-      preLoaderRoute: typeof AdministracionConvocatoriasRouteImport
-      parentRoute: typeof AdministracionRoute
-    }
     '/administracion/equipo': {
       id: '/administracion/equipo'
       path: '/equipo'
       fullPath: '/administracion/equipo'
       preLoaderRoute: typeof AdministracionEquipoRouteImport
+      parentRoute: typeof AdministracionRoute
+    }
+    '/administracion/periodos': {
+      id: '/administracion/periodos'
+      path: '/periodos'
+      fullPath: '/administracion/periodos'
+      preLoaderRoute: typeof AdministracionPeriodosRouteImport
       parentRoute: typeof AdministracionRoute
     }
     '/administracion/registros': {
@@ -390,16 +389,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdministracionRouteChildren {
-  AdministracionConvocatoriasRoute: typeof AdministracionConvocatoriasRoute
   AdministracionEquipoRoute: typeof AdministracionEquipoRoute
+  AdministracionPeriodosRoute: typeof AdministracionPeriodosRoute
   AdministracionRegistrosRoute: typeof AdministracionRegistrosRoute
   AdministracionIndexRoute: typeof AdministracionIndexRoute
   AdministracionRegistrosIdRoute: typeof AdministracionRegistrosIdRoute
 }
 
 const AdministracionRouteChildren: AdministracionRouteChildren = {
-  AdministracionConvocatoriasRoute: AdministracionConvocatoriasRoute,
   AdministracionEquipoRoute: AdministracionEquipoRoute,
+  AdministracionPeriodosRoute: AdministracionPeriodosRoute,
   AdministracionRegistrosRoute: AdministracionRegistrosRoute,
   AdministracionIndexRoute: AdministracionIndexRoute,
   AdministracionRegistrosIdRoute: AdministracionRegistrosIdRoute,

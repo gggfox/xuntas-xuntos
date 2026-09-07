@@ -5,7 +5,7 @@ import NoTools from '../components/Admin/NoTools'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
 
-export const Route = createFileRoute('/administracion/convocatorias')({
+export const Route = createFileRoute('/administracion/periodos')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.cycles_title() }) }] }),
   component: () => {
     const me = useMe()

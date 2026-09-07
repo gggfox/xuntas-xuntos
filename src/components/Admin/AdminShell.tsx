@@ -11,13 +11,13 @@ type Props = {
 
 // registros comes first: it is where a reviewer is meant to land.
 const NAV: ReadonlyArray<{
-  to: '/administracion/registros' | '/administracion/equipo' | '/administracion/convocatorias'
+  to: '/administracion/registros' | '/administracion/equipo' | '/administracion/periodos'
   label: () => string
   needs: Permission
 }> = [
   { to: '/administracion/registros', label: m.admin_nav_registrations, needs: 'review_registrations' },
   { to: '/administracion/equipo', label: m.admin_nav_staff, needs: 'view_staff' },
-  { to: '/administracion/convocatorias', label: m.admin_nav_cycles, needs: 'manage_cycles' },
+  { to: '/administracion/periodos', label: m.admin_nav_cycles, needs: 'manage_cycles' },
 ]
 
 /**

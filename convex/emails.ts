@@ -328,10 +328,10 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
     case 'rejected':
       return {
         subject: `Sobre tu registro · ${cycleTitle}`,
-        preheader: 'Revisamos tu registro a la Convocatoria.',
+        preheader: 'Revisamos tu registro al Programa de Desarrollo.',
         html: `<p style="margin:0 0 14px;">${greeting}</p>
           <p style="margin:0 0 14px;">Revisamos tu registro a la ${title} del Programa de Desarrollo y, en esta ocasión, no cumple con los requisitos de la convocatoria.</p>
-          <p style="margin:0 0 14px;">Sabemos que detrás de un registro hay trabajo y ganas. Te animamos a seguir compitiendo y a registrarte en la siguiente convocatoria.</p>
+          <p style="margin:0 0 14px;">Sabemos que detrás de un registro hay trabajo y ganas. Te animamos a seguir compitiendo y a registrarte en el siguiente periodo de registro.</p>
           <p style="margin:0 0 14px;">Si tienes dudas, responde a este correo.</p>`,
       }
     case 'selected':
@@ -350,7 +350,7 @@ function decisionBody(decision: NoticeDecisionArg, firstName: string, cycleTitle
         preheader: 'El Consejo Técnico terminó su revisión.',
         html: `<p style="margin:0 0 14px;">${greeting}</p>
           <p style="margin:0 0 14px;">El Consejo Técnico terminó la revisión de la ${title}. En esta ocasión no fuiste seleccionad@ para el Programa de Desarrollo.</p>
-          <p style="margin:0 0 14px;">El registro fue numeroso y los lugares, pocos. Esto no dice nada de tu potencial: te animamos a seguir compitiendo y a registrarte en la siguiente convocatoria.</p>
+          <p style="margin:0 0 14px;">El registro fue numeroso y los lugares, pocos. Esto no dice nada de tu potencial: te animamos a seguir compitiendo y a registrarte en el siguiente periodo de registro.</p>
           <p style="margin:0 0 14px;">Si tienes dudas, responde a este correo.</p>`,
       }
   }
