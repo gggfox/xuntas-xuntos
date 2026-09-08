@@ -50,7 +50,7 @@ function Journal() {
 
   const athleteUserId = profile.registration.userId
   return (
-    <main className="col col-720 pt-[38px] pb-[90px]">
+    <main className="col max-w-[1240px] pt-[38px] pb-[90px]">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">{m.journal_eyebrow()}</p>
@@ -63,9 +63,14 @@ function Journal() {
         </button>
       </div>
 
-      <div className="mt-8 grid gap-6">
-        <GeneralStream athleteUserId={athleteUserId} />
+      {/* The feed is the page; the team's words about the whole process sit
+          beside it, where they stay in view while the entries scroll. Below
+          `lg` the aside stacks under the feed. */}
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         <JournalFeed athleteUserId={athleteUserId} canEdit focusEntryId={entrada} />
+        <aside className="grid content-start gap-4 lg:sticky lg:top-6 lg:self-start">
+          <GeneralStream athleteUserId={athleteUserId} />
+        </aside>
       </div>
 
       {writing && <EntryDialog onSubmit={(input) => create(input)} onClose={() => setWriting(false)} />}

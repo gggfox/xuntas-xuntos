@@ -331,6 +331,7 @@
   "journal_field_title": "Tournament or session",
   "journal_field_date": "Date",
   "journal_field_score": "Score",
+  "journal_field_score_help": "Per round, separated with dashes.",
   "journal_field_body": "Your reflection",
   "journal_body_hint": "What worked? What was hard? How did you feel before the first tee? Write for yourself: in six months you'll read this again.",
   "journal_edited": "Edited · {when}",

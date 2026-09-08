@@ -80,7 +80,9 @@ export default function JournalFeed({ athleteUserId, canEdit, focusEntryId, comp
   const hasRange = Boolean(range.start || range.end)
 
   return (
-    <section className="grid gap-4">
+    // `content-start`: beside a tall aside the column is taller than its
+    // cards, and a grid would otherwise stretch the rows to fill it.
+    <section className="grid content-start gap-4">
       <details className="card px-[21px] py-[15px]">
         <summary className="cursor-pointer font-mono text-[10.5px] tracking-[.12em] uppercase text-soft">
           {hasRange ? m.journal_range_active() : m.journal_range_label()}

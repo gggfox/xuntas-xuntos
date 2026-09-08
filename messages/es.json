@@ -331,6 +331,7 @@
   "journal_field_title": "Torneo o sesión",
   "journal_field_date": "Fecha",
   "journal_field_score": "Score",
+  "journal_field_score_help": "Por ronda, separado con guiones.",
   "journal_field_body": "Tu reflexión",
   "journal_body_hint": "¿Qué funcionó? ¿Qué te costó? ¿Cómo te sentiste antes de salir al primer tee? Escribe para ti: en seis meses vas a volver a leer esto.",
   "journal_edited": "Editada · {when}",

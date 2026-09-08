@@ -82,30 +82,21 @@ export default function EntryDialog({ initial, onSubmit, onClose }: Props) {
           />
         </div>
 
-        <label htmlFor={`${fieldId}-title`} className="mt-4 block text-[12.5px] font-medium">
-          {m.journal_field_title()} <span className="text-bad">*</span>
-        </label>
-        <input
-          id={`${fieldId}-title`}
-          className="fld-input mt-1.5"
-          value={title}
-          maxLength={TITLE_LIMIT}
-          onChange={(e) => setTitle(e.target.value)}
-          autoComplete="off"
-          autoFocus
-        />
-
+        {/* The name and the score share a row: they are the two facts about
+            the round, and the calendar below wants the whole width. */}
         <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
           <div>
-            <DateField
-              id={`${fieldId}-date`}
-              label={m.journal_field_date()}
-              value={date}
-              onChange={setDate}
-              req
-              min="2000-01-01"
-              max={today}
-              openAt={today}
+            <label htmlFor={`${fieldId}-title`} className="block text-[12.5px] font-medium">
+              {m.journal_field_title()} <span className="text-bad">*</span>
+            </label>
+            <input
+              id={`${fieldId}-title`}
+              className="fld-input mt-1.5"
+              value={title}
+              maxLength={TITLE_LIMIT}
+              onChange={(e) => setTitle(e.target.value)}
+              autoComplete="off"
+              autoFocus
             />
           </div>
           {kind === 'tournament' && (
@@ -118,12 +109,28 @@ export default function EntryDialog({ initial, onSubmit, onClose }: Props) {
                 className="fld-input mt-1.5 font-mono tabular-nums"
                 value={score}
                 maxLength={SCORE_LIMIT}
-                placeholder="71-74-70"
                 onChange={(e) => setScore(e.target.value)}
                 autoComplete="off"
+                aria-describedby={`${fieldId}-score-help`}
               />
+              <p id={`${fieldId}-score-help`} className="mt-1 text-[11.5px] text-soft">
+                {m.journal_field_score_help()}
+              </p>
             </div>
           )}
+        </div>
+
+        <div className="mt-4">
+          <DateField
+            id={`${fieldId}-date`}
+            label={m.journal_field_date()}
+            value={date}
+            onChange={setDate}
+            req
+            min="2000-01-01"
+            max={today}
+            openAt={today}
+          />
         </div>
 
         <label htmlFor={`${fieldId}-body`} className="mt-4 block text-[12.5px] font-medium">

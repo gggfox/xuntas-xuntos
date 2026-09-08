@@ -48,12 +48,12 @@ function AthletePage() {
       <h2 className="h-display mt-3 text-[clamp(22px,3.6vw,30px)]">{r.personal.name || detail.account.email}</h2>
       {detail.frozen && <p className="nota mt-4 max-w-[62ch]">{m.athlete_frozen()}</p>}
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
-        <div className="grid content-start gap-6">
-          <GeneralStream athleteUserId={athleteUserId} composerPrimary />
-          <JournalFeed athleteUserId={athleteUserId} canEdit={false} focusEntryId={entrada} composerPrimary />
-        </div>
+      {/* The feed is the page; the team's general words, the team and the
+          profile sit beside it, as on the athlete's own bitácora. */}
+      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <JournalFeed athleteUserId={athleteUserId} canEdit={false} focusEntryId={entrada} composerPrimary />
         <div className="grid content-start gap-4">
+          <GeneralStream athleteUserId={athleteUserId} composerPrimary />
           {can(me.roles, 'view_all_athletes') && <TeamCard team={detail.team} />}
           <section className="card px-[21px] py-[19px]">
             <p className="eyebrow">{m.athlete_profile_title()}</p>
