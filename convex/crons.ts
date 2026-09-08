@@ -10,4 +10,7 @@ const crons = cronJobs()
  */
 crons.interval('delete expired pre-signups', { hours: 1 }, internal.preSignups.cleanup, {})
 
+/** Read notifications older than ninety days go. Unread ones stay until read. 09:00 UTC is 03:00 in Mexico City. */
+crons.daily('prune read notifications', { hourUTC: 9, minuteUTC: 0 }, internal.notifications.prune, {})
+
 export default crons

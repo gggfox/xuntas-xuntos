@@ -4,7 +4,10 @@ import * as m from '../../src/paraglide/messages.js'
 import DecisionPanel from '../../src/components/Admin/DecisionPanel'
 
 const REVIEWER = ['review_registrations', 'send_rejection', 'view_staff'] as const
-const MASTER = [...REVIEWER, 'select_registrations', 'send_batch', 'manage_users', 'manage_cycles'] as const
+const ADMIN = [...REVIEWER, 'view_all_athletes', 'comment_journal', 'manage_assignments', 'remove_athletes'] as const
+const MASTER = [
+  ...ADMIN, 'select_registrations', 'send_batch', 'manage_users', 'manage_cycles', 'view_assigned_athletes',
+] as const
 
 function renderPanel(over: Partial<Parameters<typeof DecisionPanel>[0]> = {}) {
   const onDecide = vi.fn(async () => {})
@@ -76,6 +79,33 @@ describe('DecisionPanel', () => {
     expect(screen.getByRole('button', { name: m.detail_send_rejection() })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: m.detail_send_rejection() }))
     expect(onSendRejection).not.toHaveBeenCalled()
+  })
+
+  /** Removal is administration's own act: a plain admin gets the button on a member, and on a removed row the one way back reads "Reincorporar". */
+  it('offers removal to an admin on a selected member, and reinstatement on a removed one', () => {
+    const { onDecide } = renderPanel({ status: 'selected', notice: 'delivered', permissions: [...ADMIN] })
+    const remove = screen.getByRole('button', { name: m.detail_remove() })
+    // The only move an admin has on a delivered selection, so it takes the
+    // screen's yellow — and keeps the destructive hover either way.
+    expect(remove.className).toContain('hover:border-bad')
+    expect(screen.queryByRole('button', { name: m.detail_not_select() })).not.toBeInTheDocument()
+    fireEvent.click(remove)
+    expect(onDecide).not.toHaveBeenCalled()
+    expect(screen.getByText(m.err_note_required())).toBeInTheDocument()
+  })
+
+  it('keeps removal ghost behind the Council\'s own moves for a master admin', () => {
+    renderPanel({ status: 'selected', permissions: [...MASTER] })
+    expect(screen.getByRole('button', { name: m.detail_remove() }).className).toContain('btn-ghost')
+  })
+
+  it('offers only reinstatement on a removed row, and never to a plain reviewer', () => {
+    renderPanel({ status: 'removed', permissions: [...ADMIN] })
+    expect(screen.getByRole('button', { name: m.detail_reinstate() })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: m.detail_select() })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: m.detail_validate() })).not.toBeInTheDocument()
+    renderPanel({ status: 'removed', permissions: [...REVIEWER] })
+    expect(screen.getAllByRole('button', { name: m.detail_reinstate() })).toHaveLength(1)
   })
 
   it('never shows two solid-yellow buttons at once, even when a master admin can both re-validate and re-select a not_selected registration', () => {

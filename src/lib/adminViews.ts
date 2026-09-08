@@ -90,5 +90,5 @@ export function applyFilters(rows: AdminRow[], f: Filters): AdminRow[] {
  * it, which is a promise the screen cannot keep.
  */
 export function batchable(rows: AdminRow[]): AdminRow[] {
-  return rows.filter((r) => r.notice === 'not_sent' && r.decision !== 'rejected')
+  return rows.filter((r) => r.notice === 'not_sent' && r.decision !== 'rejected' && r.decision !== 'removed')
 }

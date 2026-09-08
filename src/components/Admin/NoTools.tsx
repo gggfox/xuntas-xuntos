@@ -1,9 +1,9 @@
 import * as m from '../../paraglide/messages.js'
 
 /**
- * What a coach, finance or health account sees today. They can be invited
- * now — the point of master_admin this cycle is onboarding staff — and this
- * page is what makes that invitation land somewhere honest.
+ * What a finance account sees today. It can be invited now — the point of
+ * master_admin this cycle is onboarding staff — and this page is what makes
+ * that invitation land somewhere honest.
  */
 export default function NoTools() {
   return (

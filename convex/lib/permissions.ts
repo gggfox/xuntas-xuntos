@@ -21,6 +21,13 @@ export const PERMISSIONS = [
   'view_staff',
   'manage_users',
   'manage_cycles',
+  // The program, after selection. Appended, never reordered: `permissionsOf`
+  // promises table order.
+  'view_assigned_athletes',
+  'view_all_athletes',
+  'comment_journal',
+  'manage_assignments',
+  'remove_athletes',
 ] as const
 export type Permission = (typeof PERMISSIONS)[number]
 
@@ -31,11 +38,21 @@ export type Permission = (typeof PERMISSIONS)[number]
  */
 const GRANTS: Record<Role, readonly Permission[]> = {
   athlete: [],
-  admin: ['review_registrations', 'send_rejection', 'view_staff'],
+  admin: [
+    'review_registrations',
+    'send_rejection',
+    'view_staff',
+    'view_all_athletes',
+    'comment_journal',
+    'manage_assignments',
+    'remove_athletes',
+  ],
   master_admin: PERMISSIONS,
-  coach: [],
+  // A coach and a health specialist see the same things: the athletes
+  // assigned to them, and nothing about anyone else.
+  coach: ['view_assigned_athletes', 'comment_journal'],
   finance: [],
-  health: [],
+  health: ['view_assigned_athletes', 'comment_journal'],
 }
 
 export function isRole(value: unknown): value is Role {

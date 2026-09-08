@@ -11,9 +11,14 @@ import { emptyRegistration } from '../convex/lib/registrationSchema'
 import type { RegistrationData } from '../convex/lib/registrationSchema'
 
 const REVIEWER = ['review_registrations', 'send_rejection', 'view_staff'] as const
+/** What `admin` holds: screening plus the program, never selection. */
+const ADMIN = [
+  ...REVIEWER, 'view_all_athletes', 'comment_journal', 'manage_assignments', 'remove_athletes',
+] as const
 const MASTER = [
   'review_registrations', 'send_rejection', 'select_registrations',
   'send_batch', 'view_staff', 'manage_users', 'manage_cycles',
+  'view_assigned_athletes', 'view_all_athletes', 'comment_journal', 'manage_assignments', 'remove_athletes',
 ] as const
 
 const base = { guardianConfirmed: true, noticeStatus: null, permissions: REVIEWER }
@@ -35,6 +40,7 @@ describe('isDecided', () => {
     expect(isDecided('rejected')).toBe(true)
     expect(isDecided('selected')).toBe(true)
     expect(isDecided('not_selected')).toBe(true)
+    expect(isDecided('removed')).toBe(true)
   })
 })
 
@@ -44,6 +50,7 @@ describe('permissionFor', () => {
     expect(permissionFor('rejected')).toBe('review_registrations')
     expect(permissionFor('selected')).toBe('select_registrations')
     expect(permissionFor('not_selected')).toBe('select_registrations')
+    expect(permissionFor('removed')).toBe('remove_athletes')
   })
 })
 
@@ -143,11 +150,49 @@ describe('checkDecision', () => {
   })
 })
 
+/**
+ * Removal is administration's act, not the Council's: it is the one move
+ * on a selected row that a plain admin may make, it always needs a reason
+ * on file, and it ignores the notice lock (the selection email already went
+ * out — that is the point; the person is a member being let go, and the
+ * removal email is its own, sent at once).
+ */
+describe('checkDecision · removal', () => {
+  it('lets an admin remove a selected member with a note, even once the selection email went out', () => {
+    expect(checkDecision({ ...base, permissions: ADMIN, noticeStatus: 'delivered', from: 'selected', to: 'removed', note: 'x' })).toBeNull()
+    expect(checkDecision({ ...base, permissions: ADMIN, noticeStatus: 'delivered', from: 'selected', to: 'removed' })).toBe('note_required')
+  })
+
+  it('is reachable only from selected', () => {
+    expect(checkDecision({ ...base, permissions: ADMIN, from: 'validated', to: 'removed', note: 'x' })).toBe('decision_invalid')
+    expect(checkDecision({ ...base, permissions: ADMIN, from: 'not_selected', to: 'removed', note: 'x' })).toBe('decision_invalid')
+  })
+
+  it('needs remove_athletes, which a reviewer does not have', () => {
+    expect(checkDecision({ ...base, from: 'selected', to: 'removed', note: 'x' })).toBe('permission_required')
+    expect(checkDecision({ ...base, permissions: MASTER, from: 'selected', to: 'removed', note: 'x' })).toBeNull()
+  })
+
+  it('can be undone, to selected only, with a note', () => {
+    expect(checkDecision({ ...base, permissions: ADMIN, from: 'removed', to: 'selected' })).toBe('note_required')
+    expect(checkDecision({ ...base, permissions: ADMIN, from: 'removed', to: 'selected', note: 'x' })).toBeNull()
+    expect(checkDecision({ ...base, permissions: ADMIN, from: 'removed', to: 'rejected', note: 'x' })).toBe('decision_invalid')
+    expect(checkDecision({ ...base, from: 'removed', to: 'selected', note: 'x' })).toBe('permission_required')
+  })
+
+  it('still refuses to reinstate a minor whose guardian never confirmed', () => {
+    expect(
+      checkDecision({ ...base, permissions: ADMIN, guardianConfirmed: false, from: 'removed', to: 'selected', note: 'x' }),
+    ).toBe('guardian_unconfirmed')
+  })
+})
+
 describe('noticeDecisionFor', () => {
-  it('maps the three states that get an email, and nothing else', () => {
+  it('maps the four states that get an email, and nothing else', () => {
     expect(noticeDecisionFor('rejected')).toBe('rejected')
     expect(noticeDecisionFor('selected')).toBe('selected')
     expect(noticeDecisionFor('not_selected')).toBe('not_selected')
+    expect(noticeDecisionFor('removed')).toBe('removed')
     expect(noticeDecisionFor('validated')).toBeNull()
     expect(noticeDecisionFor('submitted')).toBeNull()
   })

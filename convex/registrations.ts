@@ -10,6 +10,7 @@ import { checkDecision, isDecided, noticeDecisionFor, sectionsComplete } from '.
 import { permissionsOf } from './lib/permissions'
 import type { AppErrorCode } from './lib/errorCodes'
 import { requirePermission, requireUser, currentUser } from './auth'
+import { endAllAssignmentsForAthlete } from './members'
 import type { Doc } from './_generated/dataModel'
 import { vBranch, vDecision } from './schema'
 
@@ -426,7 +427,11 @@ export const decide = mutation({
 
     const now = Date.now()
     const note = args.note?.trim() || undefined
-    const nextNotice = noticeDecisionFor(args.decision)
+    // Reinstating a removed member sends nothing: the person was already
+    // told they were selected once, and the row must not sit as `not_sent`
+    // where a batch would find it and say so again.
+    const reinstating = r.status === 'removed' && args.decision === 'selected'
+    const nextNotice = reinstating ? null : noticeDecisionFor(args.decision)
     await ctx.db.patch(r._id, {
       status: args.decision,
       validatedBy: actor._id,
@@ -435,6 +440,21 @@ export const decide = mutation({
       decisionLog: [...(r.decisionLog ?? []), { status: args.decision, by: actor._id, at: now, note }],
       decisionNotice: nextNotice ? { decision: nextNotice, status: 'not_sent' } : undefined,
     })
+
+    // Removal is the one decision whose email nobody presses a button for:
+    // it is not a batch result, it is one person being told, now. The
+    // assignments end with the membership, so a coach does not keep a
+    // window into a journal that stopped being theirs to read.
+    if (args.decision === 'removed') {
+      const cycle = await ctx.db.get(r.cycle)
+      await ctx.scheduler.runAfter(0, internal.emails.sendDecisionNotice, {
+        registrationId: r._id,
+        decision: 'removed',
+        sentBy: actor._id,
+        cycleTitle: cycle?.title ?? '',
+      })
+      await endAllAssignmentsForAthlete(ctx, r.userId, actor._id, now)
+    }
     return { ok: true as const }
   },
 })

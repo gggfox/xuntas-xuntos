@@ -26,7 +26,13 @@ const BUTTONS: Array<{ decision: Decision; label: () => string }> = [
   { decision: 'rejected', label: m.detail_reject },
   { decision: 'selected', label: m.detail_select },
   { decision: 'not_selected', label: m.detail_not_select },
+  { decision: 'removed', label: m.detail_remove },
 ]
+
+/** "Seleccionar" on a removed row is not a selection: it gives a place back. Same decision, its own word. */
+function labelFor(b: { decision: Decision; label: () => string }, status: RegistrationStatus): string {
+  return status === 'removed' && b.decision === 'selected' ? m.detail_reinstate() : b.label()
+}
 
 /**
  * Which decisions the policy allows can change with the status and the
@@ -41,7 +47,8 @@ const BUTTONS: Array<{ decision: Decision; label: () => string }> = [
  */
 function classFor(decision: Decision, isPrimary: boolean): string {
   const base = isPrimary ? 'btn' : 'btn btn-ghost'
-  return decision === 'rejected' ? `${base} hover:border-bad hover:text-bad` : base
+  const destructive = decision === 'rejected' || decision === 'removed'
+  return destructive ? `${base} hover:border-bad hover:text-bad` : base
 }
 
 /**
@@ -129,7 +136,7 @@ export default function DecisionPanel({ status, guardianConfirmed, notice, permi
                 disabled={busy}
                 onClick={() => void decide(b.decision)}
               >
-                {b.label()}
+                {labelFor(b, status)}
               </button>
             ))}
           </div>

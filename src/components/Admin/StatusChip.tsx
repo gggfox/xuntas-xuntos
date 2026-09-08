@@ -18,6 +18,7 @@ const STATUS: Record<RegistrationStatus, { label: () => string; tone: PillTone }
   rejected: { label: m.status_rejected, tone: 'bad' },
   selected: { label: m.status_selected, tone: 'ok' },
   not_selected: { label: m.status_not_selected, tone: 'neutral' },
+  removed: { label: m.status_removed, tone: 'bad' },
 }
 
 export function StatusChip({ status }: { status: RegistrationStatus }) {
