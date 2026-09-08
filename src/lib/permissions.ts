@@ -7,6 +7,7 @@ export {
   PERMISSIONS,
   ROLES,
   can,
+  isAthlete,
   isRole,
   isStaff,
   permissionsOf,

@@ -16,6 +16,7 @@ import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../.
 import { errorCodeFromConvex } from '../../lib/registrationErrors'
 import type { RegistrationError } from '../../lib/registrationRules'
 import { useActiveCycle } from '../../hooks/useActiveCycle'
+import { isAthlete } from '../../lib/permissions'
 
 /**
  * Everything behind the sign-in wall: the form itself, plus the screens that
@@ -100,7 +101,7 @@ export default function RegistrationPanel({
    * Before the birth-date step, on purpose: a staff account has no date and
    * must never be asked for one.
    */
-  if (!status.account.roles.includes('athlete')) {
+  if (!isAthlete(status.account.roles)) {
     return <Navigate to="/administracion" />
   }
 

@@ -2,7 +2,7 @@ import { Show, SignOutButton, useUser } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 import * as m from '../../paraglide/messages.js'
 import { useMe } from '../../hooks/useMe'
-import { isStaff } from '../../lib/permissions'
+import { isAthlete, isStaff } from '../../lib/permissions'
 import AccountMenu from './AccountMenu'
 import NavMenu from './NavMenu'
 import ThemeToggle from './ThemeToggle'
@@ -14,6 +14,8 @@ import ThemeToggle from './ThemeToggle'
  * the one place that is not theirs to reach any other way: administration.
  * The registration itself and the way out live behind the avatar, since
  * both belong to the account and neither needs to be in view all the time.
+ * The registration is offered only to athletes: an account that is only
+ * staff has none, and the panel would just send them on to administration.
  * Signed out there is only the way in; registering is offered on the home
  * page, not here, so the header never competes with the page's own call to
  * action.
@@ -33,6 +35,7 @@ export default function AccountNav() {
   const me = useMe()
   const { user } = useUser()
   const staff = !!me && isStaff(me.roles)
+  const athlete = !!me && isAthlete(me.roles)
 
   const adminLink = staff && (
     <Link to="/administracion" className="text-white/72 no-underline hover:text-white">
@@ -41,9 +44,11 @@ export default function AccountNav() {
   )
   const accountLinks = (
     <>
-      <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
-        {m.nav_my_registration()}
-      </Link>
+      {athlete && (
+        <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
+          {m.nav_my_registration()}
+        </Link>
+      )}
       <SignOutButton>
         <button className="font-mono text-[11.5px] tracking-[.06em] text-white/60 hover:text-white">
           {m.nav_sign_out()}
