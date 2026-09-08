@@ -3,6 +3,7 @@ import {
   PERMISSIONS,
   ROLES,
   can,
+  isAthlete,
   isRole,
   isStaff,
   permissionsOf,
@@ -61,6 +62,21 @@ describe('isStaff', () => {
     expect(isStaff([])).toBe(false)
     expect(isStaff(['coach'])).toBe(true)
     expect(isStaff(['athlete', 'admin'])).toBe(true)
+  })
+})
+
+/**
+ * Not the opposite of `isStaff`: `staff.ts` keeps `athlete` when it grants a
+ * staff role, so an account can be both, and one that is only staff has no
+ * registration to reach.
+ */
+describe('isAthlete', () => {
+  it('is anyone whose roles include athlete', () => {
+    expect(isAthlete(['athlete'])).toBe(true)
+    expect(isAthlete(['athlete', 'admin'])).toBe(true)
+    expect(isAthlete(['admin'])).toBe(false)
+    expect(isAthlete(['master_admin', 'coach'])).toBe(false)
+    expect(isAthlete([])).toBe(false)
   })
 })
 

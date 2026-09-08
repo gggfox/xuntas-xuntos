@@ -3,6 +3,7 @@ import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
 import AdminShell from '../components/Admin/AdminShell'
 import LoadingFrame from '../components/MyRegistration/LoadingFrame'
+import PageSkeleton from '../components/PageSkeleton'
 import { useMe } from '../hooks/useMe'
 import { isStaff } from '../lib/permissions'
 
@@ -43,7 +44,8 @@ function AdminLayout() {
 
 function SignedIn() {
   const me = useMe()
-  if (me === undefined) return <LoadingFrame>{m.common_loading()}</LoadingFrame>
+  if (me === undefined) return <PageSkeleton />
+  // A message, not a placeholder: the reader should know what this wait is.
   if (me === null) return <LoadingFrame>{m.sync_text()}</LoadingFrame>
   // Athletes have no admin tools. Symmetric with RegistrationPanel sending
   // staff back here: each side sends the other to its own panel.

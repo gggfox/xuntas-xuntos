@@ -8,6 +8,7 @@ import AssignDialog from '../components/Admin/AssignDialog'
 import InviteDialog from '../components/Admin/InviteDialog'
 import NoTools from '../components/Admin/NoTools'
 import StaffTable, { type StaffView } from '../components/Admin/StaffTable'
+import TableSkeleton from '../components/Admin/TableSkeleton'
 import Segmented, { segmentId } from '../components/Segmented'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
@@ -49,10 +50,9 @@ function StaffPage() {
 
   if (!me) return null
   if (!can(me.roles, 'view_staff')) return <NoTools />
-  if (list === undefined) return <p className="mt-8 text-soft">{m.common_loading()}</p>
 
   const canManage = can(me.roles, 'manage_users')
-  const assigningRow = assigning ? list.staff.find((s) => s._id === assigning) : undefined
+  const assigningRow = assigning && list ? list.staff.find((s) => s._id === assigning) : undefined
 
   /** Every mutation surfaces its code here; the table itself stays dumb. */
   async function guard(run: () => Promise<unknown>) {
@@ -65,7 +65,9 @@ function StaffPage() {
   }
 
   return (
-    <>
+    // Four columns are comfortable at BRAND.md's 1240 and sparse across the
+    // admin frame's full width, so this page caps itself. See `AdminShell`.
+    <div className="max-w-[1240px]">
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <Segmented
           name="equipo"
@@ -89,17 +91,24 @@ function StaffPage() {
       {error && <p className="mt-3 text-[12.5px] text-bad">{error}</p>}
 
       <div id={PANEL_ID} role="tabpanel" aria-labelledby={segmentId('equipo', view)}>
-        <StaffTable
-          view={view}
-          staff={list.staff}
-          invites={list.invites}
-          canManage={canManage}
-          meId={list.staff.find((s) => s.email === me.email)?._id}
-          onSetRoles={(userId, roles) => guard(() => setRoles({ userId, roles }))}
-          onResend={(inviteId) => guard(() => resend({ inviteId }))}
-          onRevoke={(inviteId) => guard(() => revoke({ inviteId }))}
-          onAssign={canAssign ? (userId) => setAssigning(userId) : undefined}
-        />
+        {list === undefined ? (
+          <TableSkeleton
+            className="mt-3"
+            columns={view === 'people' ? ['text', 'text', 'chip', 'button'] : ['text', 'chip', 'chip', 'text', 'date', 'button']}
+          />
+        ) : (
+          <StaffTable
+            view={view}
+            staff={list.staff}
+            invites={list.invites}
+            canManage={canManage}
+            meId={list.staff.find((s) => s.email === me.email)?._id}
+            onSetRoles={(userId, roles) => guard(() => setRoles({ userId, roles }))}
+            onResend={(inviteId) => guard(() => resend({ inviteId }))}
+            onRevoke={(inviteId) => guard(() => revoke({ inviteId }))}
+            onAssign={canAssign ? (userId) => setAssigning(userId) : undefined}
+          />
+        )}
       </div>
 
       {assigningRow && members !== undefined && assigned !== undefined && (
@@ -128,6 +137,6 @@ function StaffPage() {
           onClose={() => setInviting(false)}
         />
       )}
-    </>
+    </div>
   )
 }

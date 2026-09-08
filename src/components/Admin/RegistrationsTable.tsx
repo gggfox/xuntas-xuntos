@@ -12,6 +12,7 @@ import * as m from '../../paraglide/messages.js'
 import { SECTIONS_TOTAL } from '../../../convex/lib/decisionRules'
 import { VIEWS, batchable, type AdminRow, type ViewId } from '../../lib/adminViews'
 import { useDateFormats } from '../DateField/format'
+import { useFillHeight } from '../../hooks/useFillHeight'
 import { GuardianChip, NoticeChip, StatusChip } from './StatusChip'
 
 type Props = {
@@ -39,6 +40,7 @@ const helper = createColumnHelper<typeof features, AdminRow>()
 
 export default function RegistrationsTable({ rows, view, canSelect, selected, onSelectedChange, onOpen }: Props) {
   const fmt = useDateFormats()
+  const card = useFillHeight<HTMLDivElement>()
   const selectable = canSelect && VIEWS[view].selectable
   const eligible = useMemo(() => new Set(batchable(rows).map((r) => r._id)), [rows])
 
@@ -118,50 +120,58 @@ export default function RegistrationsTable({ rows, view, canSelect, selected, on
   const body = table.getRowModel().rows
 
   return (
-    <div className="card mt-4 overflow-x-auto">
-      <table className="w-full border-collapse text-[13.5px]">
-        <thead>
-          {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id} className="border-b border-line">
-              {hg.headers.map((h) => (
-                <th
-                  key={h.id}
-                  className="px-3 py-2 text-left font-mono text-[10.5px] font-medium tracking-[.12em] uppercase text-soft"
-                  aria-sort={h.column.getIsSorted() === 'asc' ? 'ascending' : h.column.getIsSorted() === 'desc' ? 'descending' : undefined}
-                >
-                  {h.isPlaceholder ? null : h.column.getCanSort() ? (
-                    <button type="button" className="font-inherit" onClick={h.column.getToggleSortingHandler()}>
+    // `regs-table`, `regs-row` and `regs-table-count` are the View
+    // Transition names that let the table morph between two sets of rows
+    // instead of snapping; see styles.css. `tall-*` is the card filling the
+    // window from `lg`, with the rows scrolling under held headings.
+    <div ref={card} className="card regs-table tall-card mt-4">
+      <div className="tall-scroll overflow-x-auto">
+        <table className="w-full border-collapse text-[13.5px]">
+          <thead className="tall-head">
+            {table.getHeaderGroups().map((hg) => (
+              <tr key={hg.id}>
+                {hg.headers.map((h) => (
+                  <th
+                    key={h.id}
+                    className="px-3 py-2 text-left font-mono text-[10.5px] font-medium tracking-[.12em] uppercase text-soft"
+                    aria-sort={h.column.getIsSorted() === 'asc' ? 'ascending' : h.column.getIsSorted() === 'desc' ? 'descending' : undefined}
+                  >
+                    {h.isPlaceholder ? null : h.column.getCanSort() ? (
+                      <button type="button" className="font-inherit" onClick={h.column.getToggleSortingHandler()}>
+                        <table.FlexRender header={h} />
+                        {h.column.getIsSorted() === 'asc' ? ' ↑' : h.column.getIsSorted() === 'desc' ? ' ↓' : ''}
+                      </button>
+                    ) : (
                       <table.FlexRender header={h} />
-                      {h.column.getIsSorted() === 'asc' ? ' ↑' : h.column.getIsSorted() === 'desc' ? ' ↓' : ''}
-                    </button>
-                  ) : (
-                    <table.FlexRender header={h} />
-                  )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {body.length === 0 && (
-            <tr>
-              <td className="px-3 py-3 font-light text-soft" colSpan={99}>
-                {m.regs_none()}
-              </td>
-            </tr>
-          )}
-          {body.map((row) => (
-            <tr key={row.id} className="border-b border-line last:border-0">
-              {row.getAllCells().map((cell) => (
-                <td key={cell.id} className="px-3 py-2 align-middle">
-                  <table.FlexRender cell={cell} />
+                    )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {body.length === 0 && (
+              <tr>
+                <td className="px-3 py-3 font-light text-soft" colSpan={99}>
+                  {m.regs_none()}
                 </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="px-3 py-2 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft">{m.regs_count({ n: body.length })}</p>
+              </tr>
+            )}
+            {body.map((row) => (
+              <tr key={row.id} className="regs-row border-b border-line last:border-0">
+                {row.getAllCells().map((cell) => (
+                  <td key={cell.id} className="px-3 py-2 align-middle">
+                    <table.FlexRender cell={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="regs-table-count px-3 py-2 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft lg:border-t lg:border-line">
+        {m.regs_count({ n: body.length })}
+      </p>
     </div>
   )
 }

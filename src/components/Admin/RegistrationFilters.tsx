@@ -8,10 +8,21 @@ type Props = { value: Filters; onChange: (next: Filters) => void; lockStatus?: b
 
 type Option = { v: string; t: string }
 
+/** Which of the three arrangements a control is drawn in; see `RegistrationFilters`. */
+type Layout = 'row' | 'panel' | 'stacked'
+
+const LABEL: Record<Layout, string> = {
+  row: 'flex items-center gap-2 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft',
+  // Full width with the control pushed to the far edge, so a column of
+  // these reads as a list of label/value pairs rather than a ragged bar.
+  panel: 'flex w-full items-center justify-between gap-2 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft',
+  stacked: 'block font-mono text-[10.5px] tracking-[.12em] uppercase text-soft',
+}
+
 /**
- * One filter, in whichever of the two arrangements is on screen: `row` puts
- * the label beside the control, which is what the wide bar wants; `stacked`
- * puts it above a full-width one, which is what a thumb wants.
+ * One filter, in whichever arrangement is on screen: `row` and `panel` put
+ * the label beside the control — along a bar, or across a column;
+ * `stacked` puts it above a full-width one, which is what a thumb wants.
  */
 function Field({
   id,
@@ -26,19 +37,12 @@ function Field({
   value: string
   options: Option[]
   onChange: (v: string) => void
-  layout: 'row' | 'stacked'
+  layout: Layout
 }) {
-  const row = layout === 'row'
+  const row = layout !== 'stacked'
   return (
     <div className={row ? 'contents' : ''}>
-      <label
-        htmlFor={id}
-        className={
-          row
-            ? 'flex items-center gap-2 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft'
-            : 'block font-mono text-[10.5px] tracking-[.12em] uppercase text-soft'
-        }
-      >
+      <label htmlFor={id} className={LABEL[layout]}>
         {label}
         {row && (
           <select
@@ -75,19 +79,22 @@ function Field({
  * their own status, so `lockStatus` hides the one control that would let
  * someone filter a tab into showing rows it was not built to show.
  *
- * Below `md` the five controls do not appear at all until they are asked
- * for. Wrapped onto four lines they cost about 200px, which on a 375px
- * screen pushes the first row of data off the bottom: the screen would open
- * on its own controls rather than on its answer. Behind one button that
- * counts how many of them are doing something, they cost 32px and stay
- * honest about their own state.
+ * Three arrangements, one on screen at a time. From `lg` the controls are
+ * a column in the panel beside the table (see the registros route), each
+ * label with its control at the far edge. Between `md` and `lg` the page
+ * stacks and they are a bar above the table. Below `md` they do not appear
+ * at all until they are asked for: wrapped onto four lines they cost about
+ * 200px, which on a 375px screen pushes the first row of data off the
+ * bottom — the screen would open on its own controls rather than on its
+ * answer. Behind one button that counts how many of them are doing
+ * something, they cost 32px and stay honest about their own state.
  */
 export default function RegistrationFilters({ value, onChange, lockStatus, view }: Props) {
   const [sheet, setSheet] = useState(false)
   const any = m.regs_filter_any()
   const active = activeCount(value)
 
-  const fields = (layout: 'row' | 'stacked') => (
+  const fields = (layout: Layout) => (
     <>
       {!lockStatus && (
         <Field
@@ -165,7 +172,9 @@ export default function RegistrationFilters({ value, onChange, lockStatus, view 
         </button>
       </div>
 
-      <div className="mt-4 hidden flex-wrap items-center gap-4 md:flex">{fields('row')}</div>
+      <div className="mt-4 hidden flex-wrap items-center gap-4 md:flex lg:hidden">{fields('row')}</div>
+
+      <div className="mt-4 hidden gap-4 lg:grid">{fields('panel')}</div>
 
       {sheet && (
         <FilterSheet onClose={() => setSheet(false)} onClear={() => onChange(VIEWS[view].filters)}>

@@ -72,3 +72,12 @@ export function permissionsOf(roles: readonly Role[]): Permission[] {
 export function isStaff(roles: readonly Role[]): boolean {
   return roles.some((r) => r !== 'athlete')
 }
+
+/**
+ * Anyone who has a registration to reach. Not the opposite of `isStaff`:
+ * `staff.ts` keeps `athlete` when it grants a staff role, so an account can
+ * be both, and one that is only staff has no "mi registro" at all.
+ */
+export function isAthlete(roles: readonly Role[]): boolean {
+  return roles.includes('athlete')
+}

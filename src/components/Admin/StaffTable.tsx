@@ -15,6 +15,7 @@ import RolePills from './RolePills'
 import type { Role } from '../../lib/permissions'
 import { canBeAssigned } from '../../../convex/lib/assignmentRules'
 import { useDateFormats } from '../DateField/format'
+import { useFillHeight } from '../../hooks/useFillHeight'
 import type { Id } from '../../../convex/_generated/dataModel'
 
 type StaffRow = { _id: Id<'users'>; name?: string; email: string; roles: readonly Role[] }
@@ -255,49 +256,53 @@ function Table<TRow extends StaffRow | InviteRow>({
   empty: string
 }) {
   const rows = table.getRowModel().rows
+  const card = useFillHeight<HTMLDivElement>()
   return (
-    <div className="card mt-3 overflow-x-auto">
-      <table className="w-full border-collapse text-[13.5px]">
-        <thead>
-          {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id} className="border-b border-line">
-              {hg.headers.map((h) => (
-                <th
-                  key={h.id}
-                  className="px-3 py-2 text-left font-mono text-[10.5px] font-medium tracking-[.12em] uppercase text-soft"
-                  aria-sort={h.column.getIsSorted() === 'asc' ? 'ascending' : h.column.getIsSorted() === 'desc' ? 'descending' : undefined}
-                >
-                  {h.isPlaceholder ? null : h.column.getCanSort() ? (
-                    <button type="button" className="font-inherit" onClick={h.column.getToggleSortingHandler()}>
+    // `tall-*`: the card fills the window from `lg`; see styles.css.
+    <div ref={card} className="card tall-card mt-3">
+      <div className="tall-scroll overflow-x-auto">
+        <table className="w-full border-collapse text-[13.5px]">
+          <thead className="tall-head">
+            {table.getHeaderGroups().map((hg) => (
+              <tr key={hg.id}>
+                {hg.headers.map((h) => (
+                  <th
+                    key={h.id}
+                    className="px-3 py-2 text-left font-mono text-[10.5px] font-medium tracking-[.12em] uppercase text-soft"
+                    aria-sort={h.column.getIsSorted() === 'asc' ? 'ascending' : h.column.getIsSorted() === 'desc' ? 'descending' : undefined}
+                  >
+                    {h.isPlaceholder ? null : h.column.getCanSort() ? (
+                      <button type="button" className="font-inherit" onClick={h.column.getToggleSortingHandler()}>
+                        <table.FlexRender header={h} />
+                      </button>
+                    ) : (
                       <table.FlexRender header={h} />
-                    </button>
-                  ) : (
-                    <table.FlexRender header={h} />
-                  )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {rows.length === 0 && (
-            <tr>
-              <td className="px-3 py-3 font-light text-soft" colSpan={99}>
-                {empty}
-              </td>
-            </tr>
-          )}
-          {rows.map((row) => (
-            <tr key={row.id} className="border-b border-line last:border-0">
-              {row.getAllCells().map((cell) => (
-                <td key={cell.id} className="px-3 py-2 align-top">
-                  <table.FlexRender cell={cell} />
+                    )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td className="px-3 py-3 font-light text-soft" colSpan={99}>
+                  {empty}
                 </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </tr>
+            )}
+            {rows.map((row) => (
+              <tr key={row.id} className="border-b border-line last:border-0">
+                {row.getAllCells().map((cell) => (
+                  <td key={cell.id} className="px-3 py-2 align-top">
+                    <table.FlexRender cell={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

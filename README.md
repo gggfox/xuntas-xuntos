@@ -41,6 +41,11 @@ Without an active cycle every registration query fails with `no_active_cycle`.
 
 ### 2. Clerk
 
+The Clerk application is named **XUNTAS** (Configure → Settings → Application
+name), on both the development and the production instance. That name is the
+sender and heading of every email Clerk itself sends (verification codes,
+password resets), so it must match the brand, not the infra name.
+
 In the Clerk dashboard:
 
 1. **API keys → copy the _Frontend API URL_.** That is the value of

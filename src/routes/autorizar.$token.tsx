@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
+import { Lines, TextLine } from '../components/Skeleton'
 import { useActiveCycle } from '../hooks/useActiveCycle'
 
 export const Route = createFileRoute('/autorizar/$token')({
@@ -36,7 +37,11 @@ function Authorize() {
   }
 
   if (request === undefined) {
-    return <Frame>{m.common_loading()}</Frame>
+    return (
+      <Frame>
+        <Lines n={3} />
+      </Frame>
+    )
   }
 
   const status = result ?? request.status
@@ -77,7 +82,7 @@ function Authorize() {
             como su padre, madre o tutor.
           </>
         ) : (
-          m.common_loading()
+          <TextLine className="w-[36ch] max-w-full" />
         )}
       </p>
       <p className="mt-3 font-light text-soft">
