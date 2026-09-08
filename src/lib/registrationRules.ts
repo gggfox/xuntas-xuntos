@@ -5,11 +5,7 @@
  * different set of rules than the server enforces is the bug this prevents.
  */
 export {
-  NAME_MIN,
-  WHATSAPP_MIN_DIGITS,
-  LETTER_MIN,
   RESULTS_MIN,
-  RANKINGS_MIN,
   checkName,
   checkEmail,
   checkWhatsapp,
@@ -18,12 +14,10 @@ export {
   checkState,
   checkRequiredText,
   checkGraduationYear,
-  countFilledRows,
   checkResults,
   checkRankings,
   checkLetter,
   validateRegistration,
-  toErrorMap,
 } from '../../convex/lib/registrationRules'
 
 export type {

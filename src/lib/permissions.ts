@@ -4,13 +4,10 @@
  * table Convex decides what to allow from.
  */
 export {
-  PERMISSIONS,
   ROLES,
   can,
   isAthlete,
-  isRole,
   isStaff,
-  permissionsOf,
   type Permission,
   type Role,
 } from '../../convex/lib/permissions'

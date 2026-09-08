@@ -7,7 +7,7 @@
  * Pure on purpose: no imports, takes the environment as an argument, so it
  * can be unit-tested without touching `process.env`.
  */
-export const REQUIRED_BUILD_VARIABLES = ['VITE_CONVEX_URL', 'VITE_CLERK_PUBLISHABLE_KEY'] as const
+const REQUIRED_BUILD_VARIABLES = ['VITE_CONVEX_URL', 'VITE_CLERK_PUBLISHABLE_KEY'] as const
 
 export function buildVariableProblems(env: Record<string, string | undefined>): string[] {
   const problems: string[] = []

@@ -1,5 +1,5 @@
 import FieldError from './FieldError'
-import { Icons } from '../Icons'
+import Icons from '../Icons'
 import type { AppErrorCode } from '../../../convex/lib/errorCodes'
 
 export default function SelectField({

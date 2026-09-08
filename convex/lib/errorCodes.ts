@@ -38,7 +38,7 @@ export type FieldErrorCode =
   | 'guardian_email_same_as_own'
 
 /** A rejection of the whole action, thrown rather than returned. */
-export type ActionErrorCode =
+type ActionErrorCode =
   | 'window_closed'
   | 'already_reviewed'
   | 'birth_date_missing'
