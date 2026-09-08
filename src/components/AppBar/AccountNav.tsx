@@ -3,8 +3,10 @@ import { Link } from '@tanstack/react-router'
 import * as m from '../../paraglide/messages.js'
 import { useMe } from '../../hooks/useMe'
 import { isAthlete, isStaff } from '../../lib/permissions'
+import { canReceiveNotifications } from '../../../convex/lib/notificationRules'
 import AccountMenu from './AccountMenu'
 import NavMenu from './NavMenu'
+import NotificationsMenu from './NotificationsMenu'
 import ThemeToggle from './ThemeToggle'
 
 /**
@@ -42,8 +44,20 @@ export default function AccountNav() {
       {m.nav_admin()}
     </Link>
   )
+  const member = !!me && me.member
   const accountLinks = (
     <>
+      {/* A member's two pages come first: they are what the account is for now. */}
+      {member && (
+        <Link to="/perfil" className="text-white/72 no-underline hover:text-white">
+          {m.nav_profile()}
+        </Link>
+      )}
+      {member && (
+        <Link to="/bitacora" className="text-white/72 no-underline hover:text-white">
+          {m.nav_journal()}
+        </Link>
+      )}
       {athlete && (
         <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
           {m.nav_my_registration()}
@@ -62,9 +76,14 @@ export default function AccountNav() {
     </Link>
   )
 
+  // The bell, like the theme toggle, stays in the bar at every width: it is
+  // the one thing here that changes on its own while the reader is away.
+  const bell = !!me && canReceiveNotifications(me.roles, me.member)
+
   return (
     <nav className="flex items-center gap-3 text-[13px] md:gap-4">
       <ThemeToggle />
+      {bell && <NotificationsMenu />}
       <span className="hidden items-center gap-4 md:flex">
         <Show when="signed-in">
           {adminLink}

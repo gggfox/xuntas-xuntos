@@ -9,16 +9,24 @@ type Props = {
   children: React.ReactNode
 }
 
-// registros comes first: it is where a reviewer is meant to land.
+// registros comes first: it is where a reviewer is meant to land. atletas
+// is where a coach lands, since it is the only tab they have.
 const NAV: ReadonlyArray<{
-  to: '/administracion/registros' | '/administracion/equipo' | '/administracion/periodos'
+  to: '/administracion/registros' | '/administracion/atletas' | '/administracion/equipo' | '/administracion/periodos'
   label: () => string
-  needs: Permission
+  /** Any one of these opens the tab. */
+  needs: readonly Permission[]
 }> = [
-  { to: '/administracion/registros', label: m.admin_nav_registrations, needs: 'review_registrations' },
-  { to: '/administracion/equipo', label: m.admin_nav_staff, needs: 'view_staff' },
-  { to: '/administracion/periodos', label: m.admin_nav_cycles, needs: 'manage_cycles' },
+  { to: '/administracion/registros', label: m.admin_nav_registrations, needs: ['review_registrations'] },
+  { to: '/administracion/atletas', label: m.admin_nav_athletes, needs: ['view_assigned_athletes', 'view_all_athletes'] },
+  { to: '/administracion/equipo', label: m.admin_nav_staff, needs: ['view_staff'] },
+  { to: '/administracion/periodos', label: m.admin_nav_cycles, needs: ['manage_cycles'] },
 ]
+
+/** Whether this account opens the athletes tab, by the same rule the nav uses. */
+export function canSeeAthletes(roles: readonly Role[]): boolean {
+  return can(roles, 'view_assigned_athletes') || can(roles, 'view_all_athletes')
+}
 
 /**
  * The frame every admin page sits in: one strip across the top — the
@@ -39,7 +47,7 @@ const NAV: ReadonlyArray<{
  * allow.
  */
 export default function AdminShell({ roles, children }: Props) {
-  const links = NAV.filter((n) => can(roles, n.needs))
+  const links = NAV.filter((n) => n.needs.some((p) => can(roles, p)))
   return (
     <main className="col col-1800 pt-[22px] pb-[90px] lg:pb-6">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-line pb-3">

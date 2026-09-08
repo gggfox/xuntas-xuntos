@@ -17,7 +17,19 @@ function fail(code: AppErrorCode): never {
   throw new ConvexError({ code })
 }
 
-const vNoticeDecision = v.union(v.literal('rejected'), v.literal('selected'), v.literal('not_selected'))
+const vNoticeDecision = v.union(
+  v.literal('rejected'),
+  v.literal('selected'),
+  v.literal('not_selected'),
+  v.literal('removed'),
+)
+
+/** Who may see each body before it goes to a family. Removal is administration's; the Council's results are the master admin's. */
+function testPermissionFor(decision: 'rejected' | 'selected' | 'not_selected' | 'removed') {
+  if (decision === 'rejected') return 'send_rejection' as const
+  if (decision === 'removed') return 'remove_athletes' as const
+  return 'send_batch' as const
+}
 
 /** One rejection, any time. Screening a person out early is a kindness, not a batch. */
 export const sendRejection = mutation({
@@ -84,6 +96,8 @@ export const sendBatch = mutation({
         r.cycle !== args.cycle ||
         !r.decisionNotice ||
         r.decisionNotice.decision === 'rejected' ||
+        // A removal sends itself the moment it is decided; a batch never owns one.
+        r.decisionNotice.decision === 'removed' ||
         r.decisionNotice.status !== 'not_sent'
       ) {
         skipped++
@@ -106,7 +120,7 @@ export const sendBatch = mutation({
 export const sendTest = mutation({
   args: { cycle: v.id('cycles'), decision: vNoticeDecision },
   handler: async (ctx, args) => {
-    const actor = await requirePermission(ctx, args.decision === 'rejected' ? 'send_rejection' : 'send_batch')
+    const actor = await requirePermission(ctx, testPermissionFor(args.decision))
     const cycle = await ctx.db.get(args.cycle)
     if (!cycle) fail('cycle_not_found')
     await ctx.scheduler.runAfter(0, internal.emails.sendDecisionTest, {

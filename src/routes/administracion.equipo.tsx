@@ -3,6 +3,8 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../convex/_generated/api'
 import * as m from '../paraglide/messages.js'
+import type { Id } from '../../convex/_generated/dataModel'
+import AssignDialog from '../components/Admin/AssignDialog'
 import InviteDialog from '../components/Admin/InviteDialog'
 import NoTools from '../components/Admin/NoTools'
 import StaffTable, { type StaffView } from '../components/Admin/StaffTable'
@@ -37,11 +39,20 @@ function StaffPage() {
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [inviting, setInviting] = useState(false)
+  /** Which staff member's athlete list is open, if any. */
+  const [assigning, setAssigning] = useState<Id<'users'> | null>(null)
+  const canAssign = !!me && can(me.roles, 'manage_assignments')
+  // Both lists load only while the dialog is up: the roster is not needed
+  // to draw the table, and a closed dialog has nothing to fill in.
+  const members = useQuery(api.assignments.membersForPicker, canAssign && assigning ? {} : 'skip')
+  const assigned = useQuery(api.assignments.forStaff, canAssign && assigning ? { staffUserId: assigning } : 'skip')
+  const setForStaff = useMutation(api.assignments.setForStaff)
 
   if (!me) return null
   if (!can(me.roles, 'view_staff')) return <NoTools />
 
   const canManage = can(me.roles, 'manage_users')
+  const assigningRow = assigning && list ? list.staff.find((s) => s._id === assigning) : undefined
 
   /** Every mutation surfaces its code here; the table itself stays dumb. */
   async function guard(run: () => Promise<unknown>) {
@@ -95,9 +106,22 @@ function StaffPage() {
             onSetRoles={(userId, roles) => guard(() => setRoles({ userId, roles }))}
             onResend={(inviteId) => guard(() => resend({ inviteId }))}
             onRevoke={(inviteId) => guard(() => revoke({ inviteId }))}
+            onAssign={canAssign ? (userId) => setAssigning(userId) : undefined}
           />
         )}
       </div>
+
+      {assigningRow && members !== undefined && assigned !== undefined && (
+        <AssignDialog
+          staffName={assigningRow.name ?? assigningRow.email}
+          members={members}
+          current={assigned.map((a) => a._id)}
+          onSave={(athleteUserIds) =>
+            setForStaff({ staffUserId: assigningRow._id, athleteUserIds: athleteUserIds as Id<'users'>[] })
+          }
+          onClose={() => setAssigning(null)}
+        />
+      )}
 
       {inviting && (
         <InviteDialog

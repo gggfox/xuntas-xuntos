@@ -111,6 +111,7 @@ export default function RegistrationFilters({ value, onChange, lockStatus, view 
             { v: 'rejected', t: m.status_rejected() },
             { v: 'selected', t: m.status_selected() },
             { v: 'not_selected', t: m.status_not_selected() },
+            { v: 'removed', t: m.status_removed() },
           ]}
         />
       )}

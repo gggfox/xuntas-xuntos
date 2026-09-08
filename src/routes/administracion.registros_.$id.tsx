@@ -7,6 +7,7 @@ import DecisionPanel from '../components/Admin/DecisionPanel'
 import NoTools from '../components/Admin/NoTools'
 import RecordSkeleton from '../components/Admin/RecordSkeleton'
 import RegistrationDetail from '../components/Admin/RegistrationDetail'
+import TeamCard from '../components/Journal/TeamCard'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
 
@@ -21,6 +22,13 @@ function DetailPage() {
   const detail = useQuery(api.registrations.detail, me && can(me.roles, 'review_registrations') ? { id: id as Id<'registrations'> } : 'skip')
   const decide = useMutation(api.registrations.decide)
   const sendRejection = useMutation(api.notices.sendRejection)
+  // The team only exists for a member (or one who was): asked for on those
+  // rows alone, and only by someone who may see every member.
+  const showTeam =
+    !!me &&
+    can(me.roles, 'view_all_athletes') &&
+    (detail?.registration.status === 'selected' || detail?.registration.status === 'removed')
+  const team = useQuery(api.assignments.forAthlete, showTeam && detail ? { athleteUserId: detail.registration.userId } : 'skip')
 
   if (!me) return null
   if (!can(me.roles, 'review_registrations')) return <NoTools />
@@ -48,19 +56,22 @@ function DetailPage() {
       <h2 className="h-display mt-3 text-[clamp(22px,3.6vw,30px)]">{r.personal.name || detail.account.email}</h2>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
         <RegistrationDetail detail={detail} />
-        <DecisionPanel
-          status={r.status}
-          guardianConfirmed={detail.guardian.confirmed}
-          notice={r.decisionNotice?.status ?? null}
-          permissions={me.permissions}
-          log={detail.log}
-          onDecide={async (decision, note) => {
-            await decide({ id: r._id, decision, note: note || undefined })
-          }}
-          onSendRejection={async () => {
-            await sendRejection({ id: r._id })
-          }}
-        />
+        <div className="grid content-start gap-4">
+          <DecisionPanel
+            status={r.status}
+            guardianConfirmed={detail.guardian.confirmed}
+            notice={r.decisionNotice?.status ?? null}
+            permissions={me.permissions}
+            log={detail.log}
+            onDecide={async (decision, note) => {
+              await decide({ id: r._id, decision, note: note || undefined })
+            }}
+            onSendRejection={async () => {
+              await sendRejection({ id: r._id })
+            }}
+          />
+          {showTeam && <TeamCard team={team} />}
+        </div>
       </div>
     </div>
   )

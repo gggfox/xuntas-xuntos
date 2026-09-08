@@ -7,6 +7,7 @@ import type { Id } from '../../convex/_generated/dataModel'
 const staff = [
   { _id: 'u1' as Id<'users'>, name: 'Gerardo', email: 'g@xuntas.org', roles: ['master_admin'] as const },
   { _id: 'u2' as Id<'users'>, name: 'Ana', email: 'ana@xuntas.org', roles: ['admin'] as const },
+  { _id: 'u3' as Id<'users'>, name: 'Luisa', email: 'luisa@xuntas.org', roles: ['coach'] as const },
 ]
 const invites = [
   {
@@ -20,7 +21,7 @@ const invites = [
   },
 ]
 
-function renderTable(canManage: boolean, view: StaffView = 'people') {
+function renderTable(canManage: boolean, view: StaffView = 'people', onAssign?: (id: Id<'users'>) => void) {
   const onSetRoles = vi.fn(async () => {})
   const onResend = vi.fn(async () => {})
   const onRevoke = vi.fn(async () => {})
@@ -34,6 +35,7 @@ function renderTable(canManage: boolean, view: StaffView = 'people') {
       onSetRoles={onSetRoles}
       onResend={onResend}
       onRevoke={onRevoke}
+      onAssign={onAssign}
     />,
   )
   return { onSetRoles, onResend, onRevoke }
@@ -64,6 +66,19 @@ describe('StaffTable', () => {
   it('offers no edit controls without manage_users', () => {
     renderTable(false)
     expect(screen.queryByRole('button', { name: m.staff_edit() })).not.toBeInTheDocument()
+  })
+
+  /** Administration sees every member already; only a coach or a health specialist has a list to fill. */
+  it('offers the athlete picker on assignable rows only, and only when given a handler', () => {
+    const onAssign = vi.fn()
+    renderTable(false, 'people', onAssign)
+    const buttons = screen.getAllByRole('button', { name: m.staff_assign() })
+    expect(buttons).toHaveLength(1)
+    fireEvent.click(buttons[0])
+    expect(onAssign).toHaveBeenCalledWith('u3')
+    cleanup()
+    renderTable(true)
+    expect(screen.queryByRole('button', { name: m.staff_assign() })).not.toBeInTheDocument()
   })
 
   it('offers no invitation controls without manage_users', () => {

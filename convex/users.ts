@@ -16,6 +16,7 @@ import { newToken } from './lib/tokens'
 import { inviteStatus } from './lib/staffRules'
 import { vThemePreference } from './schema'
 import { permissionsOf, type Role } from './lib/permissions'
+import { membershipOf } from './members'
 
 export { newToken }
 
@@ -79,6 +80,8 @@ export const myStatus = query({
             updatedAt: registration.updatedAt,
           }
         : null,
+      /** Any cycle, not just this one: last year's member is still a member while this year's window is open. */
+      member: (await membershipOf(ctx, user._id)) !== null,
     }
   },
 })
@@ -393,6 +396,41 @@ export const remove = internalMutation({
       .collect()
     for (const g of guardians) await ctx.db.delete(g._id)
 
+    // The journal is theirs: entries, every comment under them, the stats
+    // row. Comments this person wrote on someone else's journal stay — they
+    // are part of that athlete's record — and resolve to an empty author.
+    const entries = await ctx.db
+      .query('journalEntries')
+      .withIndex('by_athlete_date', (q) => q.eq('athleteUserId', user._id))
+      .collect()
+    for (const e of entries) await ctx.db.delete(e._id)
+    const comments = await ctx.db
+      .query('journalComments')
+      .withIndex('by_athlete_entry', (q) => q.eq('athleteUserId', user._id))
+      .collect()
+    for (const c of comments) await ctx.db.delete(c._id)
+    const stats = await ctx.db
+      .query('journalStats')
+      .withIndex('by_athlete', (q) => q.eq('athleteUserId', user._id))
+      .collect()
+    for (const s of stats) await ctx.db.delete(s._id)
+
+    // Assignments on either side, and everything addressed to them.
+    const asAthlete = await ctx.db
+      .query('assignments')
+      .withIndex('by_athlete_active', (q) => q.eq('athleteUserId', user._id))
+      .collect()
+    const asStaff = await ctx.db
+      .query('assignments')
+      .withIndex('by_staff_active', (q) => q.eq('staffUserId', user._id))
+      .collect()
+    for (const a of [...asAthlete, ...asStaff]) await ctx.db.delete(a._id)
+    const notifications = await ctx.db
+      .query('notifications')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect()
+    for (const n of notifications) await ctx.db.delete(n._id)
+
     await ctx.db.delete(user._id)
   },
 })
@@ -407,7 +445,13 @@ export const me = query({
   handler: async (ctx) => {
     const user = await currentUser(ctx)
     if (!user) return null
-    return { roles: user.roles, permissions: permissionsOf(user.roles), email: user.email }
+    return {
+      roles: user.roles,
+      permissions: permissionsOf(user.roles),
+      email: user.email,
+      /** In the Programa de Desarrollo right now. Decides the profile, the journal and the bell. */
+      member: (await membershipOf(ctx, user._id)) !== null,
+    }
   },
 })
 

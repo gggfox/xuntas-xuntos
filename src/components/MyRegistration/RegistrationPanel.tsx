@@ -134,8 +134,9 @@ export default function RegistrationPanel({
         email: user?.primaryEmailAddress?.emailAddress ?? '',
       })
 
+  // Anything past `draft` was sent; a decision on top does not unsend it.
   const alreadySubmitted =
-    mine.registration?.status === 'submitted' || mine.registration?.status === 'validated'
+    mine.registration !== null && mine.registration !== undefined && mine.registration.status !== 'draft'
 
   return (
     <main className="relative isolate col pt-[38px] pb-[90px]">

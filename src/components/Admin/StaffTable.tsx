@@ -13,6 +13,7 @@ import Pill, { type PillTone } from '../Pill'
 import RoleChecks from './RoleChecks'
 import RolePills from './RolePills'
 import type { Role } from '../../lib/permissions'
+import { canBeAssigned } from '../../../convex/lib/assignmentRules'
 import { useDateFormats } from '../DateField/format'
 import { useFillHeight } from '../../hooks/useFillHeight'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -41,6 +42,8 @@ type Props = {
   onSetRoles: (userId: Id<'users'>, roles: Role[]) => Promise<void>
   onResend: (inviteId: Id<'staffInvites'>) => Promise<void>
   onRevoke: (inviteId: Id<'staffInvites'>) => Promise<void>
+  /** Opens the athlete picker for one row. Absent when the reader may not assign. */
+  onAssign?: (userId: Id<'users'>) => void
 }
 
 /**
@@ -81,6 +84,7 @@ export default function StaffTable({
   onSetRoles,
   onResend,
   onRevoke,
+  onAssign,
 }: Props) {
   const fmt = useDateFormats()
   /** Which row is being edited, and the roles typed so far. */
@@ -129,8 +133,15 @@ export default function StaffTable({
           id: 'actions',
           header: '',
           cell: (c) => {
-            if (!canManage) return null
             const row = c.row.original
+            // Only a role whose access is "assigned athletes" has a list to
+            // fill: administration sees everyone already.
+            const assign = onAssign && canBeAssigned(row.roles) && (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAssign(row._id)}>
+                {m.staff_assign()}
+              </button>
+            )
+            if (!canManage) return assign ? <span className="flex gap-2">{assign}</span> : null
             if (editing?.id === row._id) {
               return (
                 <span className="flex gap-2">
@@ -152,6 +163,7 @@ export default function StaffTable({
             }
             return (
               <span className="flex gap-2">
+                {assign}
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -171,7 +183,7 @@ export default function StaffTable({
           },
         }),
       ]),
-    [canManage, editing, meId, onSetRoles],
+    [canManage, editing, meId, onAssign, onSetRoles],
   )
 
   const inviteColumns = useMemo(
