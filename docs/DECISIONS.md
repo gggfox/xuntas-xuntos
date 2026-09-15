@@ -85,6 +85,28 @@ a new entry tells the assigned staff; an assignment tells both sides;
 removal tells nobody in-app. Administration hears only where it spoke
 first. A daily cron forgets read rows after ninety days.
 
+**The PIP is a feed, not a monthly template.** The prototype's fixed
+month (theme, two videos, four office hours, a tracker, a private journal)
+became posts a `pip_lead` publishes to groups on a schedule, with any-emoji
+reactions and threads that are private to the lead by default. The monthly
+rhythm survives as month headers. Visibility is computed from current group
+membership at read time — a late joiner sees the past, a removed member
+sees nothing — and never fanned out. A comment keeps the visibility it was
+written under, so flipping a post exposes only what comes after. Delete only
+while nothing was said or felt; otherwise unpublish. Full design:
+`docs/superpowers/specs/2026-09-14-pip-posts-groups-design.md`.
+
+**The feed's shape was prototyped, five variants, three rounds.** Verdict:
+E — a month select and kind chips in a static toolbar, posts as cards that
+fold with three lines and an attachment summary, reactions in view either
+way, a lightbox for attachments, one reply box per thread. The variants
+live on `proto/pip-feed`.
+
+**Bodies are markdown, rendered without HTML.** Posts and comments now; the
+bitácora once the editor lands. `react-markdown` treats raw HTML as text,
+which is the sanitising. The journal's title limit dropped to 100 to match a
+post's.
+
 **Staff are invited by the app, not from Clerk.** `staffInvites` binds an
 invitation to an email; the `user.created` webhook redeems it by matching the
 account's primary address. Removal revokes roles and never deletes the
