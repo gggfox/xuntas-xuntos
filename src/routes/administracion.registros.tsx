@@ -10,12 +10,14 @@ import NoTools from '../components/Admin/NoTools'
 import RegistrationFilters from '../components/Admin/RegistrationFilters'
 import RegistrationsTable from '../components/Admin/RegistrationsTable'
 import RegistrationCards from '../components/Admin/RegistrationCards'
+import TableSkeleton, { CardsSkeleton } from '../components/Admin/TableSkeleton'
 import Segmented, { segmentId } from '../components/Segmented'
 import { useActiveCycle } from '../hooks/useActiveCycle'
 import { useAdminCycle } from '../hooks/useAdminCycle'
 import { useMe } from '../hooks/useMe'
 import { VIEWS, applyFilters, type Filters, type ViewId } from '../lib/adminViews'
 import { can } from '../lib/permissions'
+import { withViewTransition } from '../lib/viewTransition'
 
 export const Route = createFileRoute('/administracion/registros')({
   head: () => ({ meta: [{ title: m.meta_page({ page: m.regs_title() }) }] }),
@@ -54,7 +56,14 @@ function RegistrationsPage() {
   const sendBatch = useMutation(api.notices.sendBatch)
   const sendTest = useMutation(api.notices.sendTest)
 
-  const [filters, setFilters] = useState<Filters>(VIEWS[view].filters)
+  // The filters are remembered against the view they were set in, so a
+  // view switch resets them in the same render the URL changes in. One
+  // commit is what lets the navigation's View Transition cover both: the
+  // earlier two-step version — reset the state, then navigate — snapped
+  // the table to the new filters a frame before it animated the view.
+  const [filtersFor, setFiltersFor] = useState<{ view: ViewId; filters: Filters }>({ view, filters: VIEWS[view].filters })
+  const filters = filtersFor.view === view ? filtersFor.filters : VIEWS[view].filters
+  const setFilters = (next: Filters) => withViewTransition(() => setFiltersFor({ view, filters: next }))
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState(false)
 
@@ -73,9 +82,13 @@ function RegistrationsPage() {
 
   if (!me) return null
   if (!can(me.roles, 'review_registrations')) return <NoTools />
-  if (rows === undefined || !cycle) return <p className="mt-8 text-soft">{m.common_loading()}</p>
 
   const canBatch = can(me.roles, 'send_batch')
+  // Nothing in the panel beside the table waits on the rows — the views,
+  // the filters and the batch button are all drawn from state the page
+  // already holds — so while Convex answers only the table's region is a
+  // skeleton, in the table's own shape, and the controls are live.
+  const loading = rows === undefined || !cycle
   // The batch's own cycle gates it, not whichever cycle happens to be active
   // right now — a reviewer looking at a past cycle must not be told its
   // window is open just because this year's is. But a safety check must
@@ -87,65 +100,104 @@ function RegistrationsPage() {
   const windowOpen = active === undefined ? true : !!active && active._id === cycle && active.isOpen
 
   function switchView(v: ViewId) {
-    setFilters(VIEWS[v].filters)
     setSelected(new Set())
-    void navigate({ search: { vista: v }, replace: true })
+    // The router wraps this commit in a View Transition; the filters follow
+    // `view` (above), so the table animates once, to its final state.
+    void navigate({ search: { vista: v }, replace: true, viewTransition: true })
   }
+
+  const open = (id: string) => void navigate({ to: '/administracion/registros/$id', params: { id } })
 
   return (
     <>
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <Segmented
-          name="registros"
-          label={m.regs_views()}
-          value={view}
-          panelId={PANEL_ID}
-          items={(Object.keys(VIEWS) as ViewId[]).map((v) => ({ id: v, label: VIEW_LABEL[v]() }))}
-          onChange={switchView}
-        />
-        {canBatch && view === 'all' && (
-          <button type="button" className="btn btn-sm" disabled={selected.size === 0} onClick={() => setDialog(true)}>
-            {m.regs_send_batch()} · {m.regs_selected({ n: selected.size })}
-          </button>
-        )}
-      </div>
+      {/* From `lg` everything that narrows the table stands beside it in a
+          sticky panel — the views on top, the filters under them, and the
+          batch button, when there is one, at the bottom — and the table
+          takes the rest of the window. Below `lg` the same elements stack
+          in the same order; the frame's width is the point of this
+          arrangement, and a stack is what a narrower one has room for.
+          See docs/DECISIONS.md, "The administration frame". */}
+      <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-x-10">
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <div className="mt-4">
+            <Segmented
+              name="registros"
+              label={m.regs_views()}
+              value={view}
+              panelId={PANEL_ID}
+              items={(Object.keys(VIEWS) as ViewId[]).map((v) => ({ id: v, label: VIEW_LABEL[v]() }))}
+              onChange={switchView}
+              stretch
+            />
+          </div>
 
-      <RegistrationFilters value={filters} onChange={setFilters} lockStatus={view !== 'all'} view={view} />
+          {/* Outside the tabpanel: the filters narrow every view rather
+              than belonging to one. */}
+          <RegistrationFilters value={filters} onChange={setFilters} lockStatus={view !== 'all'} view={view} />
 
-      {/* The region the segmented control swaps. The filter bar sits above
-          it, outside: it narrows every view rather than belonging to one. */}
-      <div id={PANEL_ID} role="tabpanel" aria-labelledby={segmentId('registros', view)}>
-        {/* Two renderings of the same rows, each hidden at the other's width:
-            nine columns do not survive a phone, and a stack of cards wastes a
-            laptop. See `RegistrationCards`. */}
-        <RegistrationCards
-          rows={shown}
-          view={view}
-          canSelect={canBatch}
-          selected={selected}
-          onSelectedChange={setSelected}
-          onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
-        />
+          {canBatch && view === 'all' && (
+            <button
+              type="button"
+              className="btn btn-sm mt-5 lg:w-full"
+              disabled={selected.size === 0}
+              onClick={() => setDialog(true)}
+            >
+              {m.regs_send_batch()} · {m.regs_selected({ n: selected.size })}
+            </button>
+          )}
+        </aside>
 
-        <div className="hidden md:block">
-          <RegistrationsTable
-            // v9's table instance is built once, on mount, from `initialState` —
-            // it does not re-seed sorting from a later `initialState` prop. Each
-            // view has its own default sort (see `VIEWS`), so the key forces a
-            // fresh instance when the tab changes instead of carrying the old
-            // view's sort into the new one.
-            key={view}
-            rows={shown}
-            view={view}
-            canSelect={canBatch}
-            selected={selected}
-            onSelectedChange={setSelected}
-            onOpen={(id) => void navigate({ to: '/administracion/registros/$id', params: { id } })}
-          />
+        {/* The region the segmented control swaps. */}
+        <div id={PANEL_ID} role="tabpanel" aria-labelledby={segmentId('registros', view)} className="min-w-0">
+          {/* Two renderings of the same rows, each hidden at the other's width:
+              nine columns do not survive a phone, and a stack of cards wastes a
+              laptop. See `RegistrationCards`. */}
+          {loading ? (
+            <>
+              <CardsSkeleton />
+              <div className="hidden md:block">
+                <TableSkeleton
+                  columns={
+                    canBatch && VIEWS[view].selectable
+                      ? ['check', 'text', 'text', 'chip', 'mono', 'chip', 'chip', 'date', 'button']
+                      : ['text', 'text', 'chip', 'mono', 'chip', 'chip', 'date', 'button']
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <RegistrationCards
+                rows={shown}
+                view={view}
+                canSelect={canBatch}
+                selected={selected}
+                onSelectedChange={setSelected}
+                onOpen={open}
+              />
+
+              <div className="hidden md:block">
+                <RegistrationsTable
+                  // v9's table instance is built once, on mount, from `initialState` —
+                  // it does not re-seed sorting from a later `initialState` prop. Each
+                  // view has its own default sort (see `VIEWS`), so the key forces a
+                  // fresh instance when the tab changes instead of carrying the old
+                  // view's sort into the new one.
+                  key={view}
+                  rows={shown}
+                  view={view}
+                  canSelect={canBatch}
+                  selected={selected}
+                  onSelectedChange={setSelected}
+                  onOpen={open}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {dialog && (
+      {dialog && cycle && (
         <BatchSendDialog
           count={selected.size}
           windowOpen={windowOpen}

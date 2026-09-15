@@ -9,13 +9,14 @@ import RegistrationForm from '../RegistrationForm'
 import AccountStatus from './AccountStatus'
 import BirthDateStep from './BirthDateStep'
 import GuardianNotice from './GuardianNotice'
-import LoadingFrame from './LoadingFrame'
+import PageSkeleton from '../PageSkeleton'
 import SessionFrame from './SessionFrame'
 import SyncingFrame from './SyncingFrame'
 import { prepareForSubmit, emptyRegistration, type RegistrationData } from '../../lib/registrationSchema'
 import { errorCodeFromConvex } from '../../lib/registrationErrors'
 import type { RegistrationError } from '../../lib/registrationRules'
 import { useActiveCycle } from '../../hooks/useActiveCycle'
+import { isAthlete } from '../../lib/permissions'
 
 /**
  * Everything behind the sign-in wall: the form itself, plus the screens that
@@ -71,7 +72,7 @@ export default function RegistrationPanel({
   // fault the UI does not design for) — either way, nothing below this
   // point may render a sentence that needs a date it does not have yet.
   if (authLoading || status === undefined || mine === undefined || !cycle) {
-    return <LoadingFrame reviewOnText={cycle?.reviewOnText}>{m.common_loading()}</LoadingFrame>
+    return <PageSkeleton reviewOnText={cycle?.reviewOnText} />
   }
 
   /**
@@ -100,7 +101,7 @@ export default function RegistrationPanel({
    * Before the birth-date step, on purpose: a staff account has no date and
    * must never be asked for one.
    */
-  if (!status.account.roles.includes('athlete')) {
+  if (!isAthlete(status.account.roles)) {
     return <Navigate to="/administracion" />
   }
 

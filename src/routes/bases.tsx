@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as m from '../paraglide/messages.js'
+import { TextLine } from '../components/Skeleton'
 import { DOCUMENTS } from '../lib/documents'
 import { useActiveCycle } from '../hooks/useActiveCycle'
 
@@ -41,7 +42,7 @@ function Rules() {
         <p>
           {c
             ? m.rules_dates({ opens: c.opensOnText, closes: c.closesOnText, review: c.reviewOnText })
-            : m.common_loading()}
+            : <TextLine className="w-[44ch] max-w-full" />}
         </p>
 
         <h2 className="h-display mt-8 text-[18px] text-ink">Cómo se evalúa</h2>

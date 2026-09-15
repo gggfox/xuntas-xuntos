@@ -6,6 +6,7 @@ import { canSeeAthletes } from '../components/Admin/AdminShell'
 import AthleteCards from '../components/Admin/AthleteCards'
 import AthletesTable from '../components/Admin/AthletesTable'
 import NoTools from '../components/Admin/NoTools'
+import TableSkeleton, { CardsSkeleton } from '../components/Admin/TableSkeleton'
 import Segmented, { segmentId } from '../components/Segmented'
 import { useMe } from '../hooks/useMe'
 import { can } from '../lib/permissions'
@@ -58,7 +59,12 @@ function AthletesPage() {
 
       <div id={PANEL_ID} role="tabpanel" aria-labelledby={segmentId('atletas', view)}>
         {rows === undefined ? (
-          <p className="mt-8 text-soft">{m.common_loading()}</p>
+          <>
+            <div className="hidden md:block">
+              <TableSkeleton className="mt-3" columns={showStaff ? ['text', 'text', 'date', 'mono', 'text', 'button'] : ['text', 'text', 'date', 'mono', 'button']} />
+            </div>
+            <CardsSkeleton />
+          </>
         ) : (
           <>
             <AthletesTable

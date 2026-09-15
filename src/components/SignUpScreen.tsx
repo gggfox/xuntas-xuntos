@@ -2,6 +2,8 @@ import { SignUp } from '@clerk/tanstack-react-start'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import * as m from '../paraglide/messages.js'
+import PageSkeleton from './PageSkeleton'
+import { TextLine } from './Skeleton'
 import { localizeHref } from '../paraglide/runtime.js'
 import { readPreSignupToken } from '../lib/preSignup'
 import { clerkAppearance } from '../lib/clerkAppearance'
@@ -46,7 +48,7 @@ export default function SignUpScreen() {
   const inClerkStep = /\/crear-cuenta\/.+/.test(pathname)
 
   if (token === undefined) {
-    return <main className="col col-560 py-16 text-soft">{m.common_loading()}</main>
+    return <PageSkeleton width="560" />
   }
 
   // Without the age gate no account gets started: we would not know whether a
@@ -70,7 +72,7 @@ export default function SignUpScreen() {
       <p className="eyebrow">{m.account_eyebrow()}</p>
       <h1 className="h-display mt-[7px] text-[clamp(26px,4.6vw,38px)]">{m.account_title()}</h1>
       <p className="mt-3 max-w-[52ch] font-light text-soft">
-        {cycle ? m.account_lede({ date: cycle.closesOnText }) : m.common_loading()}
+        {cycle ? m.account_lede({ date: cycle.closesOnText }) : <TextLine className="w-[40ch] max-w-full" />}
       </p>
       <p className="mt-2 max-w-[52ch] text-[13px] font-light text-soft">{m.account_no_password()}</p>
 

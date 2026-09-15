@@ -18,7 +18,7 @@ type Props = {
  * read, the registration window, and the day results are reviewed. A call
  * has no name of its own — the row's `_id` is what every registration is
  * filed under, minted by Convex and never typed here. Shared by
- * `CyclesPanel` for both "Nueva convocatoria" and "Editar" — only what the
+ * `CyclesPanel` for both "Nuevo periodo de registro" and "Editar" — only what the
  * submit does differs.
  */
 export default function CycleForm({ initial, submitLabel, onSubmit, onDone }: Props) {

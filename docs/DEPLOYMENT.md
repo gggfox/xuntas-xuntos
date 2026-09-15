@@ -71,9 +71,9 @@ It is idempotent: `{ inserted: true, activated: true }` the first time,
 already active when this runs — a second environment reusing the seed, or a
 re-run after `create`/`setActive` moved on — it inserts 2026–2027 *inactive*
 instead of dethroning whatever is active: `{ inserted: true, activated:
-false }`. A `master_admin` promotes it from `/administracion/convocatorias`
+false }`. A `master_admin` promotes it from `/administracion/periodos`
 when that is actually wanted.) From then on the dates are edited from
-`/administracion/convocatorias` by a `master_admin`, and every change is
+`/administracion/periodos` by a `master_admin`, and every change is
 recorded in `cycleChanges` with who made it.
 
 ---

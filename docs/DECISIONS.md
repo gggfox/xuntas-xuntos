@@ -3,7 +3,7 @@
 A record of the architecture and product decisions, with the why. The code
 points here when something looks odd at first glance but is deliberate.
 
-Last reviewed: September 3, 2026.
+Last reviewed: September 7, 2026.
 
 ---
 
@@ -11,7 +11,7 @@ Last reviewed: September 3, 2026.
 
 **The window lives in the `cycles` table, one row per call, exactly one
 active.** A `master_admin` edits opens/closes/review from
-`/administracion/convocatorias`; every change lands in `cycleChanges` with who
+`/administracion/periodos`; every change lands in `cycleChanges` with who
 and when. The 2026–2027 row was seeded from the old constants (September 4–18,
 review the 23rd). The arithmetic — Mexico City days to instants, UTC-6 all
 year — is `convex/lib/cycleRules.ts`, shared with the client. There is no
@@ -198,6 +198,67 @@ parent.
 `RESEND_TEST_MODE` must be switched to `false` to send to real addresses.
 
 ---
+
+## The administration frame runs the width of the window
+
+The admin pages sat in the 900px reading column, and on a laptop the
+nine-column registrations table was crushed between two empty margins with
+names wrapping onto two lines. Four frames were tried side by side on the
+real pages, with real data (branch `proto/admin-width`, commit `e73c8da` —
+the prototype is the primary source): the column as it was, the same column
+at BRAND.md's 1240px, a sticky side rail with the sub-nav, and a compact
+title strip with the table's own controls in a panel beside it. The strip
+won: it spends the least height on chrome and gives the table the whole
+width, which is the only thing on these pages that needs it. Concretely:
+
+- `AdminShell` is one strip — eyebrow and title at 22px, the sub-nav, the
+  period — over a page fluid to 1800px (`.col-1800`).
+- On registros the views, the five filters and the batch button stand in a
+  sticky 260px panel to the left of the table from `lg`. Below that the
+  page stacks in the same order; below `md` the filters stay behind their
+  button, as before.
+- A record, the team and the periods cap themselves at 1240px inside the
+  frame: they are reading and short tables, not the wide one.
+- Every change to the table runs inside a View Transition — rows slide,
+  leave and arrive instead of the table repainting in one frame. The
+  filters are remembered per view so a view switch resets them in the same
+  commit the URL changes in, which is what lets one transition cover both.
+
+BRAND.md's width rule was amended to say so.
+
+## Tables fill the window, and a wait has a shape
+
+Two things the frame above left undone.
+
+**Height.** The registrations table, the team's table, the athletes table and a record sat in
+cards that grew with their rows, so a long queue pushed the count line and
+the footer off the bottom and a reviewer scrolled the page to reach either.
+From `lg` each of those cards now takes what the window has under the admin
+strip, holds its column headings at the top and scrolls its rows inside;
+the count line is pinned to the card's foot, the decision panel beside a
+record keeps its own height. Below `lg` nothing changes — a scroll inside a
+scroll is what a tablet does not have room for. The height is measured
+(`useFillHeight`, one `--tall-h` per card) rather than laid out, because
+nothing above the card has a fixed height and a flex chain from `<body>`
+cannot fill it either: the body has a *minimum* height, not a height, so a
+tall table grew the page instead of scrolling inside it. The frame's bottom
+padding drops to 24px from `lg` so the card ends where the footer begins.
+
+**Waiting.** Every wait on Convex printed "Cargando…" and nothing else, and
+the two-column registrations layout appeared only once the rows had. Now a
+wait draws the shape of what is coming: the table's own card at the
+window's height with twelve rows of bars in each column's shape (a card
+list below `md`, as the real rows are), a record's sections beside a
+decision panel, the reading column's eyebrow-title-paragraph on the public
+pages. Twelve rows, fixed, rather than a measured count: it fills a laptop
+and the card clips the rest. The controls beside the registrations table
+are live during the wait, because nothing in them depends on the rows.
+The sentence survives as a visually hidden `role="status"`, so a screen
+reader hears what it heard before; busy buttons keep their text, and the
+one wait that is a message — an account still syncing — stays a message.
+The bars pulse; the global reduced-motion rule stops them.
+
+BRAND.md was amended for both.
 
 ## Data
 

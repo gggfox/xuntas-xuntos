@@ -15,6 +15,12 @@ type Props<T extends string> = {
   onChange: (id: T) => void
   /** The region this control swaps, when the page renders one. */
   panelId?: string
+  /**
+   * Fill the width of what holds it, from `lg` up. For a control that sits
+   * in a column beside what it switches rather than above it; see
+   * `.seg-stretch` in styles.css for why it is width-gated.
+   */
+  stretch?: boolean
 }
 
 /** The id `Segmented` gives a segment, for a panel's `aria-labelledby`. */
@@ -46,6 +52,7 @@ export default function Segmented<T extends string>({
   items,
   onChange,
   panelId,
+  stretch,
 }: Props<T>) {
   const refs = useRef(new Map<T, HTMLButtonElement | null>())
 
@@ -72,7 +79,7 @@ export default function Segmented<T extends string>({
   }
 
   return (
-    <div role="tablist" aria-label={label} className="seg" onKeyDown={onKeyDown}>
+    <div role="tablist" aria-label={label} className={stretch ? 'seg seg-stretch' : 'seg'} onKeyDown={onKeyDown}>
       {items.map((it) => (
         <button
           key={it.id}

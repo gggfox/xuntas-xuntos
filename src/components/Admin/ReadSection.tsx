@@ -3,7 +3,7 @@ import * as m from '../../paraglide/messages.js'
 /** One numbered section, read-only: the same heading pattern as the form's `FormSection`. */
 export default function ReadSection({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-[30px]">
+    <section className="mb-[30px] last:mb-0">
       <h2 className="mb-[9px] font-disp text-[17px] font-bold">
         {n} · {title}
       </h2>

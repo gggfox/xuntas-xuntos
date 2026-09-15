@@ -6,6 +6,7 @@
 export {
   ROLES,
   can,
+  isAthlete,
   isStaff,
   type Permission,
   type Role,
