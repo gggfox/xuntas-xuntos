@@ -1,5 +1,5 @@
 import { paginationOptsValidator } from 'convex/server'
-import { v } from 'convex/values'
+import { v, type Infer } from 'convex/values'
 import { internalMutation, mutation, query } from './_generated/server'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import type { Doc, Id } from './_generated/dataModel'
@@ -14,6 +14,7 @@ import {
   isEmoji,
   monthKeyOf,
   monthRange,
+  validateAttachment,
   validateGroupName,
   validatePipComment,
   validatePost,
@@ -180,9 +181,22 @@ const postArgs = {
   commentsVisibility: vCommentsVisibility,
 }
 
-async function checkPostInput(ctx: QueryCtx, args: { kind: PostKind; title: string; body: string; attachments: unknown[]; groupIds: Id<'pipGroups'>[]; commentsVisibility: 'off' | 'lead' | 'group' }) {
+type AttachmentArg = Infer<typeof vAttachment>
+
+async function checkPostInput(ctx: QueryCtx, args: { kind: PostKind; title: string; body: string; attachments: AttachmentArg[]; groupIds: Id<'pipGroups'>[]; commentsVisibility: 'off' | 'lead' | 'group' }) {
   const problem = validatePost({ ...args, attachmentCount: args.attachments.length })
   if (problem) fail(problem)
+  for (const a of args.attachments) {
+    if (a.type === 'youtube') {
+      const p = validateAttachment(a)
+      if (p) fail(p)
+      continue
+    }
+    const meta = await ctx.db.system.get(a.storageId)
+    if (!meta) fail('attachment_type_invalid')
+    const p = validateAttachment({ type: a.type, contentType: meta.contentType ?? null, size: meta.size })
+    if (p) fail(p)
+  }
   for (const id of args.groupIds) {
     const g = await requireGroup(ctx, id)
     if (g.archivedAt !== undefined) fail('group_archived')

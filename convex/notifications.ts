@@ -11,7 +11,6 @@ import {
   recipientsFor,
   type NotificationEvent,
 } from './lib/notificationRules'
-import { can } from './lib/permissions'
 
 /**
  * In-app notifications: a bell, a list, and a cron that forgets the read
@@ -55,12 +54,11 @@ export async function notify(
 
 /** The names a sentence needs: who did it, about whom, and which entry or post. Resolved per row; the lists are short. */
 async function describe(ctx: QueryCtx, n: Doc<'notifications'>) {
-  const [actor, athlete, entry, post, recipient] = await Promise.all([
+  const [actor, athlete, entry, post] = await Promise.all([
     ctx.db.get(n.actorId),
     n.athleteId ? ctx.db.get(n.athleteId) : Promise.resolve(null),
     n.entryId ? ctx.db.get(n.entryId) : Promise.resolve(null),
     n.postId ? ctx.db.get(n.postId) : Promise.resolve(null),
-    ctx.db.get(n.userId),
   ])
   return {
     _id: n._id,
@@ -75,7 +73,6 @@ async function describe(ctx: QueryCtx, n: Doc<'notifications'>) {
     athleteName: athlete?.name ?? athlete?.email ?? '',
     entryTitle: entry?.title,
     postTitle: post?.title,
-    forLead: recipient ? can(recipient.roles, 'publish_pip') : false,
   }
 }
 

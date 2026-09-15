@@ -61,8 +61,12 @@ describe('PipFeed', () => {
     // string.
     expect(headers[0]?.textContent).toMatch(/septiembre 2026|September 2026/)
     expect(headers[1]?.textContent).toMatch(/agosto 2026|August 2026/)
-    expect(screen.getByRole('button', { name: m.pip_collapse() })).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: m.pip_expand() })).toHaveLength(2)
+    // The reaction "+" buttons also carry `aria-expanded`, so the toggle is
+    // found by its position as the article's direct child, not by name —
+    // every card's disclosure announces the post's own title, not a
+    // generic "expand"/"collapse" (finding 4 of the final review).
+    expect(document.querySelectorAll('article > button[aria-expanded="true"]')).toHaveLength(1)
+    expect(document.querySelectorAll('article > button[aria-expanded="false"]')).toHaveLength(2)
   })
 
   it('offers the months with their counts and asks the server for the chosen one', () => {
@@ -84,8 +88,8 @@ describe('PipFeed', () => {
   it('opens the post a notification pointed at', () => {
     paged = { results: [post({}), post({ _id: 'p2', title: 'Office hours' })], status: 'Exhausted', loadMore: vi.fn() }
     render(<PipFeed focusPostId="p2" />)
-    const open = screen.getByRole('button', { name: m.pip_collapse() })
-    expect(open.closest('article')?.id).toBe('post-p2')
+    const open = document.querySelector('article > button[aria-expanded="true"]')
+    expect(open?.closest('article')?.id).toBe('post-p2')
   })
 
   it('asks for more when there is more', () => {

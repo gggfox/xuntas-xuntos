@@ -63,6 +63,18 @@ export function validateGroupName(name: string): AppErrorCode | null {
   return null
 }
 
+/** One attachment, checked against what the type carries: a YouTube id, or a stored file's content type and size. */
+export function validateAttachment(
+  a: { type: 'youtube'; videoId: string } | { type: 'image' | 'video'; contentType: string | null; size: number },
+): AppErrorCode | null {
+  if (a.type === 'youtube') return /^[\w-]{11}$/.test(a.videoId) ? null : 'youtube_id_invalid'
+  const types: readonly string[] = a.type === 'image' ? IMAGE_TYPES : VIDEO_TYPES
+  if (!a.contentType || !types.includes(a.contentType)) return 'attachment_type_invalid'
+  const max = a.type === 'image' ? IMAGE_MAX_BYTES : VIDEO_MAX_BYTES
+  if (a.size > max) return 'attachment_too_large'
+  return null
+}
+
 /** A post with reactions or comments stays: unpublish hides it, delete would take the words with it. */
 export function canDeletePost(p: { commentCount: number; reactionCount: number }): AppErrorCode | null {
   return p.commentCount + p.reactionCount > 0 ? 'post_has_activity' : null

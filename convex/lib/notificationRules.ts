@@ -113,7 +113,8 @@ export type NotificationTarget = {
 /**
  * Where opening a notification lands. A journal row is about an athlete:
  * the athlete goes to their own pages, staff to the athlete's. A PIP row is
- * about a post: a member goes to the feed, a lead to their screen.
+ * about a post: everyone goes to the feed at that post — the lead's own
+ * screen is a later plan, and will get its own target then.
  */
 export function targetFor(n: {
   userId: string
@@ -121,12 +122,10 @@ export function targetFor(n: {
   kind: NotificationKind
   entryId?: string
   postId?: string
-  /** The recipient holds `publish_pip`. Only read for PIP rows. */
-  forLead?: boolean
 }): NotificationTarget {
   if (n.kind === 'pip_post_published' || n.kind === 'pip_comment_reply' || n.kind === 'pip_comment_new') {
     const search = n.postId ? { publicacion: n.postId } : undefined
-    return { to: n.forLead ? '/administracion/pip' : '/pip', search }
+    return { to: '/pip', search }
   }
   const isAthlete = n.userId === n.athleteId
   const search = n.entryId ? { entrada: n.entryId } : undefined

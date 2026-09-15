@@ -110,9 +110,9 @@ describe('recipientsFor · the PIP', () => {
 })
 
 describe('targetFor · the PIP', () => {
-  it('sends a member to the feed and a lead to their screen, both at the post', () => {
-    expect(targetFor({ userId: 'm1', kind: 'pip_post_published', postId: 'p1', forLead: false })).toEqual({ to: '/pip', search: { publicacion: 'p1' } })
-    expect(targetFor({ userId: 'L', kind: 'pip_comment_new', postId: 'p1', forLead: true })).toEqual({ to: '/administracion/pip', search: { publicacion: 'p1' } })
+  it('sends both a member and a lead to the feed, at the post', () => {
+    expect(targetFor({ userId: 'm1', kind: 'pip_post_published', postId: 'p1' })).toEqual({ to: '/pip', search: { publicacion: 'p1' } })
+    expect(targetFor({ userId: 'L', kind: 'pip_comment_new', postId: 'p1' })).toEqual({ to: '/pip', search: { publicacion: 'p1' } })
   })
 })
 

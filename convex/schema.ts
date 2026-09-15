@@ -486,9 +486,10 @@ export default defineSchema({
    * One shape of post. `kind` changes an icon and an eyebrow, nothing else.
    * `groupIds` empty means everyone. Visibility is computed at read time
    * from current membership, never fanned out. `commentCount` and
-   * `reactionCount` are kept by the mutations so the feed says "3
-   * comentarios" without a query per card, and delete can refuse without
-   * one either.
+   * `reactionCount` are kept by the mutations so delete can refuse without
+   * a query, and as the raw totals the lead's screen will read; the feed
+   * itself recomputes a per-viewer comment count, since a lead-only
+   * comment among them is not everyone's to see.
    */
   pipPosts: defineTable({
     authorId: v.id('users'),

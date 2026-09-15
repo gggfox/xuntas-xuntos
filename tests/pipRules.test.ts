@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
   ATTACHMENT_LIMIT,
+  IMAGE_MAX_BYTES,
   POST_BODY_LIMIT,
   POST_TITLE_LIMIT,
   PIP_COMMENT_LIMIT,
+  VIDEO_MAX_BYTES,
   canDeletePost,
   checkTransition,
   isEmoji,
   monthKeyOf,
   monthRange,
+  validateAttachment,
   validateGroupName,
   validatePipComment,
   validatePost,
@@ -126,6 +129,26 @@ describe('zoomLinkIn', () => {
     expect(zoomLinkIn('Entra por aquí: https://zoom.us/j/000000001 a las 17:00')).toBe('https://zoom.us/j/000000001')
     expect(zoomLinkIn('https://us02web.zoom.us/j/1?pwd=abc)')).toBe('https://us02web.zoom.us/j/1?pwd=abc')
     expect(zoomLinkIn('Sin liga.')).toBeNull()
+  })
+})
+
+describe('validateAttachment', () => {
+  it('wants an 11-character YouTube id', () => {
+    expect(validateAttachment({ type: 'youtube', videoId: 'dQw4w9WgXcQ' })).toBeNull()
+    expect(validateAttachment({ type: 'youtube', videoId: 'too-short' })).toBe('youtube_id_invalid')
+  })
+
+  it('takes only JPG, PNG or WebP for an image, within its size limit', () => {
+    expect(validateAttachment({ type: 'image', contentType: 'image/png', size: 1 })).toBeNull()
+    expect(validateAttachment({ type: 'image', contentType: 'image/gif', size: 1 })).toBe('attachment_type_invalid')
+    expect(validateAttachment({ type: 'image', contentType: null, size: 1 })).toBe('attachment_type_invalid')
+    expect(validateAttachment({ type: 'image', contentType: 'image/png', size: IMAGE_MAX_BYTES + 1 })).toBe('attachment_too_large')
+  })
+
+  it('takes only MP4 or WebM for a video, within its size limit', () => {
+    expect(validateAttachment({ type: 'video', contentType: 'video/mp4', size: 1 })).toBeNull()
+    expect(validateAttachment({ type: 'video', contentType: 'video/avi', size: 1 })).toBe('attachment_type_invalid')
+    expect(validateAttachment({ type: 'video', contentType: 'video/mp4', size: VIDEO_MAX_BYTES + 1 })).toBe('attachment_too_large')
   })
 })
 

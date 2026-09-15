@@ -111,4 +111,12 @@ describe('PostThread', () => {
     fireEvent.click(screen.getByRole('button', { name: m.common_delete() }))
     expect(remove).toHaveBeenCalledWith({ id: 'c1' })
   })
+
+  it('shows a message when the delete is refused', async () => {
+    remove.mockRejectedValueOnce(new Error('x'))
+    thread = { canComment: true, comments: [comment({ isMine: true })] }
+    render(<PostThread postId="p1" commentsVisibility="group" />)
+    fireEvent.click(screen.getByRole('button', { name: m.common_delete() }))
+    await waitFor(() => expect(screen.getByText(m.err_generic())).toBeInTheDocument())
+  })
 })

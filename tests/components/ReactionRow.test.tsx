@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as m from '../../src/paraglide/messages.js'
 
@@ -49,5 +49,12 @@ describe('ReactionRow', () => {
     rememberEmoji('🧠')
     rememberEmoji('🎯')
     expect(recentEmoji()).toEqual(['🎯', '🧠', ...QUICK_EMOJI].slice(0, 5))
+  })
+
+  it('shows a message when the reaction is refused', async () => {
+    react.mockRejectedValueOnce(new Error('x'))
+    render(<ReactionRow targetKind="post" targetId="p1" reactions={[{ emoji: '🔥', count: 7, mine: true }]} />)
+    fireEvent.click(screen.getByRole('button', { name: m.pip_reaction_mine({ emoji: '🔥', n: 7 }) }))
+    await waitFor(() => expect(screen.getByText(m.err_generic())).toBeInTheDocument())
   })
 })

@@ -81,7 +81,7 @@ export default function PostCard({ post, open, onToggle }: Props) {
 
   return (
     <article id={`post-${post._id}`} className={`card px-[18px] py-[15px] sm:px-[22px] sm:py-[17px] ${open ? 'border-ink' : ''}`}>
-      <button type="button" className="grid w-full gap-1 text-left" aria-expanded={open} aria-label={open ? m.pip_collapse() : m.pip_expand()} onClick={onToggle}>
+      <button type="button" className="grid w-full gap-1 text-left" aria-expanded={open} onClick={onToggle}>
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] tracking-[.12em] uppercase text-soft">
             <span aria-hidden="true" className="text-ochre">{KIND_GLYPH[post.kind]}</span>

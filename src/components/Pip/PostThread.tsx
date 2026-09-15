@@ -174,11 +174,15 @@ export default function PostThread({ postId, commentsVisibility }: Props) {
   const add = useMutation(api.pip.addComment)
   const remove = useMutation(api.pip.deleteComment)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const send = async (body: string, parentId?: string) => {
     await add(parentId ? { postId: postId as Id<'pipPosts'>, body, parentId: parentId as Id<'pipComments'> } : { postId: postId as Id<'pipPosts'>, body })
   }
-  const del = (id: string) => void remove({ id: id as Id<'pipComments'> })
+  const del = (id: string) => {
+    setDeleteError(null)
+    remove({ id: id as Id<'pipComments'> }).catch((err) => setDeleteError(describeConvexError(err)))
+  }
 
   if (thread === undefined) return <p className="text-[12.5px] text-soft">{m.common_loading()}</p>
   const note = commentsVisibility === 'lead' ? m.pip_visibility_lead() : m.pip_visibility_group()
@@ -186,6 +190,7 @@ export default function PostThread({ postId, commentsVisibility }: Props) {
   return (
     <div className="grid gap-4">
       <p className="text-[12px] font-light text-soft">{note}</p>
+      {deleteError && <span className="text-[11.5px] text-bad">{deleteError}</span>}
       {thread.canComment && <Composer placeholder={placeholder} onSend={(b) => send(b)} />}
       {thread.comments.length === 0 && (
         <p className="text-[12.5px] text-soft">{commentsVisibility === 'lead' ? m.pip_no_comments_lead() : m.pip_no_comments_group()}</p>

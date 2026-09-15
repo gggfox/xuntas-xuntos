@@ -15,7 +15,6 @@ export type NotificationView = {
   athleteName: string
   entryTitle?: string
   postTitle?: string
-  forLead?: boolean
 }
 
 /**

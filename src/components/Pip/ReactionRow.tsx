@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import * as m from '../../paraglide/messages.js'
+import { describeConvexError } from '../../lib/registrationErrors'
 
 export type Reaction = { emoji: string; count: number; mine: boolean }
 
@@ -55,8 +56,10 @@ type Props = {
 export default function ReactionRow({ targetKind, targetId, reactions }: Props) {
   const react = useMutation(api.pip.react)
   const [open, setOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const send = (emoji: string) => {
-    void react({ targetKind, targetId: targetId as Id<'pipPosts'> | Id<'pipComments'>, emoji })
+    setError(null)
+    react({ targetKind, targetId: targetId as Id<'pipPosts'> | Id<'pipComments'>, emoji }).catch((err) => setError(describeConvexError(err)))
   }
   const pick = (emoji: string) => {
     rememberEmoji(emoji)
@@ -104,6 +107,7 @@ export default function ReactionRow({ targetKind, targetId, reactions }: Props) 
           <p className="mt-3 text-[11px] text-soft">{m.pip_only_lead_sees_who()}</p>
         </div>
       )}
+      {error && <span className="text-[11.5px] text-bad">{error}</span>}
     </div>
   )
 }
