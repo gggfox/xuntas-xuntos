@@ -124,9 +124,11 @@ pipPosts {
   cohort reminder; one group per post means posting twice.
 - **Visibility is computed, not fanned out.** A member sees a published
   post if `groupIds` is empty or intersects their active groups. A member
-  added to a group later sees its past; a member removed from the programme
-  sees nothing. Read access lives in one place, `convex/lib/pipAccess.ts`,
-  the way `athleteAccess.ts` does for the journal.
+  added to a group later sees its past; a person with no `selected`
+  registration left — removal in one cycle while another cycle still reads
+  `selected` keeps them a member, as §2 defines it — sees nothing. Read
+  access lives in one place, `convex/lib/pipAccess.ts`, the way
+  `athleteAccess.ts` does for the journal.
 - **After release**: edit freely, stamped `editedAt` and shown as
   "editado". Delete only while `commentCount + reactionCount === 0`;
   otherwise unpublish, which hides the post from members and keeps the
