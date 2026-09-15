@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import * as m from '../../paraglide/messages.js'
+import { useModal } from '../../hooks/useModal'
 
 /** Exactly what `api.pip.feed` returns per attachment. */
 export type AttachmentView =
@@ -104,32 +105,29 @@ function Large({ a }: { a: AttachmentView }) {
  * post's attachments; the strip under the stage jumps.
  */
 function Lightbox({ attachments, index, onClose, onMove }: { attachments: AttachmentView[]; index: number; onClose: () => void; onMove: (i: number) => void }) {
-  const ref = useRef<HTMLDialogElement>(null)
+  const { ref, close, dialogProps } = useModal(onClose)
   const a = attachments[index]
   useEffect(() => {
     const d = ref.current
     if (!d) return
-    if (!d.open) d.showModal()
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === 'ArrowLeft' && index > 0) onMove(index - 1)
       if (ev.key === 'ArrowRight' && index < attachments.length - 1) onMove(index + 1)
     }
     d.addEventListener('keydown', onKey)
     return () => d.removeEventListener('keydown', onKey)
-  }, [index, attachments.length, onMove])
+  }, [ref, index, attachments.length, onMove])
   if (!a) return null
   return (
     <dialog
-      ref={ref}
-      onClose={onClose}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      {...dialogProps}
       className="m-auto w-[min(96vw,1100px)] rounded-[12px] border border-line bg-card p-0 text-ink shadow-[0_24px_64px_rgba(0,0,0,.5)] backdrop:bg-black/80"
     >
       <div className="grid gap-3 p-3 sm:p-4">
         <div className="flex items-center gap-3">
           <span className="font-mono text-[10.5px] tracking-[.12em] uppercase text-soft">{m.pip_lightbox_of({ i: index + 1, n: attachments.length })}</span>
           <b className="min-w-0 flex-1 truncate text-[14px] font-semibold">{attachmentTitle(a)}</b>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label={m.pip_lightbox_close()}>✕</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={close} aria-label={m.pip_lightbox_close()}>✕</button>
         </div>
         <div className="relative aspect-video w-full overflow-hidden rounded-[9px] bg-ink">
           <Large a={a} />

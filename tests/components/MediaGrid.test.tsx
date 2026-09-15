@@ -26,7 +26,7 @@ describe('MediaGrid', () => {
     // the DOM at once (one hidden by CSS, not by absence), so each tile
     // appears twice: 3 attachments × 2 layouts = 6 buttons.
     expect(screen.getAllByRole('button', { name: /Abrir:|Open:/ })).toHaveLength(6)
-    expect(screen.getAllByText(m.pip_video_unavailable()).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(m.pip_video_unavailable())).toHaveLength(2)
     expect(screen.getAllByAltText('Hoja de trabajo')[0]).toHaveAttribute('src', 'https://files.example/hoja.png')
   })
 
