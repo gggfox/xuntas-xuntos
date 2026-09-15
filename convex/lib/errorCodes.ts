@@ -96,6 +96,23 @@ type ActionErrorCode =
   | 'not_comment_author'
   | 'assignment_target_invalid'
   | 'notification_not_found'
+  // The PIP.
+  | 'post_not_found'
+  | 'post_title_required'
+  | 'post_title_too_long'
+  | 'post_body_required'
+  | 'post_body_too_long'
+  | 'post_attachments_too_many'
+  | 'post_status_invalid'
+  | 'post_schedule_past'
+  | 'post_has_activity'
+  | 'comments_off'
+  | 'pip_comment_not_found'
+  | 'emoji_invalid'
+  | 'group_not_found'
+  | 'group_name_required'
+  | 'group_name_too_long'
+  | 'group_archived'
   /** Nothing more specific survived the trip. Renders as `err_generic`. */
   | 'generic'
 
