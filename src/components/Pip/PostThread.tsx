@@ -186,17 +186,13 @@ export default function PostThread({ postId, commentsVisibility }: Props) {
   return (
     <div className="grid gap-4">
       <p className="text-[12px] font-light text-soft">{note}</p>
+      {thread.canComment && <Composer placeholder={placeholder} onSend={(b) => send(b)} />}
       {thread.comments.length === 0 && (
         <p className="text-[12.5px] text-soft">{commentsVisibility === 'lead' ? m.pip_no_comments_lead() : m.pip_no_comments_group()}</p>
       )}
       {thread.comments.map((c) => (
         <Comment key={c._id} c={c} postId={postId} postVisibility={commentsVisibility} depth={0} canComment={thread.canComment} replyingTo={replyingTo} setReplyingTo={setReplyingTo} onSend={send} onDelete={del} />
       ))}
-      {/* After the thread, not before it: a reply composer nested in the
-          comments above must be the first "Comment"-labelled button in
-          document order whenever one is open, since the composer is reused
-          for both. */}
-      {thread.canComment && <Composer placeholder={placeholder} onSend={(b) => send(b)} />}
     </div>
   )
 }

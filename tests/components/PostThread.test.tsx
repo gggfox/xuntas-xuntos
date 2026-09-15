@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as m from '../../src/paraglide/messages.js'
 
@@ -80,8 +80,9 @@ describe('PostThread', () => {
     await waitFor(() => expect(add).toHaveBeenCalledWith({ postId: 'p1', body: 'Semana hecha.' }))
 
     fireEvent.click(screen.getByRole('button', { name: m.pip_reply() }))
-    fireEvent.change(screen.getByPlaceholderText(m.pip_reply_placeholder()), { target: { value: 'Yo también.' } })
-    fireEvent.click(screen.getAllByRole('button', { name: m.pip_comment_send() })[0])
+    const replyBox = screen.getByPlaceholderText(m.pip_reply_placeholder())
+    fireEvent.change(replyBox, { target: { value: 'Yo también.' } })
+    fireEvent.click(within(replyBox.closest('form')!).getByRole('button', { name: m.pip_comment_send() }))
     await waitFor(() => expect(add).toHaveBeenCalledWith({ postId: 'p1', body: 'Yo también.', parentId: 'c1' }))
   })
 
