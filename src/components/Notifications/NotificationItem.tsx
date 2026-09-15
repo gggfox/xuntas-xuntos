@@ -6,13 +6,15 @@ export type NotificationView = {
   _id: string
   kind: NotificationKind
   userId: string
-  athleteId: string
+  athleteId?: string
   entryId?: string
+  postId?: string
   createdAt: number
   readAt?: number
   actorName: string
   athleteName: string
   entryTitle?: string
+  postTitle?: string
 }
 
 /**
@@ -24,6 +26,7 @@ export type NotificationView = {
 export function sentenceFor(n: NotificationView): string {
   const forAthlete = n.userId === n.athleteId
   const title = n.entryTitle ?? m.detail_empty()
+  const post = n.postTitle ?? m.detail_empty()
   switch (n.kind) {
     case 'entry_comment':
       return m.notif_entry_comment({ actor: n.actorName, title })
@@ -39,6 +42,12 @@ export function sentenceFor(n: NotificationView): string {
       return forAthlete ? m.notif_assignment_created_athlete() : m.notif_assignment_created_staff({ athlete: n.athleteName })
     case 'assignment_ended':
       return forAthlete ? m.notif_assignment_ended_athlete() : m.notif_assignment_ended_staff({ athlete: n.athleteName })
+    case 'pip_post_published':
+      return m.notif_pip_post_published({ actor: n.actorName, title: post })
+    case 'pip_comment_reply':
+      return m.notif_pip_comment_reply({ actor: n.actorName, title: post })
+    case 'pip_comment_new':
+      return m.notif_pip_comment_new({ title: post })
   }
 }
 

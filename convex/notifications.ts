@@ -21,10 +21,24 @@ import {
 export async function notify(
   ctx: MutationCtx,
   event: NotificationEvent,
-  about: { athleteId: Id<'users'>; entryId?: Id<'journalEntries'>; commentId?: Id<'journalComments'> },
+  about: {
+    athleteId?: Id<'users'>
+    entryId?: Id<'journalEntries'>
+    commentId?: Id<'journalComments'>
+    postId?: Id<'pipPosts'>
+  },
 ): Promise<void> {
   const now = Date.now()
   for (const r of recipientsFor(event)) {
+    // "New comments" is one unread per lead per post: a second comment
+    // before the first was read adds nothing.
+    if (r.kind === 'pip_comment_new' && about.postId) {
+      const unread = await ctx.db
+        .query('notifications')
+        .withIndex('by_user_unread', (q) => q.eq('userId', r.userId as Id<'users'>).eq('readAt', undefined))
+        .collect()
+      if (unread.some((n) => n.kind === 'pip_comment_new' && n.postId === about.postId)) continue
+    }
     await ctx.db.insert('notifications', {
       userId: r.userId as Id<'users'>,
       kind: r.kind,
@@ -32,17 +46,19 @@ export async function notify(
       athleteId: about.athleteId,
       entryId: about.entryId,
       commentId: about.commentId,
+      postId: about.postId,
       createdAt: now,
     })
   }
 }
 
-/** The names a sentence needs: who did it, about whom, and which entry. Resolved per row; the lists are short. */
+/** The names a sentence needs: who did it, about whom, and which entry or post. Resolved per row; the lists are short. */
 async function describe(ctx: QueryCtx, n: Doc<'notifications'>) {
-  const [actor, athlete, entry] = await Promise.all([
+  const [actor, athlete, entry, post] = await Promise.all([
     ctx.db.get(n.actorId),
-    ctx.db.get(n.athleteId),
+    n.athleteId ? ctx.db.get(n.athleteId) : Promise.resolve(null),
     n.entryId ? ctx.db.get(n.entryId) : Promise.resolve(null),
+    n.postId ? ctx.db.get(n.postId) : Promise.resolve(null),
   ])
   return {
     _id: n._id,
@@ -50,11 +66,13 @@ async function describe(ctx: QueryCtx, n: Doc<'notifications'>) {
     userId: n.userId,
     athleteId: n.athleteId,
     entryId: n.entryId,
+    postId: n.postId,
     createdAt: n.createdAt,
     readAt: n.readAt,
     actorName: actor?.name ?? actor?.email ?? '',
     athleteName: athlete?.name ?? athlete?.email ?? '',
     entryTitle: entry?.title,
+    postTitle: post?.title,
   }
 }
 

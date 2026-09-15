@@ -5,6 +5,7 @@ import { LETTER_LIMIT } from './registrationSchema'
 import { RESULTS_MIN } from './registrationRules'
 import { FIELD_LIMIT, ROW_LIMIT } from '../../convex/lib/registrationLimits'
 import { BODY_LIMIT, COMMENT_LIMIT, SCORE_LIMIT, TITLE_LIMIT } from '../../convex/lib/journalRules'
+import { ATTACHMENT_LIMIT, GROUP_NAME_LIMIT, POST_BODY_LIMIT, POST_TITLE_LIMIT } from '../../convex/lib/pipRules'
 
 /**
  * Turns an error code into a sentence in the reader's language.
@@ -101,6 +102,26 @@ const MESSAGES: Record<AppErrorCode, () => string> = {
   not_comment_author: m.err_not_comment_author,
   assignment_target_invalid: m.err_assignment_target_invalid,
   notification_not_found: m.err_notification_not_found,
+  // The PIP.
+  post_not_found: m.err_post_not_found,
+  post_title_required: m.err_post_title_required,
+  post_title_too_long: () => m.err_post_title_too_long({ limit: POST_TITLE_LIMIT }),
+  post_body_required: m.err_post_body_required,
+  post_body_too_long: () => m.err_post_body_too_long({ limit: POST_BODY_LIMIT }),
+  post_attachments_too_many: () => m.err_post_attachments_too_many({ limit: ATTACHMENT_LIMIT }),
+  post_status_invalid: m.err_post_status_invalid,
+  post_schedule_past: m.err_post_schedule_past,
+  post_has_activity: m.err_post_has_activity,
+  comments_off: m.err_comments_off,
+  pip_comment_not_found: m.err_pip_comment_not_found,
+  emoji_invalid: m.err_emoji_invalid,
+  youtube_id_invalid: m.err_youtube_id_invalid,
+  attachment_type_invalid: m.err_attachment_type_invalid,
+  attachment_too_large: () => m.err_attachment_too_large({ limit: '250 MB' }),
+  group_not_found: m.err_group_not_found,
+  group_name_required: m.err_group_name_required,
+  group_name_too_long: () => m.err_group_name_too_long({ limit: GROUP_NAME_LIMIT }),
+  group_archived: m.err_group_archived,
   generic: m.err_generic,
 }
 

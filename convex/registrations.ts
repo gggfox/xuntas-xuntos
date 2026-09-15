@@ -11,6 +11,7 @@ import { permissionsOf } from './lib/permissions'
 import type { AppErrorCode } from './lib/errorCodes'
 import { requirePermission, requireUser, currentUser } from './auth'
 import { endAllAssignmentsForAthlete } from './members'
+import { endPipGroupsForAthlete } from './pip'
 import type { Doc } from './_generated/dataModel'
 import { vBranch, vDecision } from './schema'
 
@@ -454,6 +455,9 @@ export const decide = mutation({
         cycleTitle: cycle?.title ?? '',
       })
       await endAllAssignmentsForAthlete(ctx, r.userId, actor._id, now)
+      // The PIP too: a removed member's group rows end in the same
+      // mutation, so the feed empties the moment the decision lands.
+      await endPipGroupsForAthlete(ctx, r.userId, now)
     }
     return { ok: true as const }
   },

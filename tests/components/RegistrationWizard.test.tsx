@@ -497,6 +497,39 @@ describe('the confirmation cards', () => {
   })
 
   /**
+   * Changing your mind is not a mistake either.
+   *
+   * A card pressed on and then off again is a reader who has not accepted,
+   * which before a send is the same thing as never having pressed it: the
+   * `onChange` rule is there to *clear* a message the moment a card is
+   * accepted, not to put one there the moment it is unaccepted. Until the
+   * form has been sent once, nothing has asked for these to be true.
+   */
+  it('says nothing about a card pressed on and off again before a send', () => {
+    goToConfirmations()
+    const card = screen.getByText(m.reg_ck_rules())
+    fireEvent.click(card)
+    expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(card)
+    expect((document.getElementById('ck1') as HTMLInputElement).checked).toBe(false)
+
+    expect(cardSays('ck1')).toBe('')
+  })
+
+  /** After a refused send the card is in change mode, and says so again. */
+  it('says so again when a card is unaccepted after a refused send', async () => {
+    goToConfirmations()
+    fireEvent.click(screen.getByRole('button', { name: m.reg_submit() }))
+    await screen.findByText(m.reg_errors_title())
+
+    const card = screen.getByText(m.reg_ck_rules())
+    fireEvent.click(card)
+    expect(cardSays('ck1')).toBe('')
+    fireEvent.click(card)
+    expect(cardSays('ck1')).toBe(m.reg_ck_rules_error())
+  })
+
+  /**
    * Enter presses the card, and only the card.
    *
    * Chrome reads Enter on a focused checkbox as a request to submit the form

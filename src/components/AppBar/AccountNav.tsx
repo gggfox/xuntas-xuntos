@@ -58,6 +58,11 @@ export default function AccountNav() {
           {m.nav_journal()}
         </Link>
       )}
+      {member && (
+        <Link to="/pip" className="text-white/72 no-underline hover:text-white">
+          {m.nav_pip()}
+        </Link>
+      )}
       {athlete && (
         <Link to="/mi-registro" className="text-white/72 no-underline hover:text-white">
           {m.nav_my_registration()}

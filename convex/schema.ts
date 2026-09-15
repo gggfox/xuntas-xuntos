@@ -14,6 +14,7 @@ export const vRole = v.union(
   v.literal('coach'),
   v.literal('finance'),
   v.literal('health'),
+  v.literal('pip_lead'),
 )
 
 /**
@@ -51,6 +52,21 @@ const vNoticeStatus = v.union(
   v.literal('sent'),
   v.literal('delivered'),
   v.literal('bounced'),
+)
+
+export const vPostKind = v.union(v.literal('content'), v.literal('session'), v.literal('challenge'))
+export const vPostStatus = v.union(
+  v.literal('draft'),
+  v.literal('scheduled'),
+  v.literal('published'),
+  v.literal('unpublished'),
+)
+export const vCommentsVisibility = v.union(v.literal('off'), v.literal('lead'), v.literal('group'))
+/** One attachment. A stored file keeps its name for the caption; a YouTube video keeps only its id, and the flag the attach-time check set. */
+export const vAttachment = v.union(
+  v.object({ type: v.literal('image'), storageId: v.id('_storage'), name: v.string() }),
+  v.object({ type: v.literal('video'), storageId: v.id('_storage'), name: v.string() }),
+  v.object({ type: v.literal('youtube'), videoId: v.string(), unavailable: v.optional(v.boolean()) }),
 )
 
 /**
@@ -424,15 +440,106 @@ export default defineSchema({
       v.literal('entry_created'),
       v.literal('assignment_created'),
       v.literal('assignment_ended'),
+      v.literal('pip_post_published'),
+      v.literal('pip_comment_reply'),
+      v.literal('pip_comment_new'),
     ),
     actorId: v.id('users'),
-    athleteId: v.id('users'),
+    /** Absent on PIP rows, which are about a post rather than a person. */
+    athleteId: v.optional(v.id('users')),
     entryId: v.optional(v.id('journalEntries')),
     commentId: v.optional(v.id('journalComments')),
+    postId: v.optional(v.id('pipPosts')),
     createdAt: v.number(),
     readAt: v.optional(v.number()),
   })
     .index('by_user', ['userId'])
     .index('by_user_unread', ['userId', 'readAt'])
     .index('by_read', ['readAt']),
+
+  /**
+   * The PIP — see docs/superpowers/specs/2026-09-14-pip-posts-groups-design.md.
+   *
+   * A group is the lead's word for "who gets this". Renamed and archived,
+   * never deleted, so an old post still says who it went to. "Todos los
+   * miembros" is not a row: a post with no `groupIds` reaches every member.
+   */
+  pipGroups: defineTable({
+    name: v.string(),
+    createdBy: v.id('users'),
+    createdAt: v.number(),
+    archivedAt: v.optional(v.number()),
+  }).index('by_archived', ['archivedAt']),
+
+  /** Membership rows are ended, never deleted — the same as assignments. */
+  pipGroupMembers: defineTable({
+    groupId: v.id('pipGroups'),
+    athleteUserId: v.id('users'),
+    addedBy: v.id('users'),
+    addedAt: v.number(),
+    removedAt: v.optional(v.number()),
+  })
+    .index('by_group_active', ['groupId', 'removedAt'])
+    .index('by_athlete_active', ['athleteUserId', 'removedAt']),
+
+  /**
+   * One shape of post. `kind` changes an icon and an eyebrow, nothing else.
+   * `groupIds` empty means everyone. Visibility is computed at read time
+   * from current membership, never fanned out. `commentCount` and
+   * `reactionCount` are kept by the mutations so delete can refuse without
+   * a query, and as the raw totals the lead's screen will read; the feed
+   * itself recomputes a per-viewer comment count, since a lead-only
+   * comment among them is not everyone's to see.
+   */
+  pipPosts: defineTable({
+    authorId: v.id('users'),
+    kind: vPostKind,
+    title: v.string(),
+    /** Markdown, the subset in the spec §7. */
+    body: v.string(),
+    attachments: v.array(vAttachment),
+    groupIds: v.array(v.id('pipGroups')),
+    commentsVisibility: vCommentsVisibility,
+    status: vPostStatus,
+    scheduledFor: v.optional(v.number()),
+    /** The release job, so a rescheduling can cancel it. */
+    scheduledJobId: v.optional(v.id('_scheduled_functions')),
+    publishedAt: v.optional(v.number()),
+    editedAt: v.optional(v.number()),
+    unpublishedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    commentCount: v.number(),
+    reactionCount: v.number(),
+  })
+    .index('by_status_published', ['status', 'publishedAt'])
+    .index('by_status_scheduled', ['status', 'scheduledFor']),
+
+  /**
+   * One level: a comment, and replies to it (`parentId`). `visibility` is
+   * copied from the post at write time and never follows a later change.
+   * A hidden comment stays, for its author (marked) and for leads.
+   */
+  pipComments: defineTable({
+    postId: v.id('pipPosts'),
+    parentId: v.optional(v.id('pipComments')),
+    authorId: v.id('users'),
+    body: v.string(),
+    visibility: v.union(v.literal('lead'), v.literal('group')),
+    hiddenAt: v.optional(v.number()),
+    hiddenBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    replyCount: v.number(),
+  }).index('by_post_parent', ['postId', 'parentId']),
+
+  /** Any emoji, several per member, on a post or a top-level comment. One row per (target, user, emoji). */
+  pipReactions: defineTable({
+    targetKind: v.union(v.literal('post'), v.literal('comment')),
+    targetId: v.union(v.id('pipPosts'), v.id('pipComments')),
+    userId: v.id('users'),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index('by_target', ['targetKind', 'targetId'])
+    .index('by_target_user', ['targetKind', 'targetId', 'userId']),
 })

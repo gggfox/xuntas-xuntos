@@ -32,6 +32,7 @@ describe('validateEntry', () => {
     expect(validateEntry({ ...ok, title: '  ' }, TODAY)).toBe('entry_title_required')
     expect(validateEntry({ ...ok, title: 'x'.repeat(TITLE_LIMIT + 1) }, TODAY)).toBe('entry_title_too_long')
     expect(validateEntry({ ...ok, title: 'x'.repeat(TITLE_LIMIT) }, TODAY)).toBeNull()
+    expect(TITLE_LIMIT).toBe(100)
   })
 
   it('wants a real day, today or earlier', () => {

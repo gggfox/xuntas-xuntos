@@ -10,7 +10,7 @@ import { MX_OFFSET_MS, dayStartMs } from './cycleRules'
 export const ENTRY_KINDS = ['tournament', 'training'] as const
 export type EntryKind = (typeof ENTRY_KINDS)[number]
 
-export const TITLE_LIMIT = 120
+export const TITLE_LIMIT = 100
 export const BODY_LIMIT = 5000
 export const SCORE_LIMIT = 40
 export const COMMENT_LIMIT = 2000

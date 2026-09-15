@@ -8,6 +8,7 @@ const ROLE_LABEL: Record<Exclude<Role, 'athlete'>, () => string> = {
   coach: m.role_coach,
   finance: m.role_finance,
   health: m.role_health,
+  pip_lead: m.role_pip_lead,
 }
 
 export function roleName(role: Role): string {
