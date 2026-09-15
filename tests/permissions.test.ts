@@ -54,6 +54,21 @@ describe('the permission table', () => {
   it('lists permissions in table order, without duplicates', () => {
     expect(permissionsOf(['admin', 'master_admin'])).toEqual([...PERMISSIONS])
   })
+
+  it('gives the PIP lead its three permissions and nothing of the journal', () => {
+    expect(permissionsOf(['pip_lead'])).toEqual(['view_members_basic', 'manage_pip_groups', 'publish_pip'])
+    expect(can(['pip_lead'], 'view_all_athletes')).toBe(false)
+    expect(can(['pip_lead'], 'comment_journal')).toBe(false)
+    expect(can(['pip_lead'], 'review_registrations')).toBe(false)
+  })
+
+  it('keeps admin, coach and health out of the PIP', () => {
+    for (const role of ['admin', 'coach', 'health', 'finance', 'athlete'] as const) {
+      expect(can([role], 'publish_pip')).toBe(false)
+      expect(can([role], 'manage_pip_groups')).toBe(false)
+      expect(can([role], 'view_members_basic')).toBe(false)
+    }
+  })
 })
 
 describe('isStaff', () => {

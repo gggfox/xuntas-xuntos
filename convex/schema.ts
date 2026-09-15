@@ -14,6 +14,7 @@ export const vRole = v.union(
   v.literal('coach'),
   v.literal('finance'),
   v.literal('health'),
+  v.literal('pip_lead'),
 )
 
 /**

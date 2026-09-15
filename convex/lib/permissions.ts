@@ -10,7 +10,7 @@
  * Convex (to decide what to allow), and it must not be able to disagree.
  */
 
-export const ROLES = ['athlete', 'admin', 'master_admin', 'coach', 'finance', 'health'] as const
+export const ROLES = ['athlete', 'admin', 'master_admin', 'coach', 'finance', 'health', 'pip_lead'] as const
 export type Role = (typeof ROLES)[number]
 
 export const PERMISSIONS = [
@@ -28,6 +28,10 @@ export const PERMISSIONS = [
   'comment_journal',
   'manage_assignments',
   'remove_athletes',
+  // The PIP. Appended, never reordered.
+  'view_members_basic',
+  'manage_pip_groups',
+  'publish_pip',
 ] as const
 export type Permission = (typeof PERMISSIONS)[number]
 
@@ -53,6 +57,9 @@ const GRANTS: Record<Role, readonly Permission[]> = {
   coach: ['view_assigned_athletes', 'comment_journal'],
   finance: [],
   health: ['view_assigned_athletes', 'comment_journal'],
+  // The lead publishes to members and builds groups from a basic list —
+  // names, rama, age — and reads nothing of the journal. See the PIP spec §1.
+  pip_lead: ['view_members_basic', 'manage_pip_groups', 'publish_pip'],
 }
 
 export function isRole(value: unknown): value is Role {
