@@ -13,6 +13,9 @@ export const NOTIFICATION_KINDS = [
   'entry_created',
   'assignment_created',
   'assignment_ended',
+  'pip_post_published',
+  'pip_comment_reply',
+  'pip_comment_new',
 ] as const
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
 
@@ -34,6 +37,16 @@ export type NotificationEvent =
     }
   | { type: 'entry_created'; actorId: string; athleteId: string; assignedStaffIds: readonly string[] }
   | { type: 'assignment'; ended: boolean; actorId: string; staffId: string; athleteId: string }
+  | { type: 'pip_published'; actorId: string; memberIds: readonly string[] }
+  | {
+      type: 'pip_comment'
+      actorId: string
+      actorIsLead: boolean
+      /** The top-level comment's author, when this is a reply. */
+      parentAuthorId?: string
+      /** Everyone holding `publish_pip`. */
+      leadIds: readonly string[]
+    }
 
 /**
  * Who gets a row, and which kind. The actor never hears about their own
@@ -71,27 +84,55 @@ export function recipientsFor(event: NotificationEvent): Array<{ userId: string;
       add(event.athleteId, kind)
       break
     }
+    case 'pip_published':
+      for (const id of event.memberIds) add(id, 'pip_post_published')
+      break
+    case 'pip_comment': {
+      // The parent author hears a reply. The leads hear "new comments" —
+      // once per post, which `notify` enforces — unless the lead is the one
+      // writing, in which case only the parent author hears.
+      if (event.parentAuthorId) add(event.parentAuthorId, 'pip_comment_reply')
+      if (!event.actorIsLead) for (const id of event.leadIds) add(id, 'pip_comment_new')
+      break
+    }
   }
   return [...out].map(([userId, kind]) => ({ userId, kind }))
 }
 
-/** A member, or anyone who may write in a journal. Finance never has a bell. */
+/** A member, anyone who may write in a journal, or a PIP lead. Finance never has a bell. */
 export function canReceiveNotifications(roles: readonly Role[], isMember: boolean): boolean {
-  return isMember || can(roles, 'comment_journal')
+  return isMember || can(roles, 'comment_journal') || can(roles, 'publish_pip')
 }
 
-export type NotificationTarget = { to: string; params?: { id: string }; search?: { entrada: string } }
+export type NotificationTarget = {
+  to: string
+  params?: { id: string }
+  search?: { entrada?: string; publicacion?: string }
+}
 
 /**
- * Where opening a notification lands. The recipient is the athlete when the
- * row is about them; anyone else is staff and goes to the athlete's page.
+ * Where opening a notification lands. A journal row is about an athlete:
+ * the athlete goes to their own pages, staff to the athlete's. A PIP row is
+ * about a post: a member goes to the feed, a lead to their screen.
  */
-export function targetFor(n: { userId: string; athleteId: string; kind: NotificationKind; entryId?: string }): NotificationTarget {
+export function targetFor(n: {
+  userId: string
+  athleteId?: string
+  kind: NotificationKind
+  entryId?: string
+  postId?: string
+  /** The recipient holds `publish_pip`. Only read for PIP rows. */
+  forLead?: boolean
+}): NotificationTarget {
+  if (n.kind === 'pip_post_published' || n.kind === 'pip_comment_reply' || n.kind === 'pip_comment_new') {
+    const search = n.postId ? { publicacion: n.postId } : undefined
+    return { to: n.forLead ? '/administracion/pip' : '/pip', search }
+  }
   const isAthlete = n.userId === n.athleteId
   const search = n.entryId ? { entrada: n.entryId } : undefined
   if (isAthlete) {
     if (n.kind === 'assignment_created' || n.kind === 'assignment_ended') return { to: '/perfil' }
     return { to: '/bitacora', search }
   }
-  return { to: '/administracion/atletas/$id', params: { id: n.athleteId }, search }
+  return { to: '/administracion/atletas/$id', params: { id: n.athleteId ?? '' }, search }
 }

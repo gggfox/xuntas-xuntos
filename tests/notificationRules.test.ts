@@ -78,3 +78,46 @@ describe('targetFor', () => {
     })
   })
 })
+
+describe('recipientsFor · the PIP', () => {
+  it('tells every member a post reaches when it is published, and not the lead who published it', () => {
+    expect(recipientsFor({ type: 'pip_published', actorId: 'L', memberIds: ['m1', 'm2', 'L'] })).toEqual([
+      { userId: 'm1', kind: 'pip_post_published' },
+      { userId: 'm2', kind: 'pip_post_published' },
+    ])
+  })
+
+  it('tells the leads when a member comments, and the parent author when someone replies', () => {
+    expect(recipientsFor({ type: 'pip_comment', actorId: 'm1', actorIsLead: false, leadIds: ['L', 'L2'] })).toEqual([
+      { userId: 'L', kind: 'pip_comment_new' },
+      { userId: 'L2', kind: 'pip_comment_new' },
+    ])
+    expect(recipientsFor({ type: 'pip_comment', actorId: 'L', actorIsLead: true, parentAuthorId: 'm1', leadIds: ['L'] })).toEqual([
+      { userId: 'm1', kind: 'pip_comment_reply' },
+    ])
+  })
+
+  it('tells a replying member\'s lead once, as new, and the parent author as a reply', () => {
+    expect(recipientsFor({ type: 'pip_comment', actorId: 'm2', actorIsLead: false, parentAuthorId: 'm1', leadIds: ['L'] })).toEqual([
+      { userId: 'm1', kind: 'pip_comment_reply' },
+      { userId: 'L', kind: 'pip_comment_new' },
+    ])
+  })
+
+  it('never tells the actor about their own act', () => {
+    expect(recipientsFor({ type: 'pip_comment', actorId: 'm1', actorIsLead: false, parentAuthorId: 'm1', leadIds: [] })).toEqual([])
+  })
+})
+
+describe('targetFor · the PIP', () => {
+  it('sends a member to the feed and a lead to their screen, both at the post', () => {
+    expect(targetFor({ userId: 'm1', kind: 'pip_post_published', postId: 'p1', forLead: false })).toEqual({ to: '/pip', search: { publicacion: 'p1' } })
+    expect(targetFor({ userId: 'L', kind: 'pip_comment_new', postId: 'p1', forLead: true })).toEqual({ to: '/administracion/pip', search: { publicacion: 'p1' } })
+  })
+})
+
+describe('canReceiveNotifications · the lead', () => {
+  it('gives a lead a bell', () => {
+    expect(canReceiveNotifications(['pip_lead'], false)).toBe(true)
+  })
+})
