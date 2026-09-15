@@ -30,6 +30,7 @@ import { Route as CrearCuentaSplatRouteImport } from './routes/crear-cuenta.$'
 import { Route as EntrarIndexRouteImport } from './routes/entrar.index'
 import { Route as EntrarSplatRouteImport } from './routes/entrar.$'
 import { Route as InvitacionTokenRouteImport } from './routes/invitacion.$token'
+import { Route as PrototypePipRouteImport } from './routes/prototype.pip'
 import { Route as AdministracionAtletasIdRouteImport } from './routes/administracion.atletas_.$id'
 import { Route as AdministracionRegistrosIdRouteImport } from './routes/administracion.registros_.$id'
 import { Route as InvitacionTokenSplatRouteImport } from './routes/invitacion.$token.$'
@@ -139,6 +140,11 @@ const InvitacionTokenRoute = InvitacionTokenRouteImport.update({
   path: '/invitacion/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrototypePipRoute = PrototypePipRouteImport.update({
+  id: '/prototype/pip',
+  path: '/prototype/pip',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdministracionAtletasIdRoute = AdministracionAtletasIdRouteImport.update({
   id: '/atletas_/$id',
   path: '/atletas/$id',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
   '/invitacion/$token': typeof InvitacionTokenRouteWithChildren
+  '/prototype/pip': typeof PrototypePipRoute
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
   '/invitacion/$token': typeof InvitacionTokenRouteWithChildren
+  '/prototype/pip': typeof PrototypePipRoute
   '/administracion': typeof AdministracionIndexRoute
   '/crear-cuenta': typeof CrearCuentaIndexRoute
   '/entrar': typeof EntrarIndexRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/crear-cuenta/$': typeof CrearCuentaSplatRoute
   '/entrar/$': typeof EntrarSplatRoute
   '/invitacion/$token': typeof InvitacionTokenRouteWithChildren
+  '/prototype/pip': typeof PrototypePipRoute
   '/administracion/': typeof AdministracionIndexRoute
   '/crear-cuenta/': typeof CrearCuentaIndexRoute
   '/entrar/': typeof EntrarIndexRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/crear-cuenta/$'
     | '/entrar/$'
     | '/invitacion/$token'
+    | '/prototype/pip'
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/crear-cuenta/$'
     | '/entrar/$'
     | '/invitacion/$token'
+    | '/prototype/pip'
     | '/administracion'
     | '/crear-cuenta'
     | '/entrar'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/crear-cuenta/$'
     | '/entrar/$'
     | '/invitacion/$token'
+    | '/prototype/pip'
     | '/administracion/'
     | '/crear-cuenta/'
     | '/entrar/'
@@ -329,6 +341,7 @@ export interface RootRouteChildren {
   CrearCuentaSplatRoute: typeof CrearCuentaSplatRoute
   EntrarSplatRoute: typeof EntrarSplatRoute
   InvitacionTokenRoute: typeof InvitacionTokenRouteWithChildren
+  PrototypePipRoute: typeof PrototypePipRoute
   CrearCuentaIndexRoute: typeof CrearCuentaIndexRoute
   EntrarIndexRoute: typeof EntrarIndexRoute
 }
@@ -482,6 +495,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvitacionTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prototype/pip': {
+      id: '/prototype/pip'
+      path: '/prototype/pip'
+      fullPath: '/prototype/pip'
+      preLoaderRoute: typeof PrototypePipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/administracion/atletas_/$id': {
       id: '/administracion/atletas_/$id'
       path: '/atletas/$id'
@@ -557,6 +577,7 @@ const rootRouteChildren: RootRouteChildren = {
   CrearCuentaSplatRoute: CrearCuentaSplatRoute,
   EntrarSplatRoute: EntrarSplatRoute,
   InvitacionTokenRoute: InvitacionTokenRouteWithChildren,
+  PrototypePipRoute: PrototypePipRoute,
   CrearCuentaIndexRoute: CrearCuentaIndexRoute,
   EntrarIndexRoute: EntrarIndexRoute,
 }
