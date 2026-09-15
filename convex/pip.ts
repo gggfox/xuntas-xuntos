@@ -686,3 +686,89 @@ export const reactors = query({
     return names
   },
 })
+
+// ---------------------------------------------------------------------------
+// Development seed. Run by hand, never from the app:
+//
+//   pnpm convex run pip:seedDemo '{"leadEmail":"someone@example.com"}'
+//
+// Grants `pip_lead` to that account if it lacks it, and publishes five
+// posts to everyone. Idempotent by title: a post that exists is skipped.
+
+const DEMO_POSTS: { kind: PostKind; title: string; body: string; commentsVisibility: 'off' | 'lead' | 'group'; daysAgo: number; youtube?: string[] }[] = [
+  {
+    kind: 'challenge',
+    title: 'Reto de 7 días: tres respiraciones antes de cada tiro largo',
+    body: 'Un solo cambio, concreto y pequeño, que se conecte con los videos de este mes.\n\n- **Qué:** tres respiraciones completas antes de cada tiro con madera o híbrido.\n- **Cuándo:** siete días seguidos, en práctica y en torneo.\n- **Cómo lo cuentas:** un comentario aquí al terminar la semana. Qué cambió, qué no.\n\nNo hay respuesta correcta. Lo que quiero leer es lo que notaste.',
+    commentsVisibility: 'group',
+    daysAgo: 2,
+  },
+  {
+    kind: 'session',
+    title: 'Office hours de septiembre',
+    body: 'Sesión en vivo para platicar los dos videos del mes y cómo llevarlos a tu día a día y al golf. Cada grupo tiene su propio horario.\n\n**Jueves 17 de septiembre**\n\n- XUNTAS · menores de 19: 17:00 h (CDMX)\n- XUNTOS · menores de 19: 18:15 h (CDMX)\n- XUNTAS · 19 años o más: 19:30 h (CDMX)\n- XUNTOS · 19 años o más: 20:45 h (CDMX)\n\nEntra por aquí: https://zoom.us/j/000000001\n\nTrae una situación concreta de las últimas dos semanas donde te hayas frustrado.',
+    commentsVisibility: 'lead',
+    daysAgo: 4,
+  },
+  {
+    kind: 'content',
+    title: 'Manejo de la frustración: los dos videos del mes',
+    body: '## Este mes trabajamos qué hacemos con el error\n\nCómo lo interpretamos, cuánto tiempo lo cargamos y cómo volvemos al presente.\n\nDespués de cada video, escribe qué aprendiste o qué te hizo pensar. **Tu comentario lo leo solo yo.**\n\n> Dos atletas con el mismo doble bogey terminan la ronda de forma distinta. La diferencia no está en el golpe: está en la historia que se cuentan después.',
+    commentsVisibility: 'lead',
+    daysAgo: 13,
+    youtube: ['dQw4w9WgXcQ', 'xxxxxxxxxxx'],
+  },
+  {
+    kind: 'challenge',
+    title: 'Reto de agosto: anotar un aprendizaje al terminar cada práctica',
+    body: 'Una línea. No un párrafo. Una línea al cerrar la bolsa, siete días seguidos.\n\nAl terminar la semana, cuéntame aquí cuál fue la que más te sorprendió.',
+    commentsVisibility: 'group',
+    daysAgo: 21,
+  },
+  {
+    kind: 'content',
+    title: 'Bienvenida al Programa Integral de Performance',
+    body: '## Qué es esto\n\nCada mes vas a encontrar aquí dos videos, una sesión en vivo por grupo y un reto de siete días. Nada de esto se califica.\n\n### Lo que sí te pido\n\n1. Ver los videos antes de la sesión.\n2. Escribir después de cada uno, aunque sea una línea.\n3. Llegar a la sesión con una situación real.\n\n| Mes | Tema |\n| - | - |\n| Septiembre | Manejo de la frustración |\n| Octubre | Rutina pre-tiro |',
+    commentsVisibility: 'off',
+    daysAgo: 42,
+  },
+]
+
+export const seedDemo = internalMutation({
+  args: { leadEmail: v.string() },
+  handler: async (ctx, args) => {
+    const lead = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.leadEmail.trim().toLowerCase()))
+      .unique()
+    if (!lead) fail('user_not_found')
+    if (!lead.roles.includes('pip_lead')) await ctx.db.patch(lead._id, { roles: [...lead.roles, 'pip_lead'] })
+
+    const existing = await ctx.db.query('pipPosts').collect()
+    const titles = new Set(existing.map((p) => p.title))
+    const now = Date.now()
+    let created = 0
+    for (const d of DEMO_POSTS) {
+      if (titles.has(d.title)) continue
+      const at = now - d.daysAgo * 24 * 60 * 60 * 1000
+      await ctx.db.insert('pipPosts', {
+        authorId: lead._id,
+        kind: d.kind,
+        title: d.title,
+        body: d.body,
+        attachments: (d.youtube ?? []).map((videoId, i) => ({ type: 'youtube' as const, videoId, unavailable: i === 1 })),
+        groupIds: [],
+        commentsVisibility: d.commentsVisibility,
+        status: 'published',
+        publishedAt: at,
+        createdAt: at,
+        updatedAt: at,
+        commentCount: 0,
+        reactionCount: 0,
+      })
+      created++
+    }
+    console.log(`[pip.seedDemo] ${created} posts for ${lead.email}`)
+    return { created }
+  },
+})
