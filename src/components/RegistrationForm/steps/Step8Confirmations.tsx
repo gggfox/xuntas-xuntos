@@ -1,3 +1,4 @@
+import type { AnyFieldApi } from '@tanstack/react-form'
 import * as m from '../../../paraglide/messages.js'
 import Icons from '../../Icons'
 import CheckboxField from '../CheckboxField'
@@ -22,11 +23,32 @@ export const fields = [
  * heading down to the send button arrived with all three cards red for the
  * crime of having been passed through.
  *
- * So these three say nothing until the reader either presses a card or tries
- * to send: `onSubmit` is what marks them when the send is refused, `onChange`
- * is what unmarks them the moment a card is pressed, without waiting for a
- * second attempt.
+ * So these three say nothing until the reader tries to send: `onSubmit` is
+ * what marks them when the send is refused, and `onChange` is what unmarks
+ * them the moment a card is pressed, without waiting for a second attempt.
+ *
+ * Before that first send, `onChange` only ever clears. A card pressed on and
+ * then off again is a reader who changed their mind, and until something has
+ * asked for the card to be true that is not a mistake — yet the change rule
+ * used to answer the un-press with "you must accept", the one message the
+ * step was built not to show before it was earned. After a refused send the
+ * form is in change mode and the message is back on the un-press, as it
+ * should be: the reader has been told what is missing, and it is missing
+ * again.
  */
+function confirmation(code: ConfirmationCode) {
+  return {
+    onChange: ({ value, fieldApi }: { value: boolean; fieldApi: AnyFieldApi }) =>
+      value || fieldApi.form.state.submissionAttempts === 0 ? undefined : code,
+    onSubmit: ({ value }: { value: boolean }) => (value ? undefined : code),
+  }
+}
+
+type ConfirmationCode =
+  | 'confirm_rules_required'
+  | 'confirm_scholarship_required'
+  | 'confirm_privacy_required'
+
 export default function Step8Confirmations({ form }: StepProps) {
   return (
     /* `auto-rows-fr` is what keeps the three cards the same height stacked on
@@ -36,10 +58,7 @@ export default function Step8Confirmations({ form }: StepProps) {
     <div className="grid auto-rows-fr grid-cols-1 gap-3 lg:grid-cols-3">
       <form.Field
         name="confirmations.rules"
-        validators={{
-          onChange: ({ value }) => (value ? undefined : ('confirm_rules_required' as const)),
-          onSubmit: ({ value }) => (value ? undefined : ('confirm_rules_required' as const)),
-        }}
+        validators={confirmation('confirm_rules_required')}
       >
         {(field) => (
           <CheckboxField
@@ -58,10 +77,7 @@ export default function Step8Confirmations({ form }: StepProps) {
 
       <form.Field
         name="confirmations.scholarshipUnderstood"
-        validators={{
-          onChange: ({ value }) => (value ? undefined : ('confirm_scholarship_required' as const)),
-          onSubmit: ({ value }) => (value ? undefined : ('confirm_scholarship_required' as const)),
-        }}
+        validators={confirmation('confirm_scholarship_required')}
       >
         {(field) => (
           <CheckboxField
@@ -79,10 +95,7 @@ export default function Step8Confirmations({ form }: StepProps) {
 
       <form.Field
         name="confirmations.privacy"
-        validators={{
-          onChange: ({ value }) => (value ? undefined : ('confirm_privacy_required' as const)),
-          onSubmit: ({ value }) => (value ? undefined : ('confirm_privacy_required' as const)),
-        }}
+        validators={confirmation('confirm_privacy_required')}
       >
         {(field) => (
           <CheckboxField
