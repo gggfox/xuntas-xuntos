@@ -60,6 +60,11 @@ async function requirePost(ctx: QueryCtx, id: Id<'pipPosts'>): Promise<Doc<'pipP
   return post
 }
 
+/** Adapter from a comment row to what `canSeeComment` reads. Written once, used everywhere a comment's visibility is checked. */
+function seeable(c: Doc<'pipComments'>, viewer: PipViewer): boolean {
+  return canSeeComment({ authorId: c.authorId, visibility: c.visibility, hidden: c.hiddenAt !== undefined }, viewer)
+}
+
 // ---------------------------------------------------------------------------
 // Groups (the data; the screen comes in the next plan)
 
@@ -368,13 +373,36 @@ async function reactionsOf(
   return [...byEmoji.values()].sort((a, b) => b.count - a.count)
 }
 
-/** How many comments this viewer would see under the post — replies included. */
-async function visibleCommentCount(ctx: QueryCtx, postId: Id<'pipPosts'>, viewer: PipViewer): Promise<number> {
-  const rows = await ctx.db
+/**
+ * A post's comments, as the viewer may see them: the top-level comments
+ * that pass `seeable`, each paired with the replies under it that also
+ * pass `seeable`. A reply whose parent the viewer cannot see is dropped
+ * with it — it would be unreachable in the thread either way.
+ * `visibleCommentCount` and `comments` both walk this same tree, on
+ * purpose, so a hidden comment's replies are never counted without also
+ * being drawn, or drawn without being counted.
+ */
+async function visibleThreadOf(
+  ctx: QueryCtx,
+  postId: Id<'pipPosts'>,
+  viewer: PipViewer,
+): Promise<{ top: Doc<'pipComments'>[]; repliesOf: Map<Id<'pipComments'>, Doc<'pipComments'>[]> }> {
+  const all = await ctx.db
     .query('pipComments')
     .withIndex('by_post_parent', (q) => q.eq('postId', postId))
     .collect()
-  return rows.filter((c) => canSeeComment({ authorId: c.authorId, visibility: c.visibility, hidden: c.hiddenAt !== undefined }, viewer)).length
+  const top = all.filter((c) => c.parentId === undefined && seeable(c, viewer))
+  const repliesOf = new Map<Id<'pipComments'>, Doc<'pipComments'>[]>()
+  for (const c of all) {
+    if (c.parentId && seeable(c, viewer)) repliesOf.set(c.parentId, [...(repliesOf.get(c.parentId) ?? []), c])
+  }
+  return { top, repliesOf }
+}
+
+/** How many comments this viewer would see under the post — visible replies of visible parents included. */
+async function visibleCommentCount(ctx: QueryCtx, postId: Id<'pipPosts'>, viewer: PipViewer): Promise<number> {
+  const { top, repliesOf } = await visibleThreadOf(ctx, postId, viewer)
+  return top.reduce((n, c) => n + 1 + (repliesOf.get(c._id)?.length ?? 0), 0)
 }
 
 async function postView(ctx: QueryCtx, post: Doc<'pipPosts'>, viewer: PipViewer) {
@@ -491,9 +519,7 @@ async function commentView(ctx: QueryCtx, c: Doc<'pipComments'>, viewer: PipView
   const author = await ctx.db.get(c.authorId)
   const authorIsLead = author ? can(author.roles, 'publish_pip') : false
   const inactive = !authorIsLead && (await membershipOf(ctx, c.authorId)) === null
-  const visibleReplies = replies.filter((r) =>
-    canSeeComment({ authorId: r.authorId, visibility: r.visibility, hidden: r.hiddenAt !== undefined }, viewer),
-  )
+  const visibleReplies = replies.filter((r) => seeable(r, viewer))
   return {
     _id: c._id,
     authorName: author?.name ?? author?.email ?? '',
@@ -515,21 +541,10 @@ export const comments = query({
   handler: async (ctx, args) => {
     const { viewer, post } = await requireReadablePost(ctx, args.postId)
     if (post.commentsVisibility === 'off') return { canComment: false, comments: [] }
-    const all = await ctx.db
-      .query('pipComments')
-      .withIndex('by_post_parent', (q) => q.eq('postId', post._id))
-      .collect()
-    const top = all.filter((c) => c.parentId === undefined)
-    const byParent = new Map<Id<'pipComments'>, Doc<'pipComments'>[]>()
-    for (const c of all) {
-      if (c.parentId) byParent.set(c.parentId, [...(byParent.get(c.parentId) ?? []), c])
-    }
-    const visible = top.filter((c) =>
-      canSeeComment({ authorId: c.authorId, visibility: c.visibility, hidden: c.hiddenAt !== undefined }, viewer),
-    )
+    const { top, repliesOf } = await visibleThreadOf(ctx, post._id, viewer)
     return {
       canComment: canCommentOn(post, viewer),
-      comments: await Promise.all(visible.map((c) => commentView(ctx, c, viewer, byParent.get(c._id) ?? []))),
+      comments: await Promise.all(top.map((c) => commentView(ctx, c, viewer, repliesOf.get(c._id) ?? []))),
     }
   },
 })
@@ -548,9 +563,7 @@ export const addComment = mutation({
       parent = await requireComment(ctx, args.parentId)
       // Replies hang off top-level comments of this post only, and off ones the replier can see.
       if (parent.postId !== post._id || parent.parentId !== undefined) fail('pip_comment_not_found')
-      if (!canSeeComment({ authorId: parent.authorId, visibility: parent.visibility, hidden: parent.hiddenAt !== undefined }, viewer)) {
-        fail('pip_comment_not_found')
-      }
+      if (!seeable(parent, viewer)) fail('pip_comment_not_found')
     }
 
     const id = await ctx.db.insert('pipComments', {
@@ -631,7 +644,7 @@ async function requireReactable(ctx: QueryCtx, targetKind: 'post' | 'comment', t
   if (targetKind === 'comment') {
     const c = await requireComment(ctx, targetId as Id<'pipComments'>)
     if (c.parentId !== undefined) fail('pip_comment_not_found')
-    if (!canSeeComment({ authorId: c.authorId, visibility: c.visibility, hidden: c.hiddenAt !== undefined }, viewer)) fail('pip_comment_not_found')
+    if (!seeable(c, viewer)) fail('pip_comment_not_found')
   }
   if (!canReact(post, viewer)) fail('permission_required')
   return { actor, post }
