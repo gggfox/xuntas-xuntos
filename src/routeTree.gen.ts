@@ -18,6 +18,7 @@ import { Route as EmpezarRouteImport } from './routes/empezar'
 import { Route as MiRegistroRouteImport } from './routes/mi-registro'
 import { Route as NotificacionesRouteImport } from './routes/notificaciones'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as PipRouteImport } from './routes/pip'
 import { Route as AdministracionIndexRouteImport } from './routes/administracion.index'
 import { Route as AdministracionAtletasRouteImport } from './routes/administracion.atletas'
 import { Route as AdministracionEquipoRouteImport } from './routes/administracion.equipo'
@@ -76,6 +77,11 @@ const NotificacionesRoute = NotificacionesRouteImport.update({
 const PerfilRoute = PerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PipRoute = PipRouteImport.update({
+  id: '/pip',
+  path: '/pip',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdministracionIndexRoute = AdministracionIndexRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/mi-registro': typeof MiRegistroRoute
   '/notificaciones': typeof NotificacionesRoute
   '/perfil': typeof PerfilRoute
+  '/pip': typeof PipRoute
   '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/periodos': typeof AdministracionPeriodosRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/mi-registro': typeof MiRegistroRoute
   '/notificaciones': typeof NotificacionesRoute
   '/perfil': typeof PerfilRoute
+  '/pip': typeof PipRoute
   '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/periodos': typeof AdministracionPeriodosRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/mi-registro': typeof MiRegistroRoute
   '/notificaciones': typeof NotificacionesRoute
   '/perfil': typeof PerfilRoute
+  '/pip': typeof PipRoute
   '/administracion/atletas': typeof AdministracionAtletasRoute
   '/administracion/equipo': typeof AdministracionEquipoRoute
   '/administracion/periodos': typeof AdministracionPeriodosRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/mi-registro'
     | '/notificaciones'
     | '/perfil'
+    | '/pip'
     | '/administracion/atletas'
     | '/administracion/equipo'
     | '/administracion/periodos'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/mi-registro'
     | '/notificaciones'
     | '/perfil'
+    | '/pip'
     | '/administracion/atletas'
     | '/administracion/equipo'
     | '/administracion/periodos'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/mi-registro'
     | '/notificaciones'
     | '/perfil'
+    | '/pip'
     | '/administracion/atletas'
     | '/administracion/equipo'
     | '/administracion/periodos'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   MiRegistroRoute: typeof MiRegistroRoute
   NotificacionesRoute: typeof NotificacionesRoute
   PerfilRoute: typeof PerfilRoute
+  PipRoute: typeof PipRoute
   AutorizarTokenRoute: typeof AutorizarTokenRoute
   CrearCuentaSplatRoute: typeof CrearCuentaSplatRoute
   EntrarSplatRoute: typeof EntrarSplatRoute
@@ -383,6 +396,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pip': {
+      id: '/pip'
+      path: '/pip'
+      fullPath: '/pip'
+      preLoaderRoute: typeof PipRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/administracion/': {
@@ -532,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   MiRegistroRoute: MiRegistroRoute,
   NotificacionesRoute: NotificacionesRoute,
   PerfilRoute: PerfilRoute,
+  PipRoute: PipRoute,
   AutorizarTokenRoute: AutorizarTokenRoute,
   CrearCuentaSplatRoute: CrearCuentaSplatRoute,
   EntrarSplatRoute: EntrarSplatRoute,
